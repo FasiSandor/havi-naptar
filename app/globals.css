@@ -168,3 +168,25 @@
 .swipeCalendar .grid,.swipeCalendar .weekHeader{transition:transform .12s ease,opacity .12s ease}
 .swipe-left .grid,.swipe-left .weekHeader{transform:translateX(-5%);opacity:.55}
 .swipe-right .grid,.swipe-right .weekHeader{transform:translateX(5%);opacity:.55}
+
+@keyframes nowPulse{0%,100%{box-shadow:0 0 0 0 #22D3EE55}50%{box-shadow:0 0 0 6px #22D3EE00}}
+.nowLine{position:absolute;left:48px;right:8px;height:0;border-top:1.5px solid #22D3EE;z-index:15;pointer-events:none;filter:drop-shadow(0 0 5px #22D3EE66)}
+.nowLine::before{content:"";position:absolute;left:-5px;top:-5px;width:9px;height:9px;border-radius:50%;background:#22D3EE;animation:nowPulse 1.8s ease-in-out infinite}
+.nowLine span{position:absolute;left:-48px;top:-9px;width:42px;text-align:right;font-size:9px;font-weight:700;color:#67E8F9;text-shadow:0 0 10px #22D3EE88}
+.nowLine i{position:absolute;left:0;right:0;top:-1px;height:1px;background:linear-gradient(90deg,#22D3EE,#60A5FA88,transparent)}
+
+.listItem{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;animation:uiFadeUp .28s ease both}
+.listItem:hover{transform:translateY(-1px);border-color:#3B82F688;background:linear-gradient(180deg,#13233A,#101A2A);box-shadow:0 8px 22px #0004,0 0 14px #3B82F61f}
+.form input:focus,.form select:focus,.form textarea:focus,.customRange input:focus{border-color:#3B82F6;box-shadow:0 0 0 3px #3B82F61e,0 0 16px #3B82F61f}
+.form input,.form select,.form textarea,.customRange input{transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
+.calList label{transition:background .16s ease,transform .16s ease;padding .16s ease;border-radius:8px}
+.calList label:hover{background:#162238;transform:translateX(2px)}
+.calList label i{box-shadow:0 0 10px currentColor}
+.dayZoom>header,.modalHead{position:relative;overflow:hidden}
+.dayZoom>header::after,.modalHead::after{content:"";position:absolute;left:10%;right:10%;bottom:0;height:1px;background:linear-gradient(90deg,transparent,#60A5FA66,#22D3EE55,transparent)}
+
+@media(max-width:900px){
+  .nowLine{left:42px}
+  .nowLine span{left:-42px;width:36px;font-size:8px}
+  .listItem:active{transform:scale(.985)}
+}
