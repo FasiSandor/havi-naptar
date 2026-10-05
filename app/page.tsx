@@ -126,6 +126,15 @@ export default function Home(){
   }
 
   function shift(n:number){
+    if(mode==="custom"){
+      const span=count;
+      const nextStart=addDays(parseDate(customStart),span*n);
+      const nextEnd=addDays(parseDate(customEnd),span*n);
+      setCustomStart(iso(nextStart));
+      setCustomEnd(iso(nextEnd));
+      setAnchor(nextStart);
+      return;
+    }
     const d=new Date(anchor);
     if(mode==="month")d.setMonth(d.getMonth()+n);
     else if(mode==="1w")d.setDate(d.getDate()+7*n);
@@ -172,7 +181,7 @@ export default function Home(){
           <div className="listDate"><b>{parseDate(e.date).getDate()}</b><span>{shortDays[parseDate(e.date).getDay()]}</span></div>
           <i style={{background:calMeta[e.calendar].color}}/><div><strong>{calMeta[e.calendar].icon} {e.title}</strong><small>{e.allDay?"Egész napos":(e.start||"")+" – "+(e.end||"")}</small></div>
         </button>):<div className="empty">Nincs esemény ebben az időszakban.</div>}
-      </div>:<CalendarGrid days={days} events={shown} anchor={anchor} onDay={(d)=>{setAnchor(d);setDayOpen(iso(d))}}/>}
+      </div>:<CalendarGrid days={days} events={shown} anchor={anchor} onDay={(d)=>{setAnchor(d);setDayOpen(iso(d))}} onSwipe={shift}/>} 
     </section>
 
     <button className="fab" onClick={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}>＋</button>
@@ -189,14 +198,30 @@ export default function Home(){
   </main>
 }
 
-function CalendarGrid({days,events,anchor,onDay}:{days:Date[];events:Ev[];anchor:Date;onDay:(d:Date)=>void}){
+function CalendarGrid({days,events,anchor,onDay,onSwipe}:{days:Date[];events:Ev[];anchor:Date;onDay:(d:Date)=>void;onSwipe:(n:number)=>void}){
   const first=days[0]?.getDay()||1;
   const headers=Array.from({length:7},(_,i)=>dayNames[(first+i)%7]);
-  return <div className="calendar timeCalendar">
+  const startPoint=useRef<{x:number;y:number}|null>(null);
+  const suppressClick=useRef(false);
+  function pointerDown(e:React.PointerEvent<HTMLDivElement>){
+    if(e.pointerType==="mouse"&&e.button!==0)return;
+    startPoint.current={x:e.clientX,y:e.clientY};
+  }
+  function pointerUp(e:React.PointerEvent<HTMLDivElement>){
+    if(!startPoint.current)return;
+    const dx=e.clientX-startPoint.current.x,dy=e.clientY-startPoint.current.y;
+    startPoint.current=null;
+    if(Math.abs(dx)>=56&&Math.abs(dx)>Math.abs(dy)*1.2){
+      suppressClick.current=true;
+      onSwipe(dx<0?1:-1);
+      setTimeout(()=>{suppressClick.current=false},220);
+    }
+  }
+  return <div className="calendar timeCalendar swipeCalendar" onPointerDown={pointerDown} onPointerUp={pointerUp} onPointerCancel={()=>{startPoint.current=null}}>
     <div className="weekHeader">{headers.map(x=><span key={x}>{x}</span>)}</div>
     <div className="grid">{days.map(d=>{
       const es=events.filter(e=>e.date===iso(d));
-      return <button key={iso(d)} className={"day timeDay "+(iso(d)===iso(anchor)?"selectedDay":"")} onClick={()=>onDay(d)}>
+      return <button key={iso(d)} className={"day timeDay "+(iso(d)===iso(anchor)?"selectedDay":"")} onClick={()=>{if(!suppressClick.current)onDay(d)}}>
         <div className="dayHead"><b>{d.getDate()}</b><small>{shortDays[d.getDay()]}</small></div>
         <div className="miniTimeline">
           <i className="guide g1"/><i className="guide g2"/><i className="guide g3"/>
