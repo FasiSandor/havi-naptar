@@ -434,3 +434,26 @@
   .appShell[data-theme="light"] .topbar{background:linear-gradient(180deg,#F4F7FBF3 74%,#F4F7FB00)}
   .appShell[data-theme="light"] .rangeBar{background:#EAF0F7EE}
 }
+
+@keyframes panelClose{from{opacity:1;transform:scale(1) translateY(0)}to{opacity:0;transform:scale(.965) translateY(12px)}}
+@keyframes backdropClose{from{opacity:1}to{opacity:0}}
+.dayBackdrop.closing,.backdrop.closing{animation:backdropClose .19s ease forwards}
+.dayBackdrop.closing .dayZoom,.backdrop.closing .modal{animation:panelClose .19s cubic-bezier(.4,0,1,1) forwards}
+.closeX,.modalHead button{
+  background:linear-gradient(180deg,#2A1217,#1A1014);
+  color:#FCA5A5;
+  border:1px solid #7F1D2D;
+  box-shadow:0 0 14px #EF444426;
+}
+.closeX:hover,.modalHead button:hover{
+  color:#fff;background:linear-gradient(180deg,#7F1D1D,#4C1111);border-color:#EF4444;box-shadow:0 0 20px #EF444455;
+}
+.appShell[data-theme="light"] .closeX,
+.appShell[data-theme="light"] .modalHead button{
+  background:linear-gradient(180deg,#FFF1F2,#FDE8EA);
+  color:#B4232F;border-color:#F3B6BD;box-shadow:0 0 12px #EF444418;
+}
+.appShell[data-theme="light"] .closeX:hover,
+.appShell[data-theme="light"] .modalHead button:hover{
+  background:linear-gradient(180deg,#FEE2E2,#FECACA);color:#991B1B;border-color:#EF4444;
+}
