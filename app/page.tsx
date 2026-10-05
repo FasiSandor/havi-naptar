@@ -26,7 +26,7 @@ export default function Home(){
   const [editor,setEditor]=useState<Partial<Ev>|null>(null);
   const [enabled,setEnabled]=useState<Record<CalKey,boolean>>({work:true,personal:true,family:true,sport:true});
   const [connected,setConnected]=useState(false);
-  const [settings,setSettings]=useState(false);
+  const [settings,setSettings]=useState(false);\n  const [notice,setNotice]=useState("");\n  const [syncing,setSyncing]=useState(false);
 
   useEffect(()=>{try{setEvents(JSON.parse(localStorage.getItem("havi-events")||"[]"))}catch{}},[]);
   useEffect(()=>{localStorage.setItem("havi-events",JSON.stringify(events.filter(e=>!e.googleId)))},[events]);
@@ -95,14 +95,14 @@ export default function Home(){
 
     <section className="content">
       <header className="topbar">
-        <div className="headLeft"><button className="iconBtn" onClick={()=>shift(-1)}>‹</button><button className="iconBtn" onClick={()=>shift(1)}>›</button><h1>{monthLabel(anchor)}</h1></div>
+        <div className="headLeft"><button className="iconBtn" onClick={()=>shift(-1)}>‹</button><button className="iconBtn" onClick={()=>shift(1)}>›</button><button className="todayBtn" onClick={()=>setAnchor(new Date())}>Ma</button><h1>{monthLabel(anchor)}</h1></div>
         <div className="viewSwitch">
           <button className={view==="four"?"on":""} onClick={()=>setView("four")}>4 hét</button>
           <button className={view==="month"?"on":""} onClick={()=>setView("month")}>Hónap</button>
           <button className={view==="list"?"on":""} onClick={()=>setView("list")}>Lista</button>
         </div>
         <div className="actions">
-          <button className="secondary" onClick={()=>window.print()}>⎙ PDF / Nyomtatás</button>
+          <button className="secondary" onClick={()=>window.print()}>⎙ PDF / Nyomtatás</button><button className="syncBtn" onClick={()=>sync()} disabled={syncing}>{syncing?"Szinkron…":connected?"↻ Szinkron":"○ Offline"}</button>
           <button className="primary" onClick={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}>＋ Esemény</button>
         </div>
       </header>
@@ -124,7 +124,7 @@ export default function Home(){
       </div>}
     </section>
 
-    <button className="fab" onClick={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}>＋</button>
+    {notice&&<div className="toast">{notice}</div>}\n    <button className="fab" onClick={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}>＋</button>
 
     {editor&&<Modal title={editor.id?"Esemény szerkesztése":"Esemény hozzáadása"} onClose={()=>setEditor(null)}>
       <EventForm value={editor} onSave={save} onCancel={()=>setEditor(null)}/>
