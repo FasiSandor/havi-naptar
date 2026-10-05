@@ -1046,3 +1046,52 @@
   .appShell[data-theme="light"] .quickTitle{background:#F7FAFD;color:#17283B;border-color:#C7D7E6}
   .appShell[data-theme="light"] .wheelPicker{background:#EAF1F7;border-color:#CAD8E5;box-shadow:inset 0 12px 24px #94A9BE18,inset 0 -12px 24px #94A9BE12}
 }
+
+/* true scroll-snap wheel picker */
+@media(max-width:900px) and (orientation:portrait){
+  .wheelPicker{
+    display:grid!important;
+    grid-template-columns:1.05fr .8fr 1.05fr!important;
+    gap:8px!important;
+    padding:10px!important;
+    border-radius:22px!important;
+    background:
+      linear-gradient(180deg,#0B1623,#09121D)!important;
+    border:1px solid #263A52!important;
+    box-shadow:inset 0 18px 30px #0006,inset 0 -18px 30px #0005,0 8px 22px #0003!important;
+  }
+  .wheelColumn{min-width:0;display:grid;grid-template-rows:auto 138px;gap:6px}
+  .wheelColumn>small{text-align:center;font-size:8px;letter-spacing:.13em;font-weight:900;color:#70869F}
+  .wheelViewport{position:relative;height:138px;overflow:hidden;border-radius:15px}
+  .wheelViewport::before,.wheelViewport::after{
+    content:"";position:absolute;left:0;right:0;height:42px;z-index:5;pointer-events:none
+  }
+  .wheelViewport::before{top:0;background:linear-gradient(180deg,#09121D 18%,#09121DB8 54%,transparent)}
+  .wheelViewport::after{bottom:0;background:linear-gradient(0deg,#09121D 18%,#09121DB8 54%,transparent)}
+  .wheelSelection{
+    position:absolute;left:3px;right:3px;top:48px;height:42px;z-index:2;pointer-events:none;border-radius:12px;
+    background:
+      radial-gradient(circle at 82% 12%,#22D3EE35,transparent 38%),
+      linear-gradient(135deg,#163A74,#1F5EB8 62%,#1593A8);
+    border:1px solid #60A5FA;
+    box-shadow:0 0 22px #3B82F648,inset 0 1px 0 #ffffff25
+  }
+  .wheelScroll{
+    height:138px;overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior:contain;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;position:relative;z-index:3
+  }
+  .wheelScroll::-webkit-scrollbar{display:none}
+  .wheelSpacer{height:48px}
+  .wheelScroll button{
+    width:100%;height:42px;display:grid;place-items:center;scroll-snap-align:center;
+    border:0;background:transparent;color:#5E738C;font-size:13px;font-weight:750;
+    transition:font-size .14s ease,color .14s ease,opacity .14s ease,transform .14s ease;
+    opacity:.45
+  }
+  .wheelScroll button.active{color:#fff;font-size:18px;font-weight:900;opacity:1;text-shadow:0 0 14px #67E8F98a;transform:scale(1.03)}
+  .appShell[data-theme="light"] .wheelPicker{background:linear-gradient(180deg,#EAF1F7,#E4EDF5)!important;border-color:#C9D8E6!important}
+  .appShell[data-theme="light"] .wheelViewport::before{background:linear-gradient(180deg,#EAF1F7 18%,#EAF1F7B8 54%,transparent)}
+  .appShell[data-theme="light"] .wheelViewport::after{background:linear-gradient(0deg,#EAF1F7 18%,#EAF1F7B8 54%,transparent)}
+  .appShell[data-theme="light"] .wheelScroll button{color:#71859A}
+  .appShell[data-theme="light"] .wheelScroll button.active{color:#12385F;text-shadow:0 0 12px #60A5FA55}
+}
