@@ -29,9 +29,16 @@ export default function Home(){
   const [settings,setSettings]=useState(false);
   const [notice,setNotice]=useState("");
   const [syncing,setSyncing]=useState(false);
+  const [hydrated,setHydrated]=useState(false);
 
-  useEffect(()=>{try{setEvents(JSON.parse(localStorage.getItem("havi-events")||"[]"))}catch{}},[]);
-  useEffect(()=>{localStorage.setItem("havi-events",JSON.stringify(events.filter(e=>!e.googleId)))},[events]);
+  useEffect(()=>{
+    try{setEvents(JSON.parse(localStorage.getItem("havi-events")||"[]"))}catch{}
+    finally{setHydrated(true)}
+  },[]);
+  useEffect(()=>{
+    if(!hydrated) return;
+    localStorage.setItem("havi-events",JSON.stringify(events.filter(e=>!e.googleId)))
+  },[events,hydrated]);
 
   const start=useMemo(()=>{
     if(view==="month"){const first=new Date(anchor.getFullYear(),anchor.getMonth(),1,12);return monday(first)}
@@ -42,33 +49,57 @@ export default function Home(){
   const end=days[days.length-1];
 
   async function sync(){
-    const r=await fetch(`/api/google/events?from=${start.toISOString()}&to=${addDays(end,1).toISOString()}`);
-    if(!r.ok){setConnected(false);return}
-    const j=await r.json();setConnected(true);
-    const local=events.filter(e=>!e.googleId);
-    setEvents([...local,...(j.items||[]).map(toGoogleEvent)]);
+    setSyncing(true);
+    try{
+      const r=await fetch(`/api/google/events?from=${start.toISOString()}&to=${addDays(end,1).toISOString()}`);
+      if(!r.ok){setConnected(false);return}
+      const j=await r.json();setConnected(true);
+      const local=events.filter(e=>!e.googleId);
+      setEvents([...local,...(j.items||[]).map(toGoogleEvent)]);
+    } catch {
+      setConnected(false);
+    } finally {
+      setSyncing(false);
+    }
   }
   useEffect(()=>{sync().catch(()=>{})},[start.getTime(),end.getTime()]);
 
   const shown=events.filter(e=>enabled[e.calendar] && days.some(d=>iso(d)===e.date)).sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
 
   async function save(x:Partial<Ev>){
+    if(!(x.title||"").trim()){setNotice("Adj nevet az eseménynek.");setTimeout(()=>setNotice(""),2200);return}
+    if(!x.date){setNotice("Válassz dátumot.");setTimeout(()=>setNotice(""),2200);return}
+    if(!x.allDay && x.start && x.end && x.end<=x.start){setNotice("A befejezés legyen később, mint a kezdés.");setTimeout(()=>setNotice(""),2600);return}
     const base:Ev={id:x.id||crypto.randomUUID(),googleId:x.googleId,title:x.title||"Esemény",date:x.date||iso(anchor),start:x.start||"09:00",end:x.end||"10:00",allDay:!!x.allDay,calendar:(x.calendar||"work") as CalKey,location:x.location||"",note:x.note||""};
     let gId=base.googleId;
     if(connected){
       const startDate=parseDate(base.date);
       const payload={...base,start:base.allDay?base.date:`${base.date}T${base.start}:00`,end:base.allDay?iso(addDays(startDate,1)):`${base.date}T${base.end}:00`,endDate:iso(addDays(startDate,1))};
-      const r=await fetch("/api/google/events",{method:gId?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-      if(r.ok){const j=await r.json();gId=j.id||gId}
+      try{
+        const r=await fetch("/api/google/events",{method:gId?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+        if(r.ok){const j=await r.json();gId=j.id||gId}
+        else {setNotice("Google-szinkron hiba, az eseményt helyben elmentettem.")}
+      } catch {
+        setNotice("Google-szinkron hiba, az eseményt helyben elmentettem.")
+      }
     }
     const next={...base,googleId:gId};
     setEvents(prev=>[...prev.filter(e=>e.id!==next.id && (!gId || e.googleId!==gId)),next]);
     setEditor(null);setSelected(next);
+    if(!notice) setNotice("Esemény mentve.");
+    setTimeout(()=>setNotice(""),2200);
   }
 
   async function remove(e:Ev){
-    if(e.googleId&&connected) await fetch("/api/google/events?id="+encodeURIComponent(e.googleId),{method:"DELETE"});
+    if(e.googleId&&connected){
+      try{
+        const r=await fetch("/api/google/events?id="+encodeURIComponent(e.googleId),{method:"DELETE"});
+        if(!r.ok){setNotice("A Google Naptár törlése nem sikerült.")}
+      } catch {setNotice("A Google Naptár törlése nem sikerült.")}
+    }
     setEvents(p=>p.filter(x=>x.id!==e.id));setSelected(null);
+    if(!notice) setNotice("Esemény törölve.");
+    setTimeout(()=>setNotice(""),2200);
   }
 
   function shift(n:number){
