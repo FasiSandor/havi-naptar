@@ -51,3 +51,44 @@
 }
 @media print{body{background:#fff!important;color:#000}.toast{display:none!important}.sidebar,.topbar .actions,.viewSwitch,.fab{display:none!important}.appShell{display:block;background:#fff}.content{padding:0}.topbar{display:flex;margin-bottom:12px}.headLeft button{display:none}.headLeft h1{color:#111;font-size:20px}.calendar{border:1px solid #bbb;background:#fff}.weekHeader{background:#f5f5f5;border-color:#ccc}.weekHeader span{color:#111}.day{background:#fff!important;color:#111;border-color:#ccc;min-height:110px;break-inside:avoid}.eventChip{background:#f0f4f8!important;color:#111;border-left-color:var(--event)!important}.month .day{min-height:90px}@page{size:A4 landscape;margin:8mm}}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:40;background:#10243f;border:1px solid #2b70d9;color:#eaf4ff;padding:11px 16px;border-radius:10px;box-shadow:0 10px 35px #0008}
+
+.periodTitle h1{margin:0;font-size:24px;text-transform:capitalize}.periodTitle small{display:block;color:#8ea0b8;font-size:12px;margin-top:2px}
+.rangeBar{display:flex;gap:6px;padding:4px;background:#101a2a;border:1px solid #263348;border-radius:12px;width:max-content;max-width:100%;margin:0 0 12px}
+.rangeBar button{border:0;background:transparent;color:#aab6c7;padding:9px 14px;border-radius:9px;cursor:pointer}.rangeBar button.on{background:#1268f4;color:#fff;box-shadow:0 0 16px #1268f44d}
+.customRange{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:12px;border:1px solid #263348;background:#101a2a;border-radius:12px}
+.customRange label{display:grid;gap:5px;color:#9fb0c5;font-size:12px}.customRange input{background:#152236;border:1px solid #2a3a54;border-radius:8px;color:#fff;padding:9px}.customRange b{color:#60A5FA;padding:8px 0}
+.timeDay{position:relative}.dayHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}.dayHead b{font-size:16px}.dayHead small{color:#71839b;font-size:10px}
+.miniTimeline{position:relative;height:100px;border-radius:8px;overflow:hidden;background:linear-gradient(180deg,#0c1726aa,#101d2faa)}
+.guide{position:absolute;left:0;right:0;border-top:1px solid #26334888}.g1{top:25%}.g2{top:50%}.g3{top:75%}
+.timelineEvent{position:absolute;left:2px;right:2px;display:flex;gap:3px;align-items:center;min-height:18px;padding:3px 4px;border-radius:5px;background:color-mix(in srgb,var(--event) 24%,#0b1422);border-left:3px solid var(--event);color:#eff6ff;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 2px 8px #0005}
+.timelineEvent em{font-style:normal;color:var(--event)}.timelineEvent b{font-size:8px}.moreEvents{position:absolute;right:4px;bottom:3px;color:#8db8ff;font-size:9px}
+.dayBackdrop{position:fixed;inset:0;z-index:60;background:#02060bbf;backdrop-filter:blur(14px);display:grid;place-items:center;padding:18px}
+.dayZoom{width:min(760px,96vw);height:min(88dvh,900px);display:grid;grid-template-rows:auto auto 1fr auto;background:linear-gradient(180deg,#111d30,#0c1523);border:1px solid #2b3f5e;border-radius:22px;box-shadow:0 28px 90px #000b,0 0 35px #1268f429;overflow:hidden}
+.dayZoom>header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #263348;background:#111b2b}
+.dayZoom>header h2{margin:2px 0 0;font-size:24px;text-transform:capitalize}.dayZoom>header small{color:#60A5FA;font-weight:700}.dayZoom>header>div:last-child{display:flex;align-items:center;gap:8px}
+.closeX{border:0;background:#172033;color:#dce8f7;width:40px;height:40px;border-radius:11px;font-size:24px;cursor:pointer}
+.allDayRow{display:flex;gap:8px;overflow:auto;padding:8px 14px;border-bottom:1px solid #263348}.allDayRow button{border:1px solid var(--event);background:color-mix(in srgb,var(--event) 16%,#111827);color:#fff;border-radius:9px;padding:7px 10px;white-space:nowrap}
+.dayScroll{position:relative;overflow-y:auto;overscroll-behavior:contain;background:#0c1523}.hours{height:1536px}.hourRow{height:64px;display:grid;grid-template-columns:58px 1fr;align-items:start}.hourRow span{font-size:11px;color:#75869e;padding:4px 8px 0 0;text-align:right}.hourRow i{display:block;border-top:1px solid #243149;height:64px}
+.dayEventsLayer{position:absolute;left:64px;right:10px;top:0;height:1536px;pointer-events:none}.dragEvent{position:absolute;left:0;right:0;border:1px solid var(--event);border-left:5px solid var(--event);border-radius:10px;background:color-mix(in srgb,var(--event) 20%,#101a2a);box-shadow:0 8px 24px #0007;display:grid;grid-template-columns:1fr auto;overflow:hidden;pointer-events:auto;touch-action:none;user-select:none}
+.eventMain{border:0;background:transparent;color:#fff;text-align:left;padding:7px 8px;display:flex;gap:8px;min-width:0}.eventMain>span{color:var(--event);font-size:15px}.eventMain div{min-width:0}.eventMain b,.eventMain small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.eventMain b{font-size:13px}.eventMain small{font-size:10px;color:#b8c6d9;margin-top:3px}
+.eventQuick{display:flex;align-items:stretch}.eventQuick button{border:0;border-left:1px solid #ffffff1c;background:#ffffff08;color:#d8e7fa;padding:0 7px;font-size:10px}.eventQuick button:hover{background:#ffffff12}
+.dayZoom>footer{padding:9px 14px;border-top:1px solid #263348;color:#74869e;text-align:center;font-size:11px;background:#101a2a}
+@media(max-width:900px){
+  .periodTitle h1{font-size:17px}.periodTitle small{display:none}
+  .rangeBar{width:100%;overflow-x:auto;scrollbar-width:none}.rangeBar::-webkit-scrollbar{display:none}.rangeBar button{flex:0 0 auto;padding:8px 11px;font-size:12px}
+  .customRange{gap:7px;padding:9px}.customRange label{flex:1;min-width:130px}.customRange span{display:none}.customRange b{width:100%;padding:0}
+  .miniTimeline{height:74px}.timelineEvent{font-size:7px;min-height:15px;padding:2px}.timelineEvent b{display:none}.dayHead b{font-size:13px}
+  .dayBackdrop{padding:8px}.dayZoom{width:100%;height:92dvh;border-radius:18px}.dayZoom>header{padding:12px}.dayZoom>header h2{font-size:20px}.dayZoom>header .secondary{display:inline-block;padding:8px 10px;font-size:12px}
+  .dayEventsLayer{left:50px}.hourRow{grid-template-columns:46px 1fr}.hourRow span{font-size:9px;padding-right:5px}
+  .dragEvent{grid-template-columns:1fr}.eventQuick{position:absolute;right:2px;top:2px;bottom:2px;background:#0a1220cc;border-radius:7px;opacity:0;transition:opacity .15s}.dragEvent:active .eventQuick,.dragEvent:focus-within .eventQuick{opacity:1}.eventQuick button{padding:0 6px}
+  .eventMain{padding:7px 64px 7px 7px}.eventMain b{font-size:12px}.eventMain small{font-size:9px}
+}
+@media(max-width:520px){
+  .rangeBar button{padding:8px 10px}
+  .miniTimeline{height:68px}
+  .timeCalendar .day{min-height:88px}
+}
+@media print{
+  .rangeBar,.customRange,.dayBackdrop{display:none!important}
+  .miniTimeline{height:86px}
+}
