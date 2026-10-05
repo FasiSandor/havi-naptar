@@ -179,7 +179,7 @@
 .listItem:hover{transform:translateY(-1px);border-color:#3B82F688;background:linear-gradient(180deg,#13233A,#101A2A);box-shadow:0 8px 22px #0004,0 0 14px #3B82F61f}
 .form input:focus,.form select:focus,.form textarea:focus,.customRange input:focus{border-color:#3B82F6;box-shadow:0 0 0 3px #3B82F61e,0 0 16px #3B82F61f}
 .form input,.form select,.form textarea,.customRange input{transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
-.calList label{transition:background .16s ease,transform .16s ease;padding .16s ease;border-radius:8px}
+.calList label{transition:background .16s ease,transform .16s ease;border-radius:8px}
 .calList label:hover{background:#162238;transform:translateX(2px)}
 .calList label i{box-shadow:0 0 10px currentColor}
 .dayZoom>header,.modalHead{position:relative;overflow:hidden}
@@ -234,7 +234,7 @@
 .modalActions .primary{min-width:116px}
 .modalActions .secondary{min-width:92px}
 .modalHead b{background:linear-gradient(90deg,#F8FAFC,#BFDBFE);-webkit-background-clip:text;background-clip:text;color:transparent}
-.modalHead button{transition:transform .16s ease,color .16s ease,background .16s ease;border-color .16s ease;border-radius:8px}
+.modalHead button{transition:transform .16s ease,color .16s ease,background .16s ease,border-color .16s ease;border-radius:8px}
 .modalHead button:hover{color:#fff;background:#1A2B44;transform:rotate(4deg)}
 
 .settingsBox .status{position:relative;overflow:hidden}

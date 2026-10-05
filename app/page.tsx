@@ -26,7 +26,9 @@ function hhmm(m:number){m=Math.max(0,Math.min(23*60+45,m));return `${String(Math
 function duration(e:Ev){return Math.max(15,mins(e.end)-mins(e.start))}
 function toGoogleEvent(x:any):Ev{
   const start=x.start?.dateTime||x.start?.date;
-  return {id:"g-"+x.id,googleId:x.id,title:x.summary||"Esemény",date:(start||"").slice(0,10),start:x.start?.dateTime?.slice(11,16),end:x.end?.dateTime?.slice(11,16),allDay:!!x.start?.date,calendar:"work",location:x.location||"",note:x.description||""}
+  const category=x.extendedProperties?.private?.haviCategory;
+  const calendar=(category==="work"||category==="personal"||category==="family"||category==="sport")?category:"work";
+  return {id:"g-"+x.id,googleId:x.id,title:x.summary||"Esemény",date:(start||"").slice(0,10),start:x.start?.dateTime?.slice(11,16),end:x.end?.dateTime?.slice(11,16),allDay:!!x.start?.date,calendar,location:x.location||"",note:x.description||""}
 }
 
 export default function Home(){
@@ -77,22 +79,53 @@ export default function Home(){
     try{
       const r=await fetch(`/api/google/events?from=${start.toISOString()}&to=${addDays(end,1).toISOString()}`);
       if(!r.ok){setConnected(false);return}
-      const j=await r.json();setConnected(true);
+      const j=await r.json();
+      if(!j.connected){setConnected(false);return}
+      setConnected(true);
       setEvents(prev=>[...prev.filter(e=>!e.googleId),...(j.items||[]).map(toGoogleEvent)]);
     }catch{setConnected(false)}
     finally{setSyncing(false)}
   }
   useEffect(()=>{if(hydrated)sync().catch(()=>{})},[start.getTime(),end.getTime(),hydrated]);
+  useEffect(()=>{
+    if(!hydrated)return;
+    const refresh=()=>{if(document.visibilityState==="visible")sync().catch(()=>{})};
+    const timer=setInterval(refresh,60000);
+    window.addEventListener("focus",refresh);
+    document.addEventListener("visibilitychange",refresh);
+    return ()=>{clearInterval(timer);window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",refresh)};
+  },[hydrated,start.getTime(),end.getTime()]);
 
   async function persist(next:Ev){
     let gId=next.googleId;
+    const isExistingGoogle=!!gId;
+    if(isExistingGoogle&&!connected){
+      setNotice("Nincs Google-kapcsolat. A módosítást nem mentettem.");
+      return null;
+    }
     if(connected){
       const sd=parseDate(next.date);
       const payload={...next,start:next.allDay?next.date:`${next.date}T${next.start}:00`,end:next.allDay?iso(addDays(sd,1)):`${next.date}T${next.end}:00`,endDate:iso(addDays(sd,1))};
       try{
         const r=await fetch("/api/google/events",{method:gId?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-        if(r.ok){const j=await r.json();gId=j.id||gId}else setNotice("Google-szinkron hiba, helyben elmentve.");
-      }catch{setNotice("Google-szinkron hiba, helyben elmentve.")}
+        if(r.ok){
+          const j=await r.json();
+          gId=j.id||gId;
+        }else if(isExistingGoogle){
+          setNotice("A Google Naptár módosítása nem sikerült. Az eredeti esemény megmaradt.");
+          return null;
+        }else{
+          setNotice("Google-szinkron hiba. Az új eseményt csak helyben mentettem.");
+          gId=undefined;
+        }
+      }catch{
+        if(isExistingGoogle){
+          setNotice("A Google Naptár módosítása nem sikerült. Az eredeti esemény megmaradt.");
+          return null;
+        }
+        setNotice("Google-szinkron hiba. Az új eseményt csak helyben mentettem.");
+        gId=undefined;
+      }
     }
     const saved={...next,googleId:gId};
     setEvents(prev=>[...prev.filter(e=>e.id!==saved.id&&(!gId||e.googleId!==gId)),saved]);
@@ -104,12 +137,33 @@ export default function Home(){
     if(!x.date){setNotice("Válassz dátumot.");return}
     if(!x.allDay&&x.start&&x.end&&x.end<=x.start){setNotice("A befejezés legyen később a kezdésnél.");return}
     const base:Ev={id:x.id||crypto.randomUUID(),googleId:x.googleId,title:(x.title||"Esemény").trim(),date:x.date,start:x.start||"09:00",end:x.end||"10:00",allDay:!!x.allDay,calendar:(x.calendar||"work") as CalKey,location:x.location||"",note:x.note||""};
-    await persist(base);setEditor(null);setNotice("Esemény mentve.");setTimeout(()=>setNotice(""),1800);
+    const saved=await persist(base);
+    if(!saved)return;
+    setEditor(null);
+    setNotice(saved.googleId?"Esemény mentve és szinkronizálva.":"Esemény helyben mentve.");
+    setTimeout(()=>setNotice(""),1800);
   }
 
   async function remove(e:Ev){
-    if(e.googleId&&connected){try{await fetch("/api/google/events?id="+encodeURIComponent(e.googleId),{method:"DELETE"})}catch{}}
-    setEvents(p=>p.filter(x=>x.id!==e.id));setNotice("Esemény törölve.");setTimeout(()=>setNotice(""),1600);
+    if(e.googleId){
+      if(!connected){
+        setNotice("Nincs Google-kapcsolat. A törlést nem hajtottam végre.");
+        return;
+      }
+      try{
+        const r=await fetch("/api/google/events?id="+encodeURIComponent(e.googleId),{method:"DELETE"});
+        if(!r.ok){
+          setNotice("A Google Naptár törlése nem sikerült. Az esemény megmaradt.");
+          return;
+        }
+      }catch{
+        setNotice("A Google Naptár törlése nem sikerült. Az esemény megmaradt.");
+        return;
+      }
+    }
+    setEvents(p=>p.filter(x=>x.id!==e.id));
+    setNotice("Esemény törölve.");
+    setTimeout(()=>setNotice(""),1600);
   }
 
   async function moveEvent(e:Ev,newStart:number,newDate=e.date){
@@ -117,10 +171,12 @@ export default function Home(){
     const conflict=events.find(x=>x.id!==e.id&&!x.allDay&&x.date===newDate&&x.start===target);
     if(conflict){
       const oldStart=mins(e.start), cd=duration(conflict);
-      await persist({...conflict,date:e.date,start:hhmm(oldStart),end:hhmm(oldStart+cd)});
+      const swapped=await persist({...conflict,date:e.date,start:hhmm(oldStart),end:hhmm(oldStart+cd)});
+      if(!swapped)return;
     }
     const d=duration(e), moved={...e,date:newDate,start:target,end:hhmm(newStart+d)};
-    await persist(moved);
+    const movedSaved=await persist(moved);
+    if(!movedSaved)return;
     setNotice(conflict?"Az események helyet cseréltek.":`${moved.start} – időpont módosítva`);
     setTimeout(()=>setNotice(""),1500);
   }
