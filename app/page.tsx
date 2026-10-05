@@ -54,15 +54,14 @@ export default function Home(){
       const r=await fetch(`/api/google/events?from=${start.toISOString()}&to=${addDays(end,1).toISOString()}`);
       if(!r.ok){setConnected(false);return}
       const j=await r.json();setConnected(true);
-      const local=events.filter(e=>!e.googleId);
-      setEvents([...local,...(j.items||[]).map(toGoogleEvent)]);
+      setEvents(prev=>[...prev.filter(e=>!e.googleId),...(j.items||[]).map(toGoogleEvent)]);
     } catch {
       setConnected(false);
     } finally {
       setSyncing(false);
     }
   }
-  useEffect(()=>{sync().catch(()=>{})},[start.getTime(),end.getTime()]);
+  useEffect(()=>{if(hydrated) sync().catch(()=>{})},[start.getTime(),end.getTime(),hydrated]);
 
   const shown=events.filter(e=>enabled[e.calendar] && days.some(d=>iso(d)===e.date)).sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
 
