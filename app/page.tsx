@@ -227,7 +227,7 @@ function CalendarGrid({days,events,anchor,onDay,onSwipe}:{days:Date[];events:Ev[
     <div className="weekHeader">{headers.map(x=><span key={x}>{x}</span>)}</div>
     <div className="grid">{days.map(d=>{
       const es=events.filter(e=>e.date===iso(d));
-      return <button key={iso(d)} className={"day timeDay "+(iso(d)===iso(anchor)?"selectedDay":"")} onClick={()=>{if(!suppressClick.current)onDay(d)}}>
+      return <button key={iso(d)} className={"day timeDay "+(iso(d)===iso(anchor)?"selectedDay ":"")+(iso(d)===iso(new Date())?"todayDay":"")} onClick={()=>{if(!suppressClick.current)onDay(d)}}>
         <div className="dayHead"><b>{d.getDate()}</b><small>{shortDays[d.getDay()]}</small></div>
         <div className="miniTimeline">
           <i className="guide g1"/><i className="guide g2"/><i className="guide g3"/>
