@@ -13,3 +13,8 @@ A `NEXT_PUBLIC_BASE_URL` értéke a production URL legyen, például:
 
 Google OAuth callback:
 `https://<production-domain>/api/google/callback`
+
+
+## Aktuális verzió
+
+v2 – rugalmas 1/2/4 hetes, havi és egyedi dátumtartomány; nagyított napi idővonal; 15 perces eseménymozgatás és időpontcsere.
