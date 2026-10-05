@@ -32,7 +32,14 @@ export default function Home(){
   const [hydrated,setHydrated]=useState(false);
 
   useEffect(()=>{
-    try{setEvents(JSON.parse(localStorage.getItem("havi-events")||"[]"))}catch{}
+    try{
+      setEvents(JSON.parse(localStorage.getItem("havi-events")||"[]"));
+      const status=new URLSearchParams(window.location.search).get("google");
+      if(status==="connected") setNotice("Google Naptár kapcsolódva.");
+      if(status==="error") setNotice("A Google Naptár csatlakoztatása nem sikerült.");
+      if(status==="config") setNotice("A Google OAuth beállítása még hiányzik.");
+      if(status) window.history.replaceState({}, "", window.location.pathname);
+    } catch {}
     finally{setHydrated(true)}
   },[]);
   useEffect(()=>{
