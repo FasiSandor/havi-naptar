@@ -94,3 +94,73 @@
 }
 
 .swipeCalendar{touch-action:pan-y;overscroll-behavior-x:contain}
+
+/* v2 motion + premium visual polish */
+@keyframes uiFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes uiPop{from{opacity:0;transform:scale(.965) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes chipIn{from{opacity:0;transform:translateY(4px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes softPulse{0%,100%{box-shadow:0 0 0 #0000}50%{box-shadow:0 0 18px #3B82F633}}
+@keyframes sheen{0%{transform:translateX(-140%)}100%{transform:translateX(180%)}}
+
+.topbar,.rangeBar,.customRange{animation:uiFadeUp .28s ease both}
+.calendar{animation:uiFadeUp .34s ease both}
+.timeDay{animation:uiFadeUp .34s cubic-bezier(.2,.7,.2,1) both}
+.timeDay:nth-child(2n){animation-delay:.018s}.timeDay:nth-child(3n){animation-delay:.036s}.timeDay:nth-child(4n){animation-delay:.054s}.timeDay:nth-child(5n){animation-delay:.072s}.timeDay:nth-child(6n){animation-delay:.09s}.timeDay:nth-child(7n){animation-delay:.108s}
+
+.iconBtn,.todayBtn,.secondary,.primary,.syncBtn,.rangeBar button,.fab,.closeX{
+  transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease,color .18s ease,opacity .18s ease
+}
+.iconBtn:active,.todayBtn:active,.secondary:active,.primary:active,.syncBtn:active,.rangeBar button:active,.fab:active,.closeX:active{transform:scale(.94)}
+.primary,.rangeBar button.on,.fab{position:relative;overflow:hidden}
+.primary::after,.rangeBar button.on::after,.fab::after{
+  content:"";position:absolute;inset:0 auto 0 -35%;width:28%;background:linear-gradient(90deg,transparent,#ffffff35,transparent);transform:skewX(-18deg);pointer-events:none
+}
+.primary:hover::after,.rangeBar button.on:hover::after,.fab:hover::after{animation:sheen .8s ease}
+
+.rangeBar button.on{background:linear-gradient(135deg,#2563EB,#3B82F6 55%,#22D3EE);box-shadow:0 0 18px #3B82F655, inset 0 0 0 1px #ffffff18}
+.primary{background:linear-gradient(135deg,#2563EB,#3B82F6 62%,#22D3EE);box-shadow:0 0 18px #3B82F655}
+.syncBtn{background:linear-gradient(180deg,#111C2D,#0E1726);border-color:#2D4565}
+.syncBtn:hover,.todayBtn:hover,.iconBtn:hover,.secondary:hover{border-color:#3B82F6;box-shadow:0 0 14px #3B82F62d;color:#fff}
+
+.day{transition:background .2s ease,box-shadow .2s ease,transform .2s ease,border-color .2s ease}
+.day:hover{background:linear-gradient(180deg,#11243B,#0F1E30);box-shadow:inset 0 0 0 1px #3B82F633}
+.selectedDay{outline:0;box-shadow:inset 0 0 0 2px #3B82F6,0 0 18px #3B82F62a;background:linear-gradient(180deg,#10294A,#0F2038)}
+.selectedDay .dayHead b{color:#8CC7FF;text-shadow:0 0 12px #3B82F688}
+
+.timelineEvent{animation:chipIn .25s ease both;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
+.timelineEvent:hover{transform:translateY(-1px);box-shadow:0 4px 14px color-mix(in srgb,var(--event) 26%,transparent)}
+.timelineEvent::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(120deg,#ffffff08,transparent 35%,#ffffff05);pointer-events:none}
+
+.dayBackdrop{animation:uiFadeUp .18s ease both;background:#02060ba8;backdrop-filter:blur(11px)}
+.dayZoom{
+  width:min(650px,90vw);
+  height:min(78dvh,760px);
+  animation:uiPop .26s cubic-bezier(.2,.8,.2,1) both;
+  border-color:#35557F;
+  box-shadow:0 22px 65px #000a,0 0 28px #3B82F62e,0 0 42px #22D3EE12
+}
+.dayZoom>header{background:linear-gradient(180deg,#15243B,#111C2E)}
+.dayZoom>header small{color:#60A5FA;text-shadow:0 0 12px #3B82F666}
+.dragEvent{transition:box-shadow .16s ease,filter .16s ease}
+.dragEvent:hover{box-shadow:0 10px 26px #0008,0 0 16px color-mix(in srgb,var(--event) 28%,transparent);filter:brightness(1.05)}
+.allDayRow button{transition:transform .16s ease,box-shadow .16s ease}
+.allDayRow button:active{transform:scale(.97)}
+
+.modal{animation:uiPop .22s ease both;box-shadow:0 20px 60px #000a,0 0 24px #3B82F620}
+.toast{animation:uiPop .2s ease both;border-color:#3B82F6;background:linear-gradient(180deg,#12305B,#10243F);box-shadow:0 10px 35px #0008,0 0 18px #3B82F633}
+
+.fab{background:linear-gradient(135deg,#2563EB,#3B82F6 58%,#22D3EE);box-shadow:0 0 24px #3B82F666}
+.fab:hover{box-shadow:0 0 34px #22D3EE55,0 0 22px #3B82F677}
+
+@media(max-width:900px){
+  .dayZoom{width:min(92vw,620px);height:min(80dvh,700px);border-radius:18px}
+  .dayBackdrop{padding:10px}
+}
+@media(max-width:520px){
+  .dayZoom{width:92vw;height:76dvh;max-height:680px;border-radius:16px}
+  .dayZoom>header{padding:10px 12px}
+  .dayZoom>header h2{font-size:19px}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
