@@ -203,6 +203,7 @@ function CalendarGrid({days,events,anchor,onDay,onSwipe}:{days:Date[];events:Ev[
   const headers=Array.from({length:7},(_,i)=>dayNames[(first+i)%7]);
   const startPoint=useRef<{x:number;y:number}|null>(null);
   const suppressClick=useRef(false);
+  const [swipeAnim,setSwipeAnim]=useState<""|"left"|"right">("");
   function pointerDown(e:React.PointerEvent<HTMLDivElement>){
     if(e.pointerType==="mouse"&&e.button!==0)return;
     startPoint.current={x:e.clientX,y:e.clientY};
@@ -213,11 +214,16 @@ function CalendarGrid({days,events,anchor,onDay,onSwipe}:{days:Date[];events:Ev[
     startPoint.current=null;
     if(Math.abs(dx)>=56&&Math.abs(dx)>Math.abs(dy)*1.2){
       suppressClick.current=true;
-      onSwipe(dx<0?1:-1);
-      setTimeout(()=>{suppressClick.current=false},220);
+      const dir=dx<0?"left":"right";
+      setSwipeAnim(dir);
+      setTimeout(()=>{
+        onSwipe(dir==="left"?1:-1);
+        setSwipeAnim("");
+      },120);
+      setTimeout(()=>{suppressClick.current=false},260);
     }
   }
-  return <div className="calendar timeCalendar swipeCalendar" onPointerDown={pointerDown} onPointerUp={pointerUp} onPointerCancel={()=>{startPoint.current=null}}>
+  return <div className={"calendar timeCalendar swipeCalendar "+(swipeAnim?"swipe-"+swipeAnim:"")} onPointerDown={pointerDown} onPointerUp={pointerUp} onPointerCancel={()=>{startPoint.current=null}}>
     <div className="weekHeader">{headers.map(x=><span key={x}>{x}</span>)}</div>
     <div className="grid">{days.map(d=>{
       const es=events.filter(e=>e.date===iso(d));
