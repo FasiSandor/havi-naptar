@@ -308,7 +308,8 @@ function CalendarGrid({days,events,anchor,onDay,onSwipe}:{days:Date[];events:Ev[
       setTimeout(()=>{suppressClick.current=false},260);
     }
   }
-  return <div className={"calendar timeCalendar swipeCalendar "+(swipeAnim?"swipe-"+swipeAnim:"")} onPointerDown={pointerDown} onPointerUp={pointerUp} onPointerCancel={()=>{startPoint.current=null}}>
+  const rowCount=Math.max(1,Math.ceil(days.length/7));
+  return <div className={"calendar timeCalendar swipeCalendar rows-"+rowCount+" "+(swipeAnim?"swipe-"+swipeAnim:"")} onPointerDown={pointerDown} onPointerUp={pointerUp} onPointerCancel={()=>{startPoint.current=null}}>
     <div className="weekHeader">{headers.map(x=><span key={x}>{x}</span>)}</div>
     <div className="grid">{days.map(d=>{
       const es=events.filter(e=>e.date===iso(d));
