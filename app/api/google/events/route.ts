@@ -6,7 +6,15 @@ async function access(req:NextRequest){
   const r=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});
   const j=await r.json(); return r.ok?j.access_token:null;
 }
-function eventBody(x:any){return {summary:x.title||"Esemény",location:x.location||"",description:x.note||"",start:x.allDay?{date:x.date}:{dateTime:x.start},end:x.allDay?{date:x.endDate||x.date}:{dateTime:x.end}}}
+function eventBody(x:any){
+  return {
+    summary:x.title||"Esemény",
+    location:x.location||"",
+    description:x.note||"",
+    start:x.allDay?{date:x.date}:{dateTime:x.start,timeZone:"Europe/Budapest"},
+    end:x.allDay?{date:x.endDate||x.date}:{dateTime:x.end,timeZone:"Europe/Budapest"}
+  }
+}
 export async function GET(req:NextRequest){
   const token=await access(req); if(!token) return NextResponse.json({connected:false},{status:401});
   const from=req.nextUrl.searchParams.get("from")||new Date().toISOString();
