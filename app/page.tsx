@@ -340,6 +340,7 @@ export default function Home(){
 
 function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onOpenDay,onQuickAdd,onMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;onSync:()=>void;onDay:(d:Date)=>void;onOpenDay:(d:Date)=>void;onQuickAdd:()=>void;onMonth:()=>void;onSettings:()=>void}){
   const startY=useRef<number|null>(null);
+  const [dragY,setDragY]=useState(0);
   const visible=Array.from({length:5},(_,i)=>addDays(anchor,i-2));
   const dayEvents=events.filter(e=>e.date===iso(anchor)).sort((a,b)=>(a.start||"").localeCompare(b.start||""));
   const shift=(n:number)=>onDay(addDays(anchor,n));
@@ -350,7 +351,12 @@ function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onOpenDay,
       <button className={"mobileSync "+(connected?"online":"")} onClick={onSync}>{syncing?"↻":connected?"●":"○"}</button>
     </header>
 
-    <div className="dayCylinder" onPointerDown={e=>{startY.current=e.clientY}} onPointerUp={e=>{if(startY.current===null)return;const dy=e.clientY-startY.current;startY.current=null;if(Math.abs(dy)>38)shift(dy<0?1:-1)}} onWheel={e=>{if(Math.abs(e.deltaY)>12)shift(e.deltaY>0?1:-1)}}>
+    <div className={"dayCylinder "+(startY.current!==null?"dragging":"")} style={{"--wheel-drag":dragY+"px"} as React.CSSProperties}
+      onPointerDown={e=>{startY.current=e.clientY;setDragY(0);(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)}}
+      onPointerMove={e=>{if(startY.current!==null)setDragY(Math.max(-38,Math.min(38,(e.clientY-startY.current)*.45)))}}
+      onPointerUp={e=>{if(startY.current===null)return;const dy=e.clientY-startY.current;startY.current=null;setDragY(0);if(Math.abs(dy)>38)shift(dy<0?1:-1)}}
+      onPointerCancel={()=>{startY.current=null;setDragY(0)}}
+      onWheel={e=>{if(Math.abs(e.deltaY)>12)shift(e.deltaY>0?1:-1)}}>
       <div className="cylinderGlow"/>
       {visible.map((d,i)=>{
         const rel=i-2, active=rel===0;
@@ -405,14 +411,34 @@ function MobileLandscapeMonth({anchor,events,onPrev,onNext,onToday,onDay,onQuick
   </section>
 }
 
-function WheelValue({label,value,onPrev,onNext}:{label:string;value:string;onPrev:()=>void;onNext:()=>void}){
-  return <div className="wheelValue">
+function WheelScroller({label,items,value,onChange}:{label:string;items:{value:number;label:string}[];value:number;onChange:(v:number)=>void}){
+  const ref=useRef<HTMLDivElement>(null);
+  const row=42;
+  const scrolling=useRef<number|undefined>(undefined);
+  useEffect(()=>{
+    const i=Math.max(0,items.findIndex(x=>x.value===value));
+    requestAnimationFrame(()=>ref.current?.scrollTo({top:i*row,behavior:"auto"}));
+  },[items.length]);
+  function handleScroll(){
+    if(scrolling.current)window.clearTimeout(scrolling.current);
+    scrolling.current=window.setTimeout(()=>{
+      const el=ref.current;if(!el)return;
+      const i=Math.max(0,Math.min(items.length-1,Math.round(el.scrollTop/row)));
+      const item=items[i];
+      if(item&&item.value!==value)onChange(item.value);
+      el.scrollTo({top:i*row,behavior:"smooth"});
+    },70);
+  }
+  return <div className="wheelColumn">
     <small>{label}</small>
-    <button className="wheelStep" onClick={onPrev}>⌃</button>
-    <div className="wheelGhost top">{value}</div>
-    <div className="wheelCurrent">{value}</div>
-    <div className="wheelGhost bottom">{value}</div>
-    <button className="wheelStep" onClick={onNext}>⌄</button>
+    <div className="wheelViewport">
+      <div className="wheelSelection"/>
+      <div className="wheelScroll" ref={ref} onScroll={handleScroll}>
+        <div className="wheelSpacer"/>
+        {items.map(item=><button type="button" key={item.value} className={item.value===value?"active":""} onClick={()=>{onChange(item.value);const i=items.findIndex(x=>x.value===item.value);ref.current?.scrollTo({top:i*row,behavior:"smooth"})}}>{item.label}</button>)}
+        <div className="wheelSpacer"/>
+      </div>
+    </div>
   </div>
 }
 
@@ -426,9 +452,6 @@ function QuickAddWheel({baseDate,onClose,onCreate}:{baseDate:Date;onClose:()=>vo
   const monthNames=["Jan","Feb","Már","Ápr","Máj","Jún","Júl","Aug","Szept","Okt","Nov","Dec"];
   const maxDay=new Date(year,month+1,0).getDate();
   const safeDay=Math.min(day,maxDay);
-  const stepMonth=(n:number)=>{const m=(month+n+12)%12;setMonth(m);setDay(d=>Math.min(d,new Date(year,m+1,0).getDate()))};
-  const stepDay=(n:number)=>setDay(d=>{const max=new Date(year,month+1,0).getDate();return ((d-1+n+max)%max)+1});
-  const stepTime=(n:number)=>setTime(t=>(t+n*15+1440)%1440);
   const date=iso(new Date(year,month,safeDay,12));
   return <div className="quickBackdrop" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}>
     <section className="quickSheet">
@@ -436,9 +459,9 @@ function QuickAddWheel({baseDate,onClose,onCreate}:{baseDate:Date;onClose:()=>vo
       <header><div><small>GYORS BEVITEL</small><h2>Új esemény</h2></div><button onClick={onClose}>×</button></header>
       <input className="quickTitle" autoFocus placeholder="Mi legyen?" value={title} onChange={e=>setTitle(e.target.value)}/>
       <div className="wheelPicker">
-        <WheelValue label="HÓNAP" value={monthNames[month]} onPrev={()=>stepMonth(-1)} onNext={()=>stepMonth(1)}/>
-        <WheelValue label="NAP" value={String(safeDay)} onPrev={()=>stepDay(-1)} onNext={()=>stepDay(1)}/>
-        <WheelValue label="IDŐ" value={hhmm(time)} onPrev={()=>stepTime(-1)} onNext={()=>stepTime(1)}/>
+        <WheelScroller label="HÓNAP" items={monthNames.map((label,value)=>({value,label}))} value={month} onChange={m=>{setMonth(m);setDay(d=>Math.min(d,new Date(year,m+1,0).getDate()))}}/>
+        <WheelScroller label="NAP" items={Array.from({length:maxDay},(_,i)=>({value:i+1,label:String(i+1)}))} value={safeDay} onChange={setDay}/>
+        <WheelScroller label="IDŐ" items={Array.from({length:96},(_,i)=>({value:i*15,label:hhmm(i*15)}))} value={time} onChange={setTime}/>
       </div>
       <div className="quickCategories">{(Object.keys(calMeta) as CalKey[]).map(k=><button key={k} className={calendar===k?"active":""} style={{"--event":calMeta[k].color} as React.CSSProperties} onClick={()=>setCalendar(k)}><span>{calMeta[k].icon}</span>{calMeta[k].label}</button>)}</div>
       <button className="quickSave" onClick={()=>onCreate({title,date,start:hhmm(time),end:hhmm(time+60),calendar})}>Rögzítés <span>→</span></button>
