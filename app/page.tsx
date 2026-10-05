@@ -230,7 +230,7 @@ export default function Home(){
           <button className="iconBtn" onClick={()=>shift(-1)}>‹</button>
           <button className="iconBtn" onClick={()=>shift(1)}>›</button>
           <button className="todayBtn" onClick={()=>setAnchor(new Date())}>Ma</button>
-          <div className="periodTitle"><h1>{mode==="custom"?fmtRange(start,end):monthLabel(anchor)}</h1><small>{fmtRange(start,end)}</small></div>
+          <div className="periodTitle"><div className="titleGlowDots" aria-hidden="true"><i/><i/><i/></div><h1>{mode==="custom"?fmtRange(start,end):monthLabel(anchor)}</h1><small>{fmtRange(start,end)}</small></div>
         </div>
         <div className="actions">
           <button className="secondary" onClick={()=>window.print()}>⎙ PDF / Nyomtatás</button>
@@ -312,7 +312,8 @@ function CalendarGrid({days,events,anchor,onDay,onSwipe}:{days:Date[];events:Ev[
     <div className="weekHeader">{headers.map(x=><span key={x}>{x}</span>)}</div>
     <div className="grid">{days.map(d=>{
       const es=events.filter(e=>e.date===iso(d));
-      return <button key={iso(d)} className={"day timeDay "+(iso(d)===iso(anchor)?"selectedDay ":"")+(iso(d)===iso(new Date())?"todayDay":"")} onClick={()=>{if(!suppressClick.current)onDay(d)}}>
+      const accent=es[0]?calMeta[es[0].calendar].color:(d.getDay()===0||d.getDay()===6?"#F59E0B":"#3B82F6");
+      return <button key={iso(d)} className={"day timeDay "+(es.length?"hasEvents ":"")+(d.getDay()===0||d.getDay()===6?"weekendDay ":"")+(iso(d)===iso(anchor)?"selectedDay ":"")+(iso(d)===iso(new Date())?"todayDay":"")} style={{"--day-accent":accent} as React.CSSProperties} onClick={()=>{if(!suppressClick.current)onDay(d)}}>
         <div className="dayHead"><b>{d.getDate()}</b><small>{shortDays[d.getDay()]}</small></div>
         <div className="miniTimeline">
           <i className="guide g1"/><i className="guide g2"/><i className="guide g3"/>
