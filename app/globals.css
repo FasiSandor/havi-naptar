@@ -244,3 +244,84 @@
 
 .secondary,.syncBtn,.todayBtn,.iconBtn{backdrop-filter:blur(8px)}
 .secondary:hover,.syncBtn:hover,.todayBtn:hover,.iconBtn:hover{transform:translateY(-1px)}
+
+/* final responsive polish */
+@media(min-width:901px) and (max-width:1180px){
+  .appShell{grid-template-columns:205px 1fr}
+  .sidebar{padding:16px 10px}
+  .content{padding:14px}
+  .topbar{grid-template-columns:1fr auto;grid-template-areas:"head actions" "range range"}
+  .headLeft{grid-area:head}.actions{grid-area:actions}
+  .rangeBar{margin-top:2px}
+  .day{min-height:118px;padding:8px}
+  .miniTimeline{height:88px}
+  .timelineEvent{font-size:8px}
+  .dayZoom{width:min(620px,72vw);height:min(74dvh,720px)}
+}
+
+@media(max-width:900px){
+  .content{padding:7px max(7px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(7px,env(safe-area-inset-right))}
+  .topbar{position:sticky;top:0;z-index:12;padding:6px 0 5px;background:linear-gradient(180deg,#0B0F14f2 74%,#0B0F1400);backdrop-filter:blur(14px)}
+  .headLeft{min-width:0}
+  .headLeft .periodTitle{min-width:0;flex:1}
+  .periodTitle h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+  .iconBtn,.todayBtn,.syncBtn{min-height:40px}
+  .rangeBar{position:sticky;top:54px;z-index:11;margin-bottom:8px;background:#101A2Aeb;backdrop-filter:blur(12px);border-color:#30415A}
+  .rangeBar button{min-height:38px}
+  .calendar{border-radius:13px;box-shadow:0 10px 34px #0004}
+  .calendar .day{min-height:102px}
+  .miniTimeline{height:76px}
+  .timelineEvent{border-radius:5px}
+  .fab{right:max(14px,env(safe-area-inset-right));bottom:max(14px,calc(env(safe-area-inset-bottom) + 10px));width:54px;height:54px}
+  .dayZoom{width:min(90vw,590px);height:min(74dvh,660px)}
+  .dayZoom>footer{font-size:10px;padding:8px}
+  .eventQuick button{min-width:36px}
+  .closeX{width:38px;height:38px}
+}
+
+@media(max-width:600px){
+  .headLeft{gap:4px}
+  .iconBtn{width:36px;height:36px}
+  .todayBtn{padding:7px 8px;font-size:12px}
+  .actions{margin-top:-2px}
+  .syncBtn{min-height:34px;padding:6px 10px;font-size:11px}
+  .rangeBar{top:48px}
+  .rangeBar button{padding:7px 9px;font-size:11px}
+  .weekHeader span{font-size:8px;padding:8px 0}
+  .calendar .day{min-height:92px;padding:4px 2px}
+  .dayHead{margin-bottom:2px}
+  .dayHead b{font-size:12px}
+  .dayHead small{display:none}
+  .miniTimeline{height:68px}
+  .timelineEvent{left:1px;right:1px;font-size:7px;min-height:14px;padding:2px 2px;border-left-width:2px}
+  .timelineEvent em{display:none}
+  .moreEvents{font-size:8px}
+  .dayZoom{width:90vw;height:70dvh;max-height:620px}
+  .dayZoom>header .secondary{font-size:11px;padding:7px 8px}
+  .dayZoom>header h2{font-size:18px}
+  .eventMain{padding-left:6px}
+  .eventMain b{font-size:11px}
+}
+
+@media(max-width:390px){
+  .todayBtn{display:none}
+  .periodTitle h1{font-size:16px}
+  .rangeBar{top:45px}
+  .rangeBar button{padding:7px 8px}
+  .calendar .day{min-height:86px}
+  .miniTimeline{height:63px}
+  .dayZoom{width:91vw;height:68dvh}
+}
+
+@media(max-width:900px) and (orientation:landscape){
+  .topbar{position:static;padding:0;background:transparent;backdrop-filter:none}
+  .rangeBar{position:static}
+  .dayZoom{width:min(74vw,620px);height:min(82dvh,620px)}
+  .calendar .day{min-height:88px}
+  .miniTimeline{height:64px}
+}
+
+@media(hover:none) and (pointer:coarse){
+  .day:hover,.timelineEvent:hover,.listItem:hover,.secondary:hover,.syncBtn:hover,.todayBtn:hover,.iconBtn:hover{transform:none}
+  .iconBtn,.todayBtn,.secondary,.primary,.syncBtn,.rangeBar button,.closeX{min-width:40px}
+}
