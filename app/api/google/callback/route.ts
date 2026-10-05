@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest){
   const code=req.nextUrl.searchParams.get("code");
   const origin=process.env.NEXT_PUBLIC_BASE_URL || req.nextUrl.origin;
+  const clientId=process.env.GOOGLE_CLIENT_ID;
+  const clientSecret=process.env.GOOGLE_CLIENT_SECRET;
+  if(!clientId || !clientSecret) return NextResponse.redirect(origin+"/?google=config");
   if(!code) return NextResponse.redirect(origin+"/?google=error");
   const body=new URLSearchParams({
     code,
-    client_id:process.env.GOOGLE_CLIENT_ID||"",
-    client_secret:process.env.GOOGLE_CLIENT_SECRET||"",
+    client_id:clientId,
+    client_secret:clientSecret,
     redirect_uri:origin+"/api/google/callback",
     grant_type:"authorization_code"
   });
