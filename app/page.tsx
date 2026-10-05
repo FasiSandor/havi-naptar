@@ -48,6 +48,8 @@ export default function Home(){
   const [hydrated,setHydrated]=useState(false);
   const [themeMode,setThemeMode]=useState<ThemeMode>("system");
   const [resolvedTheme,setResolvedTheme]=useState<"dark"|"light">("dark");
+  const [quickAdd,setQuickAdd]=useState(false);
+  const [rotateHint,setRotateHint]=useState(false);
 
   useEffect(()=>{
     try{
@@ -76,6 +78,20 @@ export default function Home(){
     mq.addEventListener?.("change",apply);
     return ()=>mq.removeEventListener?.("change",apply);
   },[themeMode,hydrated]);
+  useEffect(()=>{
+    if(!hydrated)return;
+    const mq=window.matchMedia("(max-width: 900px)");
+    const portrait=window.matchMedia("(orientation: portrait)");
+    const apply=()=>{
+      if(!mq.matches)return;
+      setMode(portrait.matches?"1w":"month");
+      if(!portrait.matches)setRotateHint(false);
+    };
+    apply();
+    mq.addEventListener?.("change",apply);
+    portrait.addEventListener?.("change",apply);
+    return ()=>{mq.removeEventListener?.("change",apply);portrait.removeEventListener?.("change",apply)};
+  },[hydrated]);
 
   const {start,count}=useMemo(()=>{
     if(mode==="custom"){
@@ -151,15 +167,16 @@ export default function Home(){
   }
 
   async function save(x:Partial<Ev>){
-    if(!(x.title||"").trim()){setNotice("Adj nevet az eseménynek.");return}
-    if(!x.date){setNotice("Válassz dátumot.");return}
-    if(!x.allDay&&x.start&&x.end&&x.end<=x.start){setNotice("A befejezés legyen később a kezdésnél.");return}
+    if(!(x.title||"").trim()){setNotice("Adj nevet az eseménynek.");return false}
+    if(!x.date){setNotice("Válassz dátumot.");return false}
+    if(!x.allDay&&x.start&&x.end&&x.end<=x.start){setNotice("A befejezés legyen később a kezdésnél.");return false}
     const base:Ev={id:x.id||crypto.randomUUID(),googleId:x.googleId,title:(x.title||"Esemény").trim(),date:x.date,start:x.start||"09:00",end:x.end||"10:00",allDay:!!x.allDay,calendar:(x.calendar||"work") as CalKey,location:x.location||"",note:x.note||""};
     const saved=await persist(base);
-    if(!saved)return;
+    if(!saved)return false;
     setEditor(null);
     setNotice(saved.googleId?"Esemény mentve és szinkronizálva.":"Esemény helyben mentve.");
     setTimeout(()=>setNotice(""),1800);
+    return true;
   }
 
   async function remove(e:Ev){
@@ -224,7 +241,30 @@ export default function Home(){
       <button className="nav" onClick={()=>setSettings(true)}>⚙ <span>Naptár kapcsolat</span></button>
     </aside>
 
-    <section className="content">
+    <MobilePortrait
+      anchor={anchor}
+      events={events.filter(e=>enabled[e.calendar])}
+      connected={connected}
+      syncing={syncing}
+      onSync={()=>sync()}
+      onDay={setAnchor}
+      onOpenDay={d=>{setAnchor(d);setDayOpen(iso(d))}}
+      onQuickAdd={()=>setQuickAdd(true)}
+      onMonth={()=>setRotateHint(true)}
+      onSettings={()=>setSettings(true)}
+    />
+    <MobileLandscapeMonth
+      anchor={anchor}
+      events={events.filter(e=>enabled[e.calendar])}
+      onPrev={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()-1);setAnchor(d)}}
+      onNext={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()+1);setAnchor(d)}}
+      onToday={()=>setAnchor(new Date())}
+      onDay={d=>{setAnchor(d);setDayOpen(iso(d))}}
+      onQuickAdd={()=>setQuickAdd(true)}
+      onSettings={()=>setSettings(true)}
+    />
+
+    <section className="content desktopCalendarContent">
       <header className="topbar">
         <div className="headLeft">
           <button className="iconBtn" onClick={()=>shift(-1)}>‹</button>
@@ -258,7 +298,21 @@ export default function Home(){
       </div>:<CalendarGrid days={days} events={shown} anchor={anchor} onDay={(d)=>{setAnchor(d);setDayOpen(iso(d))}} onSwipe={shift}/>} 
     </section>
 
-    <button className="fab" onClick={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}>＋</button>
+    <button className="fab desktopFab" onClick={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}>＋</button>
+    {quickAdd&&<QuickAddWheel
+      baseDate={anchor}
+      onClose={()=>setQuickAdd(false)}
+      onCreate={async x=>{const ok=await save(x);if(ok)setQuickAdd(false)}}
+    />}
+    {rotateHint&&<div className="rotateHintBackdrop" onClick={()=>setRotateHint(false)}>
+      <div className="rotateHintCard" onClick={e=>e.stopPropagation()}>
+        <div className="rotatePhone">▭</div>
+        <b>Teljes havi nézet</b>
+        <span>Fordítsd el a telefont fekvő helyzetbe.</span>
+        <small>A hónap automatikusan kitölti a teljes képernyőt.</small>
+        <button onClick={()=>setRotateHint(false)}>Rendben</button>
+      </div>
+    </div>}
     {notice&&<div className="toast">{notice}</div>}
 
     {dayOpen&&<DayZoom date={dayOpen} events={events.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>setEditor(e)} onAdd={()=>setEditor({date:dayOpen,calendar:"work",start:"09:00",end:"10:00"})} onMove={moveEvent} onDelete={remove}/>}
@@ -281,6 +335,115 @@ export default function Home(){
       </div>
     </Modal>}
   </main>
+}
+
+
+function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onOpenDay,onQuickAdd,onMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;onSync:()=>void;onDay:(d:Date)=>void;onOpenDay:(d:Date)=>void;onQuickAdd:()=>void;onMonth:()=>void;onSettings:()=>void}){
+  const startY=useRef<number|null>(null);
+  const visible=Array.from({length:5},(_,i)=>addDays(anchor,i-2));
+  const dayEvents=events.filter(e=>e.date===iso(anchor)).sort((a,b)=>(a.start||"").localeCompare(b.start||""));
+  const shift=(n:number)=>onDay(addDays(anchor,n));
+  return <section className="mobilePortrait">
+    <header className="mobileHero">
+      <button className="mobileIconBtn" onClick={onSettings}>⚙</button>
+      <div className="mobileHeroTitle"><small>{anchor.getFullYear()}</small><h1>{anchor.toLocaleDateString("hu-HU",{month:"long"})}</h1></div>
+      <button className={"mobileSync "+(connected?"online":"")} onClick={onSync}>{syncing?"↻":connected?"●":"○"}</button>
+    </header>
+
+    <div className="dayCylinder" onPointerDown={e=>{startY.current=e.clientY}} onPointerUp={e=>{if(startY.current===null)return;const dy=e.clientY-startY.current;startY.current=null;if(Math.abs(dy)>38)shift(dy<0?1:-1)}} onWheel={e=>{if(Math.abs(e.deltaY)>12)shift(e.deltaY>0?1:-1)}}>
+      <div className="cylinderGlow"/>
+      {visible.map((d,i)=>{
+        const rel=i-2, active=rel===0;
+        return <button key={iso(d)} className={"cylinderDay rel"+rel+(active?" active":"")} onClick={()=>active?onOpenDay(d):onDay(d)}>
+          <span>{d.toLocaleDateString("hu-HU",{weekday:"short"})}</span>
+          <b>{d.getDate()}</b>
+          <small>{d.toLocaleDateString("hu-HU",{month:"short"})}</small>
+        </button>
+      })}
+    </div>
+
+    <div className="mobileDayActions">
+      <button onClick={()=>onDay(new Date())}>Ma</button>
+      <button className="monthAction" onClick={onMonth}><span>▦</span> Hónap</button>
+      <button onClick={()=>shift(1)}>Holnap ›</button>
+    </div>
+
+    <div className="mobileAgenda">
+      <div className="agendaHead"><div><small>{dayNames[anchor.getDay()]}</small><h2>{anchor.toLocaleDateString("hu-HU",{month:"long",day:"numeric"})}</h2></div><span>{dayEvents.length} esemény</span></div>
+      <div className="agendaList">
+        {dayEvents.length?dayEvents.map(e=><button key={e.id} className="agendaCard" style={{"--event":calMeta[e.calendar].color} as React.CSSProperties} onClick={()=>onOpenDay(anchor)}>
+          <div className="agendaTime">{e.allDay?"EGÉSZ NAP":e.start||""}</div>
+          <div className="agendaColorIcon">{calMeta[e.calendar].icon}</div>
+          <div className="agendaText"><b>{e.title}</b><small>{e.allDay?calMeta[e.calendar].label:(e.end?((e.start||"")+" – "+e.end):calMeta[e.calendar].label)}{e.location?" · "+e.location:""}</small></div>
+        </button>):<div className="agendaEmpty"><div>✦</div><b>Szabad nap</b><span>Nincs bejegyzett esemény.</span></div>}
+      </div>
+    </div>
+
+    <button className="mobileAdd" onClick={onQuickAdd}><span>＋</span><b>Új esemény</b></button>
+  </section>
+}
+
+function MobileLandscapeMonth({anchor,events,onPrev,onNext,onToday,onDay,onQuickAdd,onSettings}:{anchor:Date;events:Ev[];onPrev:()=>void;onNext:()=>void;onToday:()=>void;onDay:(d:Date)=>void;onQuickAdd:()=>void;onSettings:()=>void}){
+  const first=monday(new Date(anchor.getFullYear(),anchor.getMonth(),1,12));
+  const days=Array.from({length:42},(_,i)=>addDays(first,i));
+  return <section className="mobileLandscapeMonth">
+    <header className="landscapeHead">
+      <div className="landscapeNav"><button onClick={onPrev}>‹</button><button onClick={onNext}>›</button><button onClick={onToday}>Ma</button></div>
+      <div><small>{anchor.getFullYear()}</small><h1>{anchor.toLocaleDateString("hu-HU",{month:"long"})}</h1></div>
+      <div className="landscapeActions"><button onClick={onSettings}>⚙</button><button className="landscapeAdd" onClick={onQuickAdd}>＋</button></div>
+    </header>
+    <div className="landscapeWeekdays">{["H","K","Sze","Cs","P","Szo","V"].map(x=><span key={x}>{x}</span>)}</div>
+    <div className="landscapeGrid">{days.map(d=>{
+      const es=events.filter(e=>e.date===iso(d));
+      const current=d.getMonth()===anchor.getMonth();
+      return <button key={iso(d)} className={(current?"":"otherMonth ")+(iso(d)===iso(new Date())?"landToday ":"")} onClick={()=>onDay(d)}>
+        <b>{d.getDate()}</b>
+        <div>{es.slice(0,3).map(e=><span key={e.id} style={{"--event":calMeta[e.calendar].color} as React.CSSProperties}>{e.start?<i>{e.start}</i>:null}{e.title}</span>)}</div>
+        {es.length>3&&<small>+{es.length-3}</small>}
+      </button>
+    })}</div>
+  </section>
+}
+
+function WheelValue({label,value,onPrev,onNext}:{label:string;value:string;onPrev:()=>void;onNext:()=>void}){
+  return <div className="wheelValue">
+    <small>{label}</small>
+    <button className="wheelStep" onClick={onPrev}>⌃</button>
+    <div className="wheelGhost top">{value}</div>
+    <div className="wheelCurrent">{value}</div>
+    <div className="wheelGhost bottom">{value}</div>
+    <button className="wheelStep" onClick={onNext}>⌄</button>
+  </div>
+}
+
+function QuickAddWheel({baseDate,onClose,onCreate}:{baseDate:Date;onClose:()=>void;onCreate:(x:Partial<Ev>)=>Promise<void>}){
+  const [title,setTitle]=useState("");
+  const [month,setMonth]=useState(baseDate.getMonth());
+  const [day,setDay]=useState(baseDate.getDate());
+  const [time,setTime]=useState(9*60);
+  const [calendar,setCalendar]=useState<CalKey>("work");
+  const year=baseDate.getFullYear();
+  const monthNames=["Jan","Feb","Már","Ápr","Máj","Jún","Júl","Aug","Szept","Okt","Nov","Dec"];
+  const maxDay=new Date(year,month+1,0).getDate();
+  const safeDay=Math.min(day,maxDay);
+  const stepMonth=(n:number)=>{const m=(month+n+12)%12;setMonth(m);setDay(d=>Math.min(d,new Date(year,m+1,0).getDate()))};
+  const stepDay=(n:number)=>setDay(d=>{const max=new Date(year,month+1,0).getDate();return ((d-1+n+max)%max)+1});
+  const stepTime=(n:number)=>setTime(t=>(t+n*15+1440)%1440);
+  const date=iso(new Date(year,month,safeDay,12));
+  return <div className="quickBackdrop" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}>
+    <section className="quickSheet">
+      <div className="quickGrabber"/>
+      <header><div><small>GYORS BEVITEL</small><h2>Új esemény</h2></div><button onClick={onClose}>×</button></header>
+      <input className="quickTitle" autoFocus placeholder="Mi legyen?" value={title} onChange={e=>setTitle(e.target.value)}/>
+      <div className="wheelPicker">
+        <WheelValue label="HÓNAP" value={monthNames[month]} onPrev={()=>stepMonth(-1)} onNext={()=>stepMonth(1)}/>
+        <WheelValue label="NAP" value={String(safeDay)} onPrev={()=>stepDay(-1)} onNext={()=>stepDay(1)}/>
+        <WheelValue label="IDŐ" value={hhmm(time)} onPrev={()=>stepTime(-1)} onNext={()=>stepTime(1)}/>
+      </div>
+      <div className="quickCategories">{(Object.keys(calMeta) as CalKey[]).map(k=><button key={k} className={calendar===k?"active":""} style={{"--event":calMeta[k].color} as React.CSSProperties} onClick={()=>setCalendar(k)}><span>{calMeta[k].icon}</span>{calMeta[k].label}</button>)}</div>
+      <button className="quickSave" onClick={()=>onCreate({title,date,start:hhmm(time),end:hhmm(time+60),calendar})}>Rögzítés <span>→</span></button>
+    </section>
+  </div>
 }
 
 function CalendarGrid({days,events,anchor,onDay,onSwipe}:{days:Date[];events:Ev[];anchor:Date;onDay:(d:Date)=>void;onSwipe:(n:number)=>void}){
