@@ -260,7 +260,7 @@ export default function Home(){
       onNext={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()+1);setAnchor(d)}}
       onToday={()=>setAnchor(new Date())}
       onDay={d=>{setAnchor(d);setDayOpen(iso(d))}}
-      onQuickAdd={()=>setQuickAdd(true)}
+      onQuickAdd={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}
       onSettings={()=>setSettings(true)}
     />
 
