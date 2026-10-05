@@ -340,6 +340,7 @@ export default function Home(){
 
 function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onOpenDay,onQuickAdd,onMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;onSync:()=>void;onDay:(d:Date)=>void;onOpenDay:(d:Date)=>void;onQuickAdd:()=>void;onMonth:()=>void;onSettings:()=>void}){
   const startY=useRef<number|null>(null);
+  const [dragY,setDragY]=useState(0);
   const visible=Array.from({length:5},(_,i)=>addDays(anchor,i-2));
   const dayEvents=events.filter(e=>e.date===iso(anchor)).sort((a,b)=>(a.start||"").localeCompare(b.start||""));
   const shift=(n:number)=>onDay(addDays(anchor,n));
@@ -350,7 +351,12 @@ function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onOpenDay,
       <button className={"mobileSync "+(connected?"online":"")} onClick={onSync}>{syncing?"↻":connected?"●":"○"}</button>
     </header>
 
-    <div className="dayCylinder" onPointerDown={e=>{startY.current=e.clientY}} onPointerUp={e=>{if(startY.current===null)return;const dy=e.clientY-startY.current;startY.current=null;if(Math.abs(dy)>38)shift(dy<0?1:-1)}} onWheel={e=>{if(Math.abs(e.deltaY)>12)shift(e.deltaY>0?1:-1)}}>
+    <div className={"dayCylinder "+(startY.current!==null?"dragging":"")} style={{"--wheel-drag":dragY+"px"} as React.CSSProperties}
+      onPointerDown={e=>{startY.current=e.clientY;setDragY(0);(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)}}
+      onPointerMove={e=>{if(startY.current!==null)setDragY(Math.max(-38,Math.min(38,(e.clientY-startY.current)*.45)))}}
+      onPointerUp={e=>{if(startY.current===null)return;const dy=e.clientY-startY.current;startY.current=null;setDragY(0);if(Math.abs(dy)>38)shift(dy<0?1:-1)}}
+      onPointerCancel={()=>{startY.current=null;setDragY(0)}}
+      onWheel={e=>{if(Math.abs(e.deltaY)>12)shift(e.deltaY>0?1:-1)}}>
       <div className="cylinderGlow"/>
       {visible.map((d,i)=>{
         const rel=i-2, active=rel===0;
