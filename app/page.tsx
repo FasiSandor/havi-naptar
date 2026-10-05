@@ -3,6 +3,7 @@ import {useEffect,useMemo,useRef,useState} from "react";
 
 type CalKey="work"|"personal"|"family"|"sport";
 type RangeMode="1w"|"2w"|"4w"|"month"|"custom"|"list";
+type ThemeMode="dark"|"light"|"system";
 type Ev={id:string;googleId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string};
 
 const calMeta:Record<CalKey,{label:string;color:string;icon:string}>={
@@ -45,10 +46,14 @@ export default function Home(){
   const [notice,setNotice]=useState("");
   const [syncing,setSyncing]=useState(false);
   const [hydrated,setHydrated]=useState(false);
+  const [themeMode,setThemeMode]=useState<ThemeMode>("system");
+  const [resolvedTheme,setResolvedTheme]=useState<"dark"|"light">("dark");
 
   useEffect(()=>{
     try{
       setEvents(JSON.parse(localStorage.getItem("havi-events")||"[]"));
+      const savedTheme=localStorage.getItem("havi-theme");
+      if(savedTheme==="dark"||savedTheme==="light"||savedTheme==="system") setThemeMode(savedTheme);
       const status=new URLSearchParams(window.location.search).get("google");
       if(status==="connected") setNotice("Google Naptár kapcsolódva.");
       if(status==="error") setNotice("A Google Naptár csatlakoztatása nem sikerült.");
@@ -58,6 +63,19 @@ export default function Home(){
     finally{setHydrated(true)}
   },[]);
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-events",JSON.stringify(events.filter(e=>!e.googleId)))},[events,hydrated]);
+  useEffect(()=>{
+    if(!hydrated)return;
+    localStorage.setItem("havi-theme",themeMode);
+    const mq=window.matchMedia("(prefers-color-scheme: dark)");
+    const apply=()=>{
+      const next=themeMode==="system"?(mq.matches?"dark":"light"):themeMode;
+      setResolvedTheme(next);
+      document.documentElement.style.colorScheme=next;
+    };
+    apply();
+    mq.addEventListener?.("change",apply);
+    return ()=>mq.removeEventListener?.("change",apply);
+  },[themeMode,hydrated]);
 
   const {start,count}=useMemo(()=>{
     if(mode==="custom"){
@@ -199,7 +217,7 @@ export default function Home(){
     setAnchor(d);
   }
 
-  return <main className="appShell">
+  return <main className="appShell" data-theme={resolvedTheme}>
     <aside className="sidebar">
       <div className="brand"><div className="brandIcon">▦</div><span>HAVI <b>NAPTÁR</b></span></div>
       <div className="calList"><h4>Naptárak</h4>{(Object.keys(calMeta) as CalKey[]).map(k=><label key={k}><i style={{background:calMeta[k].color}}/><span>{calMeta[k].label}</span><input type="checkbox" checked={enabled[k]} onChange={e=>setEnabled({...enabled,[k]:e.target.checked})}/></label>)}</div>
@@ -247,9 +265,20 @@ export default function Home(){
 
     {editor&&<Modal title={editor.id?"Esemény szerkesztése":"Esemény hozzáadása"} onClose={()=>setEditor(null)}><EventForm value={editor} onSave={save} onCancel={()=>setEditor(null)}/></Modal>}
 
-    {settings&&<Modal title="Naptár kapcsolat" onClose={()=>setSettings(false)}>
-      <div className="settingsBox"><div className={"status "+(connected?"ok":"")}><i/><div><b>{connected?"Google Naptár kapcsolódva":"Google Naptár nincs kapcsolva"}</b><span>{connected?"Az iPhone-on használt Google Naptár eseményei megjelennek itt.":"Kapcsold össze egyszer a kétirányú szinkronhoz."}</span></div></div>
-      <button className="primary wide" onClick={()=>location.href="/api/google/connect"}>{connected?"Újracsatlakozás":"Google Naptár csatlakoztatása"}</button></div>
+    {settings&&<Modal title="Beállítások" onClose={()=>setSettings(false)}>
+      <div className="settingsBox">
+        <div className="themeSettings">
+          <div className="settingsTitle"><b>Megjelenés</b><span>Válassz témát, vagy kövesse automatikusan a készüléket.</span></div>
+          <div className="themeSwitch" role="group" aria-label="Megjelenés">
+            <button className={themeMode==="dark"?"on":""} onClick={()=>setThemeMode("dark")}><span>●</span>Sötét</button>
+            <button className={themeMode==="light"?"on":""} onClick={()=>setThemeMode("light")}><span>○</span>Világos</button>
+            <button className={themeMode==="system"?"on":""} onClick={()=>setThemeMode("system")}><span>◐</span>Rendszer</button>
+          </div>
+          <small className="themeHint">Aktív: {resolvedTheme==="dark"?"sötét":"világos"} mód</small>
+        </div>
+        <div className={"status "+(connected?"ok":"")}><i/><div><b>{connected?"Google Naptár kapcsolódva":"Google Naptár nincs kapcsolva"}</b><span>{connected?"Az iPhone-on használt Google Naptár eseményei megjelennek itt.":"Kapcsold össze egyszer a kétirányú szinkronhoz."}</span></div></div>
+        <button className="primary wide" onClick={()=>location.href="/api/google/connect"}>{connected?"Újracsatlakozás":"Google Naptár csatlakoztatása"}</button>
+      </div>
     </Modal>}
   </main>
 }
