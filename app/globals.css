@@ -325,3 +325,112 @@
   .day:hover,.timelineEvent:hover,.listItem:hover,.secondary:hover,.syncBtn:hover,.todayBtn:hover,.iconBtn:hover{transform:none}
   .iconBtn,.todayBtn,.secondary,.primary,.syncBtn,.rangeBar button,.closeX{min-width:40px}
 }
+
+/* v3 theme system + richer color surfaces */
+.themeSettings{display:grid;gap:10px;margin-bottom:16px;padding:14px;border:1px solid #2A3B55;border-radius:14px;background:linear-gradient(180deg,#142238,#101A2A)}
+.settingsTitle b,.settingsTitle span{display:block}.settingsTitle b{font-size:13px;color:#F2F7FF}.settingsTitle span{font-size:11px;color:#8FA2BB;margin-top:3px}
+.themeSwitch{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:4px;background:#0D1725;border:1px solid #27364D;border-radius:12px}
+.themeSwitch button{border:0;background:transparent;color:#91A4BD;border-radius:9px;padding:9px 7px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .18s ease}
+.themeSwitch button span{font-size:15px}.themeSwitch button.on{color:#fff;background:linear-gradient(135deg,#2563EB,#3B82F6 58%,#22D3EE);box-shadow:0 0 18px #3B82F644}
+.themeHint{font-size:10px;color:#6F849F}
+
+/* Events are colored surfaces, not only colored stripes */
+.timelineEvent,.dragEvent,.allDayRow button{
+  background:
+    linear-gradient(135deg,color-mix(in srgb,var(--event) 36%,#111827),color-mix(in srgb,var(--event) 17%,#0B1220))!important;
+}
+.timelineEvent{border:1px solid color-mix(in srgb,var(--event) 65%,#ffffff18);border-left:3px solid var(--event);box-shadow:0 4px 14px color-mix(in srgb,var(--event) 17%,transparent),inset 0 1px 0 #ffffff10}
+.dragEvent{border:1px solid color-mix(in srgb,var(--event) 72%,#ffffff18);border-left:5px solid var(--event);box-shadow:0 10px 28px #0007,0 0 18px color-mix(in srgb,var(--event) 20%,transparent)}
+.allDayRow button{box-shadow:0 0 14px color-mix(in srgb,var(--event) 16%,transparent)}
+.listItem>i{box-shadow:0 0 14px currentColor}
+
+/* Light theme */
+.appShell[data-theme="light"]{
+  background:
+    radial-gradient(circle at 12% -5%,#DBEAFE 0,transparent 28%),
+    radial-gradient(circle at 95% 8%,#CFFAFE 0,transparent 22%),
+    #F4F7FB;
+  color:#132033;
+}
+.appShell[data-theme="light"] .sidebar{background:linear-gradient(180deg,#F8FBFF,#ECF2F9);border-color:#D4DFEC;color:#162337}
+.appShell[data-theme="light"] .brand{color:#142033}
+.appShell[data-theme="light"] .mini,
+.appShell[data-theme="light"] .calList,
+.appShell[data-theme="light"] .rangeBar,
+.appShell[data-theme="light"] .customRange,
+.appShell[data-theme="light"] .calendar,
+.appShell[data-theme="light"] .listItem,
+.appShell[data-theme="light"] .modal,
+.appShell[data-theme="light"] .themeSettings{
+  background:linear-gradient(180deg,#FFFFFF,#F4F8FC);
+  border-color:#D5E0EC;
+  color:#162337;
+  box-shadow:0 8px 28px #31517312;
+}
+.appShell[data-theme="light"] .weekHeader{background:#EAF1F8;border-color:#D4DFEC}
+.appShell[data-theme="light"] .weekHeader span{color:#3B4D63}
+.appShell[data-theme="light"] .day{background:#F9FBFD;color:#17263A;border-color:#D9E3ED}
+.appShell[data-theme="light"] .day:hover{background:linear-gradient(180deg,#EFF6FF,#F7FBFF)}
+.appShell[data-theme="light"] .selectedDay{background:linear-gradient(180deg,#E6F0FF,#EEF7FF);box-shadow:inset 0 0 0 2px #3B82F6,0 0 18px #3B82F622}
+.appShell[data-theme="light"] .todayDay{background:linear-gradient(180deg,#EAF7FF,#F4FBFF)}
+.appShell[data-theme="light"] .dayHead small,
+.appShell[data-theme="light"] .periodTitle small,
+.appShell[data-theme="light"] .listItem small,
+.appShell[data-theme="light"] .settingsTitle span,
+.appShell[data-theme="light"] .themeHint{color:#61758D}
+.appShell[data-theme="light"] .periodTitle h1{background:linear-gradient(90deg,#12345E,#2563EB 62%,#0891B2);-webkit-background-clip:text;background-clip:text;color:transparent}
+.appShell[data-theme="light"] .iconBtn,
+.appShell[data-theme="light"] .todayBtn,
+.appShell[data-theme="light"] .secondary,
+.appShell[data-theme="light"] .syncBtn,
+.appShell[data-theme="light"] .closeX{
+  background:#F8FBFF;color:#26405F;border-color:#CBD8E6;box-shadow:0 4px 14px #25496A12
+}
+.appShell[data-theme="light"] .rangeBar{background:#EAF0F7}
+.appShell[data-theme="light"] .rangeBar button{color:#536A83}
+.appShell[data-theme="light"] .themeSwitch{background:#E9F0F7;border-color:#D2DDE9}
+.appShell[data-theme="light"] .themeSwitch button{color:#536A83}
+.appShell[data-theme="light"] .form{background:linear-gradient(180deg,#FFFFFF,#F6F9FC)}
+.appShell[data-theme="light"] .form label{background:linear-gradient(180deg,#FCFEFF,#F2F6FA);border-color:#D5E0EB}
+.appShell[data-theme="light"] .form label>span{color:#60738B}
+.appShell[data-theme="light"] .form input,
+.appShell[data-theme="light"] .form select,
+.appShell[data-theme="light"] .form textarea,
+.appShell[data-theme="light"] .customRange input{
+  background:#FFFFFF;color:#162337;border-color:#C9D6E5
+}
+.appShell[data-theme="light"] .form input:focus,
+.appShell[data-theme="light"] .form select:focus,
+.appShell[data-theme="light"] .form textarea:focus{background:#FFFFFF}
+.appShell[data-theme="light"] .dayBackdrop,
+.appShell[data-theme="light"] .backdrop{background:#B9C6D577;backdrop-filter:blur(13px)}
+.appShell[data-theme="light"] .dayZoom{background:linear-gradient(180deg,#FFFFFF,#F4F8FC);border-color:#BFD0E2;box-shadow:0 24px 70px #36597A2c,0 0 30px #3B82F624}
+.appShell[data-theme="light"] .dayZoom>header{background:linear-gradient(180deg,#F8FBFF,#EEF4FA);border-color:#D5E0EC}
+.appShell[data-theme="light"] .dayScroll{background:#F7FAFD}
+.appShell[data-theme="light"] .hourRow i{border-color:#D8E2ED}
+.appShell[data-theme="light"] .hourRow span{color:#75879B}
+.appShell[data-theme="light"] .dayZoom>footer{background:#EDF3F8;color:#6F8094;border-color:#D5E0EC}
+.appShell[data-theme="light"] .modalHead{border-color:#D5E0EC}
+.appShell[data-theme="light"] .modalHead b{background:linear-gradient(90deg,#15365D,#2563EB);-webkit-background-clip:text;background-clip:text;color:transparent}
+.appShell[data-theme="light"] .status{background:#FFF7ED;border-color:#FED7AA;color:#7C3E0E}
+.appShell[data-theme="light"] .status.ok{background:#ECFDF5;border-color:#A7F3D0;color:#14532D}
+.appShell[data-theme="light"] .status span{color:#587087}
+.appShell[data-theme="light"] .settingsTitle b{color:#15263A}
+.appShell[data-theme="light"] .timelineEvent,
+.appShell[data-theme="light"] .dragEvent,
+.appShell[data-theme="light"] .allDayRow button{
+  color:#0F1E30;
+  background:
+    linear-gradient(135deg,color-mix(in srgb,var(--event) 28%,#FFFFFF),color-mix(in srgb,var(--event) 12%,#F7FAFD))!important;
+  text-shadow:none;
+}
+.appShell[data-theme="light"] .eventMain{color:#10243D}
+.appShell[data-theme="light"] .eventMain small{color:#51677F}
+.appShell[data-theme="light"] .eventQuick{background:#FFFFFFB8}
+.appShell[data-theme="light"] .eventQuick button{color:#294463;border-color:#C9D7E5}
+.appShell[data-theme="light"] .toast{background:linear-gradient(180deg,#E7F1FF,#DDEBFF);color:#15365D;border-color:#60A5FA;box-shadow:0 12px 34px #31517326}
+
+@media(max-width:900px){
+  .appShell[data-theme="light"] .topbar{background:linear-gradient(180deg,#F4F7FBF3 74%,#F4F7FB00)}
+  .appShell[data-theme="light"] .rangeBar{background:#EAF0F7EE}
+}
