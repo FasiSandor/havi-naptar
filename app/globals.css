@@ -234,7 +234,7 @@
 .modalActions .primary{min-width:116px}
 .modalActions .secondary{min-width:92px}
 .modalHead b{background:linear-gradient(90deg,#F8FAFC,#BFDBFE);-webkit-background-clip:text;background-clip:text;color:transparent}
-.modalHead button{transition:transform .16s ease,color .16s ease,background .16s ease;border-color .16s ease;border-radius:8px}
+.modalHead button{transition:transform .16s ease,color .16s ease,background .16s ease,border-color .16s ease;border-radius:8px}
 .modalHead button:hover{color:#fff;background:#1A2B44;transform:rotate(4deg)}
 
 .settingsBox .status{position:relative;overflow:hidden}
