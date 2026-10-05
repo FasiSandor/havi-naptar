@@ -113,8 +113,16 @@ export default function Home(){
   }
 
   async function moveEvent(e:Ev,newStart:number,newDate=e.date){
-    const d=duration(e), moved={...e,date:newDate,start:hhmm(newStart),end:hhmm(newStart+d)};
-    await persist(moved);setNotice(`${moved.start} – időpont módosítva`);setTimeout(()=>setNotice(""),1300);
+    const target=hhmm(newStart);
+    const conflict=events.find(x=>x.id!==e.id&&!x.allDay&&x.date===newDate&&x.start===target);
+    if(conflict){
+      const oldStart=mins(e.start), cd=duration(conflict);
+      await persist({...conflict,date:e.date,start:hhmm(oldStart),end:hhmm(oldStart+cd)});
+    }
+    const d=duration(e), moved={...e,date:newDate,start:target,end:hhmm(newStart+d)};
+    await persist(moved);
+    setNotice(conflict?"Az események helyet cseréltek.":`${moved.start} – időpont módosítva`);
+    setTimeout(()=>setNotice(""),1500);
   }
 
   function shift(n:number){
@@ -182,8 +190,10 @@ export default function Home(){
 }
 
 function CalendarGrid({days,events,anchor,onDay}:{days:Date[];events:Ev[];anchor:Date;onDay:(d:Date)=>void}){
+  const first=days[0]?.getDay()||1;
+  const headers=Array.from({length:7},(_,i)=>dayNames[(first+i)%7]);
   return <div className="calendar timeCalendar">
-    <div className="weekHeader">{["Hétfő","Kedd","Szerda","Csütörtök","Péntek","Szombat","Vasárnap"].map(x=><span key={x}>{x}</span>)}</div>
+    <div className="weekHeader">{headers.map(x=><span key={x}>{x}</span>)}</div>
     <div className="grid">{days.map(d=>{
       const es=events.filter(e=>e.date===iso(d));
       return <button key={iso(d)} className={"day timeDay "+(iso(d)===iso(anchor)?"selectedDay":"")} onClick={()=>onDay(d)}>
@@ -227,7 +237,7 @@ function DraggableEvent({e,onMove,onEdit,onDelete}:{e:Ev;onMove:(e:Ev,m:number,d
   function up(){if(startY.current===null)return;const delta=Math.round((dragY/pxPerMin)/15)*15;startY.current=null;setDragY(0);if(delta)onMove(e,base+delta)}
   return <article className="dragEvent" style={{"--event":calMeta[e.calendar].color,top:top+dragY,height} as React.CSSProperties} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={()=>{startY.current=null;setDragY(0)}}>
     <button className="eventMain" onClick={()=>onEdit(e)}><span>{calMeta[e.calendar].icon}</span><div><b>{e.title}</b><small>{e.start} – {e.end}{e.location?" • "+e.location:""}</small></div></button>
-    <div className="eventQuick"><button onClick={()=>onMove(e,base-15)}>−15</button><button onClick={()=>onMove(e,base+15)}>+15</button><button onClick={()=>onEdit(e)}>✎</button><button onClick={()=>onDelete(e)}>×</button></div>
+    <div className="eventQuick"><button onPointerDown={ev=>ev.stopPropagation()} onClick={()=>onMove(e,base-15)}>−15</button><button onPointerDown={ev=>ev.stopPropagation()} onClick={()=>onMove(e,base+15)}>+15</button><button onPointerDown={ev=>ev.stopPropagation()} onClick={()=>onMove(e,base,iso(addDays(parseDate(e.date),-1)))}>←nap</button><button onPointerDown={ev=>ev.stopPropagation()} onClick={()=>onMove(e,base,iso(addDays(parseDate(e.date),1)))}>nap→</button><button onPointerDown={ev=>ev.stopPropagation()} onClick={()=>onEdit(e)}>✎</button><button onPointerDown={ev=>ev.stopPropagation()} onClick={()=>onDelete(e)}>×</button></div>
   </article>
 }
 
