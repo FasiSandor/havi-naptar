@@ -203,6 +203,7 @@ function CalendarGrid({days,events,anchor,onDay,onSwipe}:{days:Date[];events:Ev[
   const headers=Array.from({length:7},(_,i)=>dayNames[(first+i)%7]);
   const startPoint=useRef<{x:number;y:number}|null>(null);
   const suppressClick=useRef(false);
+  const [swipeAnim,setSwipeAnim]=useState<""|"left"|"right">("");
   function pointerDown(e:React.PointerEvent<HTMLDivElement>){
     if(e.pointerType==="mouse"&&e.button!==0)return;
     startPoint.current={x:e.clientX,y:e.clientY};
@@ -213,15 +214,20 @@ function CalendarGrid({days,events,anchor,onDay,onSwipe}:{days:Date[];events:Ev[
     startPoint.current=null;
     if(Math.abs(dx)>=56&&Math.abs(dx)>Math.abs(dy)*1.2){
       suppressClick.current=true;
-      onSwipe(dx<0?1:-1);
-      setTimeout(()=>{suppressClick.current=false},220);
+      const dir=dx<0?"left":"right";
+      setSwipeAnim(dir);
+      setTimeout(()=>{
+        onSwipe(dir==="left"?1:-1);
+        setSwipeAnim("");
+      },120);
+      setTimeout(()=>{suppressClick.current=false},260);
     }
   }
-  return <div className="calendar timeCalendar swipeCalendar" onPointerDown={pointerDown} onPointerUp={pointerUp} onPointerCancel={()=>{startPoint.current=null}}>
+  return <div className={"calendar timeCalendar swipeCalendar "+(swipeAnim?"swipe-"+swipeAnim:"")} onPointerDown={pointerDown} onPointerUp={pointerUp} onPointerCancel={()=>{startPoint.current=null}}>
     <div className="weekHeader">{headers.map(x=><span key={x}>{x}</span>)}</div>
     <div className="grid">{days.map(d=>{
       const es=events.filter(e=>e.date===iso(d));
-      return <button key={iso(d)} className={"day timeDay "+(iso(d)===iso(anchor)?"selectedDay":"")} onClick={()=>{if(!suppressClick.current)onDay(d)}}>
+      return <button key={iso(d)} className={"day timeDay "+(iso(d)===iso(anchor)?"selectedDay ":"")+(iso(d)===iso(new Date())?"todayDay":"")} onClick={()=>{if(!suppressClick.current)onDay(d)}}>
         <div className="dayHead"><b>{d.getDate()}</b><small>{shortDays[d.getDay()]}</small></div>
         <div className="miniTimeline">
           <i className="guide g1"/><i className="guide g2"/><i className="guide g3"/>
@@ -238,14 +244,23 @@ function CalendarGrid({days,events,anchor,onDay,onSwipe}:{days:Date[];events:Ev[
 
 function DayZoom({date,events,onClose,onEdit,onAdd,onMove,onDelete}:{date:string;events:Ev[];onClose:()=>void;onEdit:(e:Ev)=>void;onAdd:()=>void;onMove:(e:Ev,m:number,d?:string)=>void;onDelete:(e:Ev)=>void}){
   const scrollRef=useRef<HTMLDivElement>(null);
-  useEffect(()=>{setTimeout(()=>scrollRef.current?.scrollTo({top:7*64,behavior:"smooth"}),80)},[]);
+  const [now,setNow]=useState(()=>new Date());
+  const isToday=date===iso(now);
+  useEffect(()=>{
+    const timer=setInterval(()=>setNow(new Date()),60000);
+    const target=isToday?Math.max(0,(now.getHours()*60+now.getMinutes()-120)*(64/60)):7*64;
+    setTimeout(()=>scrollRef.current?.scrollTo({top:target,behavior:"smooth"}),80);
+    return ()=>clearInterval(timer);
+  },[date]);
   const sorted=[...events].sort((a,b)=>(a.start||"00:00").localeCompare(b.start||"00:00"));
+  const nowTop=(now.getHours()*60+now.getMinutes())*(64/60);
   return <div className="dayBackdrop" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}>
     <section className="dayZoom">
       <header><div><small>{dayNames[parseDate(date).getDay()]}</small><h2>{parseDate(date).toLocaleDateString("hu-HU",{month:"long",day:"numeric"})}</h2></div><div><button className="secondary" onClick={onAdd}>＋ Esemény</button><button className="closeX" onClick={onClose}>×</button></div></header>
       {sorted.some(e=>e.allDay)&&<div className="allDayRow">{sorted.filter(e=>e.allDay).map(e=><button key={e.id} style={{"--event":calMeta[e.calendar].color} as React.CSSProperties} onClick={()=>onEdit(e)}>{calMeta[e.calendar].icon} {e.title}</button>)}</div>}
       <div className="dayScroll" ref={scrollRef}>
         <div className="hours">{Array.from({length:24},(_,h)=><div className="hourRow" key={h}><span>{String(h).padStart(2,"0")}:00</span><i/></div>)}</div>
+        {isToday&&<div className="nowLine" style={{top:nowTop}}><span>{hhmm(now.getHours()*60+now.getMinutes())}</span><i/></div>}
         <div className="dayEventsLayer">{sorted.filter(e=>!e.allDay).map(e=><DraggableEvent key={e.id} e={e} onMove={onMove} onEdit={onEdit} onDelete={onDelete}/>)}</div>
       </div>
       <footer><span>Fogd meg az eseményt és húzd fel/le • 15 perces lépések</span></footer>

@@ -94,3 +94,234 @@
 }
 
 .swipeCalendar{touch-action:pan-y;overscroll-behavior-x:contain}
+
+/* v2 motion + premium visual polish */
+@keyframes uiFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes uiPop{from{opacity:0;transform:scale(.965) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes chipIn{from{opacity:0;transform:translateY(4px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes softPulse{0%,100%{box-shadow:0 0 0 #0000}50%{box-shadow:0 0 18px #3B82F633}}
+@keyframes sheen{0%{transform:translateX(-140%)}100%{transform:translateX(180%)}}
+
+.topbar,.rangeBar,.customRange{animation:uiFadeUp .28s ease both}
+.calendar{animation:uiFadeUp .34s ease both}
+.timeDay{animation:uiFadeUp .34s cubic-bezier(.2,.7,.2,1) both}
+.timeDay:nth-child(2n){animation-delay:.018s}.timeDay:nth-child(3n){animation-delay:.036s}.timeDay:nth-child(4n){animation-delay:.054s}.timeDay:nth-child(5n){animation-delay:.072s}.timeDay:nth-child(6n){animation-delay:.09s}.timeDay:nth-child(7n){animation-delay:.108s}
+
+.iconBtn,.todayBtn,.secondary,.primary,.syncBtn,.rangeBar button,.fab,.closeX{
+  transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease,color .18s ease,opacity .18s ease
+}
+.iconBtn:active,.todayBtn:active,.secondary:active,.primary:active,.syncBtn:active,.rangeBar button:active,.fab:active,.closeX:active{transform:scale(.94)}
+.primary,.rangeBar button.on,.fab{position:relative;overflow:hidden}
+.primary::after,.rangeBar button.on::after,.fab::after{
+  content:"";position:absolute;inset:0 auto 0 -35%;width:28%;background:linear-gradient(90deg,transparent,#ffffff35,transparent);transform:skewX(-18deg);pointer-events:none
+}
+.primary:hover::after,.rangeBar button.on:hover::after,.fab:hover::after{animation:sheen .8s ease}
+
+.rangeBar button.on{background:linear-gradient(135deg,#2563EB,#3B82F6 55%,#22D3EE);box-shadow:0 0 18px #3B82F655, inset 0 0 0 1px #ffffff18}
+.primary{background:linear-gradient(135deg,#2563EB,#3B82F6 62%,#22D3EE);box-shadow:0 0 18px #3B82F655}
+.syncBtn{background:linear-gradient(180deg,#111C2D,#0E1726);border-color:#2D4565}
+.syncBtn:hover,.todayBtn:hover,.iconBtn:hover,.secondary:hover{border-color:#3B82F6;box-shadow:0 0 14px #3B82F62d;color:#fff}
+
+.day{transition:background .2s ease,box-shadow .2s ease,transform .2s ease,border-color .2s ease}
+.day:hover{background:linear-gradient(180deg,#11243B,#0F1E30);box-shadow:inset 0 0 0 1px #3B82F633}
+.selectedDay{outline:0;box-shadow:inset 0 0 0 2px #3B82F6,0 0 18px #3B82F62a;background:linear-gradient(180deg,#10294A,#0F2038)}
+.selectedDay .dayHead b{color:#8CC7FF;text-shadow:0 0 12px #3B82F688}
+
+.timelineEvent{animation:chipIn .25s ease both;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
+.timelineEvent:hover{transform:translateY(-1px);box-shadow:0 4px 14px color-mix(in srgb,var(--event) 26%,transparent)}
+.timelineEvent::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(120deg,#ffffff08,transparent 35%,#ffffff05);pointer-events:none}
+
+.dayBackdrop{animation:uiFadeUp .18s ease both;background:#02060ba8;backdrop-filter:blur(11px)}
+.dayZoom{
+  width:min(650px,90vw);
+  height:min(78dvh,760px);
+  animation:uiPop .26s cubic-bezier(.2,.8,.2,1) both;
+  border-color:#35557F;
+  box-shadow:0 22px 65px #000a,0 0 28px #3B82F62e,0 0 42px #22D3EE12
+}
+.dayZoom>header{background:linear-gradient(180deg,#15243B,#111C2E)}
+.dayZoom>header small{color:#60A5FA;text-shadow:0 0 12px #3B82F666}
+.dragEvent{transition:box-shadow .16s ease,filter .16s ease}
+.dragEvent:hover{box-shadow:0 10px 26px #0008,0 0 16px color-mix(in srgb,var(--event) 28%,transparent);filter:brightness(1.05)}
+.allDayRow button{transition:transform .16s ease,box-shadow .16s ease}
+.allDayRow button:active{transform:scale(.97)}
+
+.modal{animation:uiPop .22s ease both;box-shadow:0 20px 60px #000a,0 0 24px #3B82F620}
+.toast{animation:uiPop .2s ease both;border-color:#3B82F6;background:linear-gradient(180deg,#12305B,#10243F);box-shadow:0 10px 35px #0008,0 0 18px #3B82F633}
+
+.fab{background:linear-gradient(135deg,#2563EB,#3B82F6 58%,#22D3EE);box-shadow:0 0 24px #3B82F666}
+.fab:hover{box-shadow:0 0 34px #22D3EE55,0 0 22px #3B82F677}
+
+@media(max-width:900px){
+  .dayZoom{width:min(92vw,620px);height:min(80dvh,700px);border-radius:18px}
+  .dayBackdrop{padding:10px}
+}
+@media(max-width:520px){
+  .dayZoom{width:92vw;height:76dvh;max-height:680px;border-radius:16px}
+  .dayZoom>header{padding:10px 12px}
+  .dayZoom>header h2{font-size:19px}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+
+.swipeCalendar .grid,.swipeCalendar .weekHeader{transition:transform .12s ease,opacity .12s ease}
+.swipe-left .grid,.swipe-left .weekHeader{transform:translateX(-5%);opacity:.55}
+.swipe-right .grid,.swipe-right .weekHeader{transform:translateX(5%);opacity:.55}
+
+@keyframes nowPulse{0%,100%{box-shadow:0 0 0 0 #22D3EE55}50%{box-shadow:0 0 0 6px #22D3EE00}}
+.nowLine{position:absolute;left:48px;right:8px;height:0;border-top:1.5px solid #22D3EE;z-index:15;pointer-events:none;filter:drop-shadow(0 0 5px #22D3EE66)}
+.nowLine::before{content:"";position:absolute;left:-5px;top:-5px;width:9px;height:9px;border-radius:50%;background:#22D3EE;animation:nowPulse 1.8s ease-in-out infinite}
+.nowLine span{position:absolute;left:-48px;top:-9px;width:42px;text-align:right;font-size:9px;font-weight:700;color:#67E8F9;text-shadow:0 0 10px #22D3EE88}
+.nowLine i{position:absolute;left:0;right:0;top:-1px;height:1px;background:linear-gradient(90deg,#22D3EE,#60A5FA88,transparent)}
+
+.listItem{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;animation:uiFadeUp .28s ease both}
+.listItem:hover{transform:translateY(-1px);border-color:#3B82F688;background:linear-gradient(180deg,#13233A,#101A2A);box-shadow:0 8px 22px #0004,0 0 14px #3B82F61f}
+.form input:focus,.form select:focus,.form textarea:focus,.customRange input:focus{border-color:#3B82F6;box-shadow:0 0 0 3px #3B82F61e,0 0 16px #3B82F61f}
+.form input,.form select,.form textarea,.customRange input{transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
+.calList label{transition:background .16s ease,transform .16s ease;padding .16s ease;border-radius:8px}
+.calList label:hover{background:#162238;transform:translateX(2px)}
+.calList label i{box-shadow:0 0 10px currentColor}
+.dayZoom>header,.modalHead{position:relative;overflow:hidden}
+.dayZoom>header::after,.modalHead::after{content:"";position:absolute;left:10%;right:10%;bottom:0;height:1px;background:linear-gradient(90deg,transparent,#60A5FA66,#22D3EE55,transparent)}
+
+@media(max-width:900px){
+  .nowLine{left:42px}
+  .nowLine span{left:-42px;width:36px;font-size:8px}
+  .listItem:active{transform:scale(.985)}
+}
+
+@keyframes todayBreath{0%,100%{box-shadow:inset 0 0 0 1px #3B82F633,0 0 0 #0000}50%{box-shadow:inset 0 0 0 1px #60A5FA88,0 0 18px #3B82F625}}
+@keyframes eventGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.06)}}
+@keyframes calendarIn{from{opacity:.35;transform:translateY(5px) scale(.996)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+.todayDay{position:relative;background:linear-gradient(180deg,#10233B,#0F1C2D);animation:todayBreath 3.6s ease-in-out infinite}
+.todayDay::before{content:"MA";position:absolute;top:5px;right:5px;font-size:7px;font-weight:800;letter-spacing:.08em;color:#7DD3FC;background:#0E749033;border:1px solid #22D3EE55;border-radius:999px;padding:2px 4px;box-shadow:0 0 10px #22D3EE22}
+.todayDay .dayHead b{color:#BAE6FD;text-shadow:0 0 11px #22D3EE66}
+
+.swipeCalendar:not(.swipe-left):not(.swipe-right) .grid{animation:calendarIn .22s ease both}
+.timeDay:active{transform:scale(.985);background:linear-gradient(180deg,#143158,#10233B)}
+.timeDay::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at 50% 0,#60A5FA08,transparent 55%)}
+
+.timelineEvent{position:absolute}
+.timelineEvent::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#ffffff22,var(--event),#ffffff10);border-radius:4px 0 0 4px}
+.timelineEvent:nth-child(2n){animation-delay:.03s}.timelineEvent:nth-child(3n){animation-delay:.06s}.timelineEvent:nth-child(4n){animation-delay:.09s}.timelineEvent:nth-child(5n){animation-delay:.12s}
+.selectedDay .timelineEvent{animation:chipIn .25s ease both,eventGlow 2.8s ease-in-out infinite}
+
+.rangeBar{box-shadow:inset 0 1px 0 #ffffff08,0 6px 20px #0003}
+.rangeBar button{position:relative}
+.rangeBar button:not(.on)::after{content:"";position:absolute;left:50%;right:50%;bottom:3px;height:2px;background:linear-gradient(90deg,#3B82F6,#22D3EE);border-radius:3px;transition:left .18s ease,right .18s ease,opacity .18s ease;opacity:0}
+.rangeBar button:not(.on):hover::after{left:18%;right:18%;opacity:.8}
+
+.periodTitle h1{background:linear-gradient(90deg,#F8FAFC,#BFDBFE 60%,#67E8F9);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brandIcon{background:linear-gradient(135deg,#2563EB,#3B82F6 55%,#22D3EE);box-shadow:0 0 22px #3B82F655,0 0 30px #22D3EE1f}
+
+.eventMain:active{transform:scale(.99)}
+.dragEvent{will-change:top,transform}
+.dragEvent:active{box-shadow:0 14px 34px #0009,0 0 22px color-mix(in srgb,var(--event) 34%,transparent);filter:brightness(1.08)}
+
+@media(max-width:520px){
+  .todayDay::before{font-size:6px;padding:1px 3px;top:3px;right:3px}
+}
+
+.form{background:linear-gradient(180deg,#101A2A,#0E1725)}
+.form label{padding:9px 10px;border:1px solid #24334A;border-radius:11px;background:linear-gradient(180deg,#131F31,#101927);transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.form label:focus-within{border-color:#3B82F6;box-shadow:0 0 0 1px #3B82F633,0 0 18px #3B82F61f;transform:translateY(-1px)}
+.form label>span{font-size:11px;letter-spacing:.03em;color:#93A7C0}
+.form input,.form select,.form textarea{background:#0D1726;border:1px solid #2B3A52}
+.form input:focus,.form select:focus,.form textarea:focus{background:#101C2D}
+.modalActions{padding-top:2px}
+.modalActions .primary{min-width:116px}
+.modalActions .secondary{min-width:92px}
+.modalHead b{background:linear-gradient(90deg,#F8FAFC,#BFDBFE);-webkit-background-clip:text;background-clip:text;color:transparent}
+.modalHead button{transition:transform .16s ease,color .16s ease,background .16s ease;border-color .16s ease;border-radius:8px}
+.modalHead button:hover{color:#fff;background:#1A2B44;transform:rotate(4deg)}
+
+.settingsBox .status{position:relative;overflow:hidden}
+.settingsBox .status::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 20%,#ffffff06 45%,transparent 70%);pointer-events:none}
+.status.ok{box-shadow:inset 0 0 0 1px #22C55E22,0 0 18px #22C55E10}
+.status.ok i{box-shadow:0 0 12px #22C55E88}
+
+.secondary,.syncBtn,.todayBtn,.iconBtn{backdrop-filter:blur(8px)}
+.secondary:hover,.syncBtn:hover,.todayBtn:hover,.iconBtn:hover{transform:translateY(-1px)}
+
+/* final responsive polish */
+@media(min-width:901px) and (max-width:1180px){
+  .appShell{grid-template-columns:205px 1fr}
+  .sidebar{padding:16px 10px}
+  .content{padding:14px}
+  .topbar{grid-template-columns:1fr auto;grid-template-areas:"head actions" "range range"}
+  .headLeft{grid-area:head}.actions{grid-area:actions}
+  .rangeBar{margin-top:2px}
+  .day{min-height:118px;padding:8px}
+  .miniTimeline{height:88px}
+  .timelineEvent{font-size:8px}
+  .dayZoom{width:min(620px,72vw);height:min(74dvh,720px)}
+}
+
+@media(max-width:900px){
+  .content{padding:7px max(7px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(7px,env(safe-area-inset-right))}
+  .topbar{position:sticky;top:0;z-index:12;padding:6px 0 5px;background:linear-gradient(180deg,#0B0F14f2 74%,#0B0F1400);backdrop-filter:blur(14px)}
+  .headLeft{min-width:0}
+  .headLeft .periodTitle{min-width:0;flex:1}
+  .periodTitle h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+  .iconBtn,.todayBtn,.syncBtn{min-height:40px}
+  .rangeBar{position:sticky;top:54px;z-index:11;margin-bottom:8px;background:#101A2Aeb;backdrop-filter:blur(12px);border-color:#30415A}
+  .rangeBar button{min-height:38px}
+  .calendar{border-radius:13px;box-shadow:0 10px 34px #0004}
+  .calendar .day{min-height:102px}
+  .miniTimeline{height:76px}
+  .timelineEvent{border-radius:5px}
+  .fab{right:max(14px,env(safe-area-inset-right));bottom:max(14px,calc(env(safe-area-inset-bottom) + 10px));width:54px;height:54px}
+  .dayZoom{width:min(90vw,590px);height:min(74dvh,660px)}
+  .dayZoom>footer{font-size:10px;padding:8px}
+  .eventQuick button{min-width:36px}
+  .closeX{width:38px;height:38px}
+}
+
+@media(max-width:600px){
+  .headLeft{gap:4px}
+  .iconBtn{width:36px;height:36px}
+  .todayBtn{padding:7px 8px;font-size:12px}
+  .actions{margin-top:-2px}
+  .syncBtn{min-height:34px;padding:6px 10px;font-size:11px}
+  .rangeBar{top:48px}
+  .rangeBar button{padding:7px 9px;font-size:11px}
+  .weekHeader span{font-size:8px;padding:8px 0}
+  .calendar .day{min-height:92px;padding:4px 2px}
+  .dayHead{margin-bottom:2px}
+  .dayHead b{font-size:12px}
+  .dayHead small{display:none}
+  .miniTimeline{height:68px}
+  .timelineEvent{left:1px;right:1px;font-size:7px;min-height:14px;padding:2px 2px;border-left-width:2px}
+  .timelineEvent em{display:none}
+  .moreEvents{font-size:8px}
+  .dayZoom{width:90vw;height:70dvh;max-height:620px}
+  .dayZoom>header .secondary{font-size:11px;padding:7px 8px}
+  .dayZoom>header h2{font-size:18px}
+  .eventMain{padding-left:6px}
+  .eventMain b{font-size:11px}
+}
+
+@media(max-width:390px){
+  .todayBtn{display:none}
+  .periodTitle h1{font-size:16px}
+  .rangeBar{top:45px}
+  .rangeBar button{padding:7px 8px}
+  .calendar .day{min-height:86px}
+  .miniTimeline{height:63px}
+  .dayZoom{width:91vw;height:68dvh}
+}
+
+@media(max-width:900px) and (orientation:landscape){
+  .topbar{position:static;padding:0;background:transparent;backdrop-filter:none}
+  .rangeBar{position:static}
+  .dayZoom{width:min(74vw,620px);height:min(82dvh,620px)}
+  .calendar .day{min-height:88px}
+  .miniTimeline{height:64px}
+}
+
+@media(hover:none) and (pointer:coarse){
+  .day:hover,.timelineEvent:hover,.listItem:hover,.secondary:hover,.syncBtn:hover,.todayBtn:hover,.iconBtn:hover{transform:none}
+  .iconBtn,.todayBtn,.secondary,.primary,.syncBtn,.rangeBar button,.closeX{min-width:40px}
+}
