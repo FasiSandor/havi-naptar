@@ -11,6 +11,7 @@ function eventBody(x:any){
     summary:x.title||"Esemény",
     location:x.location||"",
     description:x.note||"",
+    extendedProperties:{private:{haviCategory:x.calendar||"work"}},
     start:x.allDay?{date:x.date}:{dateTime:x.start,timeZone:"Europe/Budapest"},
     end:x.allDay?{date:x.endDate||x.date}:{dateTime:x.end,timeZone:"Europe/Budapest"}
   }
@@ -21,7 +22,7 @@ export async function GET(req:NextRequest){
   const to=req.nextUrl.searchParams.get("to")||new Date(Date.now()+35*86400000).toISOString();
   const u=new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
   u.searchParams.set("timeMin",from);u.searchParams.set("timeMax",to);u.searchParams.set("singleEvents","true");u.searchParams.set("orderBy","startTime");
-  const r=await fetch(u,{headers:{Authorization:`Bearer ${token}`}}); const j=await r.json();
+  const r=await fetch(u,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"}); const j=await r.json();
   if(!r.ok) return NextResponse.json({connected:false,error:j?.error?.message||"google_error"},{status:r.status});
   return NextResponse.json({connected:true,items:j.items||[]});
 }
