@@ -18,3 +18,6 @@ Google OAuth callback:
 ## Aktuális verzió
 
 v2 – rugalmas 1/2/4 hetes, havi és egyedi dátumtartomány; nagyított napi idővonal; 15 perces eseménymozgatás és időpontcsere.
+
+
+Release trigger: v2 motion
