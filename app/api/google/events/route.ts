@@ -22,7 +22,8 @@ export async function GET(req:NextRequest){
   const u=new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
   u.searchParams.set("timeMin",from);u.searchParams.set("timeMax",to);u.searchParams.set("singleEvents","true");u.searchParams.set("orderBy","startTime");
   const r=await fetch(u,{headers:{Authorization:`Bearer ${token}`}}); const j=await r.json();
-  return NextResponse.json({connected:true,items:j.items||[]},{status:r.status});
+  if(!r.ok) return NextResponse.json({connected:false,error:j?.error?.message||"google_error"},{status:r.status});
+  return NextResponse.json({connected:true,items:j.items||[]});
 }
 export async function POST(req:NextRequest){
   const token=await access(req); if(!token) return NextResponse.json({error:"not_connected"},{status:401});
