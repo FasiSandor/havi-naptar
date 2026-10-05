@@ -6,7 +6,7 @@ type Ev={id:string;googleId?:string;title:string;date:string;start?:string;end?:
 const calMeta:Record<CalKey,{label:string;color:string}>={work:{label:"Suli / Munka",color:"#3B82F6"},personal:{label:"Személyes",color:"#22C55E"},family:{label:"Család",color:"#F59E0B"},sport:{label:"Sport",color:"#8B5CF6"}};
 const names=["Vasárnap","Hétfő","Kedd","Szerda","Csütörtök","Péntek","Szombat"];
 
-function iso(d:Date){return d.toISOString().slice(0,10)}
+function iso(d:Date){const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,"0");const day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`}
 function parseDate(s:string){const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)}
 function monday(d:Date){const x=new Date(d);const day=(x.getDay()+6)%7;x.setDate(x.getDate()-day);x.setHours(12,0,0,0);return x}
 function addDays(d:Date,n:number){const x=new Date(d);x.setDate(x.getDate()+n);return x}
@@ -26,7 +26,9 @@ export default function Home(){
   const [editor,setEditor]=useState<Partial<Ev>|null>(null);
   const [enabled,setEnabled]=useState<Record<CalKey,boolean>>({work:true,personal:true,family:true,sport:true});
   const [connected,setConnected]=useState(false);
-  const [settings,setSettings]=useState(false);\n  const [notice,setNotice]=useState("");\n  const [syncing,setSyncing]=useState(false);
+  const [settings,setSettings]=useState(false);
+  const [notice,setNotice]=useState("");
+  const [syncing,setSyncing]=useState(false);
 
   useEffect(()=>{try{setEvents(JSON.parse(localStorage.getItem("havi-events")||"[]"))}catch{}},[]);
   useEffect(()=>{localStorage.setItem("havi-events",JSON.stringify(events.filter(e=>!e.googleId)))},[events]);
@@ -55,7 +57,7 @@ export default function Home(){
     let gId=base.googleId;
     if(connected){
       const startDate=parseDate(base.date);
-      const payload={...base,start:base.allDay?`${base.date}T00:00:00`:`${base.date}T${base.start}:00+02:00`,end:base.allDay?`${iso(addDays(startDate,1))}T00:00:00`:`${base.date}T${base.end}:00+02:00`,endDate:iso(addDays(startDate,1))};
+      const payload={...base,start:base.allDay?base.date:`${base.date}T${base.start}:00`,end:base.allDay?iso(addDays(startDate,1)):`${base.date}T${base.end}:00`,endDate:iso(addDays(startDate,1))};
       const r=await fetch("/api/google/events",{method:gId?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
       if(r.ok){const j=await r.json();gId=j.id||gId}
     }
@@ -124,7 +126,8 @@ export default function Home(){
       </div>}
     </section>
 
-    {notice&&<div className="toast">{notice}</div>}\n    <button className="fab" onClick={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}>＋</button>
+    {notice&&<div className="toast">{notice}</div>}
+    <button className="fab" onClick={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}>＋</button>
 
     {editor&&<Modal title={editor.id?"Esemény szerkesztése":"Esemény hozzáadása"} onClose={()=>setEditor(null)}>
       <EventForm value={editor} onSave={save} onCancel={()=>setEditor(null)}/>
