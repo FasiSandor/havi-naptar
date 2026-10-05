@@ -330,6 +330,8 @@ function CalendarGrid({days,events,anchor,onDay,onSwipe}:{days:Date[];events:Ev[
 function DayZoom({date,events,onClose,onEdit,onAdd,onMove,onDelete}:{date:string;events:Ev[];onClose:()=>void;onEdit:(e:Ev)=>void;onAdd:()=>void;onMove:(e:Ev,m:number,d?:string)=>void;onDelete:(e:Ev)=>void}){
   const scrollRef=useRef<HTMLDivElement>(null);
   const [now,setNow]=useState(()=>new Date());
+  const [closing,setClosing]=useState(false);
+  const close=()=>{if(closing)return;setClosing(true);setTimeout(onClose,190)};
   const isToday=date===iso(now);
   useEffect(()=>{
     const timer=setInterval(()=>setNow(new Date()),60000);
@@ -339,9 +341,9 @@ function DayZoom({date,events,onClose,onEdit,onAdd,onMove,onDelete}:{date:string
   },[date]);
   const sorted=[...events].sort((a,b)=>(a.start||"00:00").localeCompare(b.start||"00:00"));
   const nowTop=(now.getHours()*60+now.getMinutes())*(64/60);
-  return <div className="dayBackdrop" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}>
+  return <div className={"dayBackdrop "+(closing?"closing":"")} onMouseDown={e=>{if(e.currentTarget===e.target)close()}}>
     <section className="dayZoom">
-      <header><div><small>{dayNames[parseDate(date).getDay()]}</small><h2>{parseDate(date).toLocaleDateString("hu-HU",{month:"long",day:"numeric"})}</h2></div><div><button className="secondary" onClick={onAdd}>＋ Esemény</button><button className="closeX" onClick={onClose}>×</button></div></header>
+      <header><div><small>{dayNames[parseDate(date).getDay()]}</small><h2>{parseDate(date).toLocaleDateString("hu-HU",{month:"long",day:"numeric"})}</h2></div><div><button className="secondary" onClick={onAdd}>＋ Esemény</button><button className="closeX" onClick={close}>×</button></div></header>
       {sorted.some(e=>e.allDay)&&<div className="allDayRow">{sorted.filter(e=>e.allDay).map(e=><button key={e.id} style={{"--event":calMeta[e.calendar].color} as React.CSSProperties} onClick={()=>onEdit(e)}>{calMeta[e.calendar].icon} {e.title}</button>)}</div>}
       <div className="dayScroll" ref={scrollRef}>
         <div className="hours">{Array.from({length:24},(_,h)=><div className="hourRow" key={h}><span>{String(h).padStart(2,"0")}:00</span><i/></div>)}</div>
@@ -367,7 +369,9 @@ function DraggableEvent({e,onMove,onEdit,onDelete}:{e:Ev;onMove:(e:Ev,m:number,d
 }
 
 function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}){
-  return <div className="backdrop" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}><div className="modal"><div className="modalHead"><b>{title}</b><button onClick={onClose}>×</button></div>{children}</div></div>
+  const [closing,setClosing]=useState(false);
+  const close=()=>{if(closing)return;setClosing(true);setTimeout(onClose,180)};
+  return <div className={"backdrop "+(closing?"closing":"")} onMouseDown={e=>{if(e.currentTarget===e.target)close()}}><div className="modal"><div className="modalHead"><b>{title}</b><button onClick={close}>×</button></div>{children}</div></div>
 }
 function EventForm({value,onSave,onCancel}:{value:Partial<Ev>;onSave:(x:Partial<Ev>)=>void;onCancel:()=>void}){
   const [x,setX]=useState(value);
