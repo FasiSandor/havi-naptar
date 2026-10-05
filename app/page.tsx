@@ -244,14 +244,23 @@ function CalendarGrid({days,events,anchor,onDay,onSwipe}:{days:Date[];events:Ev[
 
 function DayZoom({date,events,onClose,onEdit,onAdd,onMove,onDelete}:{date:string;events:Ev[];onClose:()=>void;onEdit:(e:Ev)=>void;onAdd:()=>void;onMove:(e:Ev,m:number,d?:string)=>void;onDelete:(e:Ev)=>void}){
   const scrollRef=useRef<HTMLDivElement>(null);
-  useEffect(()=>{setTimeout(()=>scrollRef.current?.scrollTo({top:7*64,behavior:"smooth"}),80)},[]);
+  const [now,setNow]=useState(()=>new Date());
+  const isToday=date===iso(now);
+  useEffect(()=>{
+    const timer=setInterval(()=>setNow(new Date()),60000);
+    const target=isToday?Math.max(0,(now.getHours()*60+now.getMinutes()-120)*(64/60)):7*64;
+    setTimeout(()=>scrollRef.current?.scrollTo({top:target,behavior:"smooth"}),80);
+    return ()=>clearInterval(timer);
+  },[date]);
   const sorted=[...events].sort((a,b)=>(a.start||"00:00").localeCompare(b.start||"00:00"));
+  const nowTop=(now.getHours()*60+now.getMinutes())*(64/60);
   return <div className="dayBackdrop" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}>
     <section className="dayZoom">
       <header><div><small>{dayNames[parseDate(date).getDay()]}</small><h2>{parseDate(date).toLocaleDateString("hu-HU",{month:"long",day:"numeric"})}</h2></div><div><button className="secondary" onClick={onAdd}>＋ Esemény</button><button className="closeX" onClick={onClose}>×</button></div></header>
       {sorted.some(e=>e.allDay)&&<div className="allDayRow">{sorted.filter(e=>e.allDay).map(e=><button key={e.id} style={{"--event":calMeta[e.calendar].color} as React.CSSProperties} onClick={()=>onEdit(e)}>{calMeta[e.calendar].icon} {e.title}</button>)}</div>}
       <div className="dayScroll" ref={scrollRef}>
         <div className="hours">{Array.from({length:24},(_,h)=><div className="hourRow" key={h}><span>{String(h).padStart(2,"0")}:00</span><i/></div>)}</div>
+        {isToday&&<div className="nowLine" style={{top:nowTop}}><span>{hhmm(now.getHours()*60+now.getMinutes())}</span><i/></div>}
         <div className="dayEventsLayer">{sorted.filter(e=>!e.allDay).map(e=><DraggableEvent key={e.id} e={e} onMove={onMove} onEdit={onEdit} onDelete={onDelete}/>)}</div>
       </div>
       <footer><span>Fogd meg az eseményt és húzd fel/le • 15 perces lépések</span></footer>
