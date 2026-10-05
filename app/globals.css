@@ -1095,3 +1095,8 @@
   .appShell[data-theme="light"] .wheelScroll button{color:#71859A}
   .appShell[data-theme="light"] .wheelScroll button.active{color:#12385F;text-shadow:0 0 12px #60A5FA55}
 }
+
+@media(max-width:900px) and (orientation:portrait){
+  .dayCylinder{transform:translateY(var(--wheel-drag,0));transition:transform .16s ease}
+  .dayCylinder.dragging{transition:none}
+}
