@@ -157,6 +157,7 @@ export default function Home(){
   const [infoEvent,setInfoEvent]=useState<Ev|null>(null);
   const [syncQueue,setSyncQueue]=useState<SyncOp[]>([]);
   const [lastSync,setLastSync]=useState<number|null>(null);
+  const [searchOpen,setSearchOpen]=useState(false);
 
   useEffect(()=>{
     try{
@@ -222,7 +223,13 @@ export default function Home(){
   const days=useMemo(()=>Array.from({length:count},(_,i)=>addDays(start,i)),[start,count]);
   const end=days[days.length-1];
   const displayEvents=useMemo(()=>dedupeEvents([...events,...(showWorkPlan?schoolPlanEvents:[])]),[events,showWorkPlan]);
-  const shown=displayEvents.filter(e=>enabled[e.calendar]&&days.some(d=>iso(d)===e.date)).sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
+  const enabledEvents=useMemo(()=>displayEvents.filter(e=>enabled[e.calendar]),[displayEvents,enabled]);
+  const shown=enabledEvents.filter(e=>days.some(d=>iso(d)===e.date)).sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
+  const todayIso=iso(new Date());
+  const nowMinutes=new Date().getHours()*60+new Date().getMinutes();
+  const nextEvent=useMemo(()=>enabledEvents
+    .filter(e=>e.date>todayIso||(e.date===todayIso&&(e.allDay||mins(e.end||e.start)>=nowMinutes)))
+    .sort((a,b)=>(a.date+(a.allDay?"00:00":a.start||"")).localeCompare(b.date+(b.allDay?"00:00":b.start||"")))[0]||null,[enabledEvents,todayIso,nowMinutes]);
 
   function queueSync(op:SyncOp){
     setSyncQueue(prev=>{
@@ -420,7 +427,7 @@ export default function Home(){
 
     <MobilePortrait
       anchor={anchor}
-      events={displayEvents.filter(e=>enabled[e.calendar])}
+      events={enabledEvents}
       connected={connected}
       syncing={syncing}
       pendingCount={syncQueue.length}
@@ -429,6 +436,9 @@ export default function Home(){
       onDay={d=>{setAnchor(d);setDayOpen(iso(d))}}
       onLongDay={d=>{setAnchor(d);setMonthFlow(true)}}
       onQuickAdd={()=>setQuickAdd(true)}
+      onSearch={()=>setSearchOpen(true)}
+      nextEvent={nextEvent}
+      onNextEvent={e=>{setAnchor(parseDate(e.date));setDayOpen(e.date)}}
       onToday={()=>setAnchor(new Date())}
       onPrevMonth={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()-1);setAnchor(d)}}
       onNextMonth={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()+1);setAnchor(d)}}
@@ -436,7 +446,7 @@ export default function Home(){
     />
     {monthFlow&&<ContinuousMonthFlow
       anchor={anchor}
-      events={displayEvents.filter(e=>enabled[e.calendar])}
+      events={enabledEvents}
       onClose={()=>setMonthFlow(false)}
       onDay={d=>{setAnchor(d);setDayOpen(iso(d));setMonthFlow(false)}}
       onToday={()=>setAnchor(new Date())}
@@ -444,7 +454,7 @@ export default function Home(){
     />}
     <MobileLandscapeMonth
       anchor={anchor}
-      events={displayEvents.filter(e=>enabled[e.calendar])}
+      events={enabledEvents}
       onPrev={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()-1);setAnchor(d)}}
       onNext={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()+1);setAnchor(d)}}
       onToday={()=>setAnchor(new Date())}
@@ -520,6 +530,8 @@ export default function Home(){
         </div>
       </div>
     </Modal>}
+
+    {searchOpen&&<EventSearchOverlay events={enabledEvents} onClose={()=>setSearchOpen(false)} onOpen={e=>{setSearchOpen(false);setAnchor(parseDate(e.date));setDayOpen(e.date)}}/>}
 
     {editor&&<Modal title={editor.id?"Esemény szerkesztése":"Esemény hozzáadása"} onClose={()=>setEditor(null)}><EventForm value={editor} connected={connected} onSave={save} onCancel={()=>setEditor(null)}/></Modal>}
 
