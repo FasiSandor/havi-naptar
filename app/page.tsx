@@ -783,7 +783,10 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
 
   let duration=60;
   const durM=low.match(/\b(\d{1,3})\s*(perc|p)\b/);
+  const hourDurM=low.match(/\b(\d+(?:[.,]\d+)?)\s*(?:ora|óra)\s*(?:hosszu|hosszú|idotartam|időtartam)?\b/);
   if(durM)duration=Math.max(15,Math.min(12*60,Number(durM[1])));
+  else if(hourDurM)duration=Math.max(15,Math.min(12*60,Math.round(Number(hourDurM[1].replace(",","."))*60)));
+  const explicitAllDay=/\begesz\s+nap(?:os)?\b|\begész\s+nap(?:os)?\b/.test(low);
 
   const locMatch=raw.match(/@([^,@;]+?)(?=\s+\d{1,2}(?::|\.|\s*-?\s*kor)|$|[,;])/i);
   const location=locMatch?.[1]?.trim()||"";
@@ -799,14 +802,16 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
     .replace(/\b(vasarnap|vasárnap|hetfo|hétfő|kedd|szerda|csutortok|csütörtök|pentek|péntek|szombat)\b/gi," ")
     .replace(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)(?:\s*-?\s*kor)?|([01]?\d|2[0-3])\s*-?\s*(?:ora|óra|kor))\b/gi," ")
     .replace(/\b\d{1,3}\s*(?:perc|p)\b/gi," ")
+    .replace(/\b\d+(?:[.,]\d+)?\s*(?:ora|óra)\s*(?:hosszu|hosszú|idotartam|időtartam)?\b/gi," ")
+    .replace(/\begesz\s+nap(?:os)?\b|\begész\s+nap(?:os)?\b/gi," ")
     .replace(/@([^,@;]+?)(?=\s+\d{1,2}(?::|\.|\s*-?\s*kor)|$|[,;])/gi," ")
     .replace(/#(suli|iskola|munka|csalad|család|sport|edzes|edzés)\b/gi," ")
     .replace(/\s+/g," ").trim()
     .replace(/^[,.;:\-\s]+|[,.;:\-\s]+$/g,"");
 
   if(!title) missing.push("cím");
-  if(startMins===undefined) missing.push("idő");
-  const allDay=startMins===undefined;
+  if(startMins===undefined&&!explicitAllDay) missing.push("idő");
+  const allDay=explicitAllDay;
   const confidence=missing.length===0?"high":title&&missing.length===1?"medium":"low";
   return {
     title:title?title.charAt(0).toUpperCase()+title.slice(1):"",
@@ -838,7 +843,7 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
   const smartPayload:Partial<Ev>={title:parsed.title,date:parsed.date,allDay:parsed.allDay,start:parsed.start,end:parsed.end,calendar:smartCalendar,location:parsed.location};
   const manualPayload:Partial<Ev>={title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar};
   const payload=manual?manualPayload:smartPayload;
-  const canSmartSave=!manual&&!!parsed.title&&parsed.confidence!=="low";
+  const canSmartSave=!manual&&!!parsed.title&&parsed.missing.length===0;
   return <div className="quickBackdrop" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}>
     <section className="quickSheet smartQuickSheet">
       <div className="quickGrabber"/>
