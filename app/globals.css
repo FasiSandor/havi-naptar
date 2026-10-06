@@ -1565,3 +1565,27 @@
     color:#A61B27
   }
 }
+
+/* next-major: read-only school plan details */
+@media(max-width:900px){
+  .readOnlyEvent{display:grid;gap:14px;padding:4px}
+  .readOnlyBadge{
+    width:max-content;max-width:100%;padding:6px 9px;border-radius:999px;
+    border:1px solid #F59E0B66;background:#F59E0B18;color:#FBBF24;
+    font-size:9px;font-weight:900;letter-spacing:.06em
+  }
+  .readOnlyEvent h3{margin:0;font-size:22px;line-height:1.16}
+  .readOnlyMeta{display:grid;gap:9px}
+  .readOnlyMeta span{
+    display:grid;grid-template-columns:70px 1fr;gap:10px;align-items:start;
+    padding:10px 11px;border:1px solid #2B3A50;border-radius:13px;background:#101927;color:#DCE7F2;font-size:12px
+  }
+  .readOnlyMeta b{color:#7F93AA;font-size:9px;letter-spacing:.06em;text-transform:uppercase}
+  .appShell[data-theme="light"] .readOnlyBadge{
+    background:#FFF6E2;border-color:#F2C76F;color:#9A6200
+  }
+  .appShell[data-theme="light"] .readOnlyMeta span{
+    background:#F7FAFD;border-color:#CBD9E5;color:#284159
+  }
+  .appShell[data-theme="light"] .readOnlyMeta b{color:#71849A}
+}
