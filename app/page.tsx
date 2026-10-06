@@ -399,6 +399,7 @@ export default function Home(){
       events={displayEvents.filter(e=>enabled[e.calendar])}
       connected={connected}
       syncing={syncing}
+      pendingCount={syncQueue.length}
       onSync={()=>sync()}
       onDay={d=>{setAnchor(d);setDayOpen(iso(d))}}
       onLongDay={d=>{setAnchor(d);setMonthFlow(true)}}
@@ -519,7 +520,7 @@ export default function Home(){
 }
 
 
-function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,onQuickAdd,onToday,onPrevMonth,onNextMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onToday:()=>void;onPrevMonth:()=>void;onNextMonth:()=>void;onSettings:()=>void}){
+function MobilePortrait({anchor,events,connected,syncing,pendingCount,onSync,onDay,onLongDay,onQuickAdd,onToday,onPrevMonth,onNextMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;pendingCount:number;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onToday:()=>void;onPrevMonth:()=>void;onNextMonth:()=>void;onSettings:()=>void}){
   const swipeX=useRef<number|null>(null);
   const swipeY=useRef<number|null>(null);
   const swipeMoved=useRef(false);
@@ -555,7 +556,7 @@ function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,
       <span><i className="legendOwn"/>Saját</span>
       <span><i className="legendPlan"/>Munkaterv</span>
       <span><i className="legendHoliday"/>Ünnep</span>
-      <span className={connected?"syncState ok":"syncState"}>{connected?"Google ✓":"Offline"}</span>
+      <span className={pendingCount?"syncState pending":connected?"syncState ok":"syncState"}>{pendingCount?pendingCount+" vár szinkronra":connected?"Google ✓":"Offline"}</span>
     </div>
     <div className="mockWeekdays">{["H","K","Sze","Cs","P","Sz","V"].map(x=><span key={x}>{x}</span>)}</div>
 
@@ -609,7 +610,7 @@ function MobileDayCards({date,events,onClose,onEdit,onDelete,onAdd}:{date:string
           <button className="mobileEventOpen" onClick={()=>onEdit(e)}>
             <div className="mobileEventTime"><b>{e.allDay?"Egész nap":e.start}</b><span>{e.allDay?"":e.end||""}</span></div>
             <div className="mobileEventIcon">{calMeta[e.calendar].icon}</div>
-            <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span>{e.note==="Iskolai munkaterv 2026/2027"&&<small className="sourceBadge">MUNKATERV · CSAK OLVASHATÓ</small>}</div>
+            <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span>{e.note==="Iskolai munkaterv 2026/2027"&&<small className="sourceBadge">MUNKATERV · CSAK OLVASHATÓ</small>}{e.pendingSync&&<small className="pendingBadge">SZINKRONRA VÁR</small>}</div>
           </button>
           {!e.id.startsWith("workplan-")&&<button className={"mobileEventDelete "+(deleteId===e.id?"armed":"")} aria-label="Esemény törlése" onClick={()=>{if(deleteId===e.id){onDelete(e);setDeleteId(null)}else{setDeleteId(e.id);setTimeout(()=>setDeleteId(id=>id===e.id?null:id),2200)}}}>{deleteId===e.id?"Törlés":"×"}</button>}
         </div>)}:<div className="mobileNoEvents"><i>✦</i><b>Szabad nap</b><span>Nincs bejegyzett esemény.</span></div>}
