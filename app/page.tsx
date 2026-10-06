@@ -800,7 +800,14 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
   }
 
   let startMins:number|undefined;
-  if(/\bdelben\b|\bdélben\b/.test(low))startMins=12*60;
+  let explicitEndMins:number|undefined;
+  const range=low.match(/\b([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:-|–|—|tol|tól|tol\s+|tól\s+)([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:ig)?\b/);
+  if(range){
+    const sh=Number(range[1]),sm=Number(range[2]||0),eh=Number(range[3]),em=Number(range[4]||0);
+    startMins=sh*60+sm; explicitEndMins=eh*60+em;
+    if(explicitEndMins<=startMins)explicitEndMins+=24*60;
+  }
+  if(startMins===undefined&&(/\bdelben\b|\bdélben\b/.test(low)))startMins=12*60;
   const halfTime=low.match(/\b(?:(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+)?fel\s+([01]?\d|2[0-3])\b|\b(?:(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+)?fél\s+([01]?\d|2[0-3])\b/);
   if(halfTime){
     const part=(halfTime[1]||halfTime[3]||"").toLocaleLowerCase("hu-HU");
@@ -818,11 +825,11 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
   const tm=low.match(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)(?:\s*-?\s*kor)?|([01]?\d|2[0-3])\s*-?\s*(?:ora|óra|kor))\b/);
   if(startMins===undefined&&tm){const h=Number(tm[1]??tm[3]),m=Number(tm[2]??0);startMins=h*60+m}
 
-  let duration=60;
+  let duration=explicitEndMins!==undefined&&startMins!==undefined?Math.max(15,explicitEndMins-startMins):60;
   const durM=low.match(/\b(\d{1,3})\s*(perc|p)\b/);
   const hourDurM=low.match(/\b(?:(\d+[.,]\d+)\s*(?:ora|óra)|(\d+)\s*(?:ora|óra)\s*(?:hosszu|hosszú|idotartam|időtartam))\b/);
-  if(durM)duration=Math.max(15,Math.min(12*60,Number(durM[1])));
-  else if(hourDurM){const hv=hourDurM[1]||hourDurM[2];duration=Math.max(15,Math.min(12*60,Math.round(Number(hv.replace(",","."))*60)))}
+  if(explicitEndMins===undefined&&durM)duration=Math.max(15,Math.min(12*60,Number(durM[1])));
+  else if(explicitEndMins===undefined&&hourDurM){const hv=hourDurM[1]||hourDurM[2];duration=Math.max(15,Math.min(12*60,Math.round(Number(hv.replace(",","."))*60)))}
   const explicitAllDay=/\begesz\s+nap(?:os)?\b|\begész\s+nap(?:os)?\b/.test(low);
 
   const locMatch=raw.match(/@([^,@;]+?)(?=\s+\d{1,2}(?::|\.|\s*-?\s*kor)|$|[,;])/i);
@@ -838,6 +845,7 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
     .replace(/\b(jan\w*|feb\w*|mar\w*|már\w*|apr\w*|ápr\w*|maj\w*|máj\w*|jun\w*|jún\w*|jul\w*|júl\w*|aug\w*|szept\w*|okt\w*|nov\w*|dec\w*)\s+\d{1,2}(?:[-.]?(?:an|en|án|én))?\b/gi," ")
     .replace(/\b(jovo|jövő)\b/gi," ")
     .replace(/\b(vasarnap(?:on)?|vasárnap(?:on)?|hetfo(?:n)?|hétfő(?:n)?|kedd(?:en)?|szerda(?:n|án)?|csutortok(?:on)?|csütörtök(?:ön)?|pentek(?:en)?|péntek(?:en)?|szombat(?:on)?)\b/gi," ")
+    .replace(/\b([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:-|–|—|tol|tól)\s*([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:ig)?\b/gi," ")
     .replace(/\bdelben\b|\bdélben\b/gi," ")
     .replace(/\b(?:(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+)?(?:fel|fél)\s+([01]?\d|2[0-3])\b/gi," ")
     .replace(/\b(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+([01]?\d|2[0-3])(?:(?::|\.)([0-5]\d))?\b/gi," ")
@@ -858,7 +866,7 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
     title:title?title.charAt(0).toUpperCase()+title.slice(1):"",
     date:iso(d),allDay,duration,location,calendar:suggestedCalendar,confidence,missing,explicitDate,explicitTime:startMins!==undefined,
     start:startMins===undefined?undefined:hhmm(startMins),
-    end:startMins===undefined?undefined:hhmm(startMins+duration)
+    end:startMins===undefined?undefined:hhmm(explicitEndMins!==undefined?explicitEndMins:startMins+duration)
   };
 }
 
