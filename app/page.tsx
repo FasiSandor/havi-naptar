@@ -394,6 +394,7 @@ export default function Home(){
       baseDate={anchor}
       onClose={()=>setQuickAdd(false)}
       onCreate={async x=>{const ok=await save(x);if(ok)setQuickAdd(false)}}
+      onDetails={x=>{setQuickAdd(false);setEditor(x)}}
     />}
     {rotateHint&&<div className="rotateHintBackdrop" onClick={()=>setRotateHint(false)}>
       <div className="rotateHintCard" onClick={e=>e.stopPropagation()}>
@@ -477,7 +478,7 @@ function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,
       </div>
     </header>
 
-    <div className="mockMonthTitle">{anchor.toLocaleDateString("hu-HU",{month:"long"})}</div>
+    <button className="mockMonthTitle" onClick={()=>onLongDay(anchor)}>{anchor.toLocaleDateString("hu-HU",{month:"long"})}<span>↕ tanév</span></button>
     <div className="mobileLegend">
       <span><i className="legendOwn"/>Saját</span>
       <span><i className="legendPlan"/>Munkaterv</span>
@@ -501,7 +502,8 @@ function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,
           <b>{d.getDate()}</b>
           {holiday&&<em className="holidayMark">✦</em>}
           <div className="eventMarks">
-            {es.slice(0,4).map((e,i)=><i key={e.id} className={(es.length>2?"eventBar":"eventDot")+(e.note==="Iskolai munkaterv 2026/2027"?" workPlanMark":"")} style={{"--event":e.note==="Iskolai munkaterv 2026/2027"?"#F59E0B":calMeta[e.calendar].color,"--i":i} as React.CSSProperties}/>)}
+            {es[0]&&<span className={es[0].note==="Iskolai munkaterv 2026/2027"?"monthEventTitle workPlanTitle":"monthEventTitle"} style={{"--event":es[0].note==="Iskolai munkaterv 2026/2027"?"#F59E0B":calMeta[es[0].calendar].color} as React.CSSProperties}>{es[0].title}</span>}
+            {es.length>1&&<small>+{es.length-1}</small>}
           </div>
         </button>
       })}
@@ -549,20 +551,26 @@ function ContinuousMonthFlow({anchor,events,onClose,onDay,onToday,onQuickAdd}:{a
   const schoolStartYear=anchor.getMonth()>=8?anchor.getFullYear():anchor.getFullYear()-1;
   const months=Array.from({length:12},(_,i)=>new Date(schoolStartYear,8+i,1,12));
   const centerRef=useRef<HTMLDivElement>(null);
+  const monthRefs=useRef<Record<string,HTMLElement|null>>({});
+  const schoolLabel=`${schoolStartYear}/${String(schoolStartYear+1).slice(2)} tanév`;
   useEffect(()=>{setTimeout(()=>centerRef.current?.scrollIntoView({block:"start",behavior:"auto"}),30)},[schoolStartYear]);
   return <div className="monthFlow">
     <header className="monthFlowHead">
       <button onClick={onClose}>‹</button>
-      <b>Havi áttekintés</b>
+      <div><b>{schoolLabel}</b><small>Szept. 1. – Aug. 31.</small></div>
       <button onClick={onQuickAdd}>＋</button>
     </header>
+    <div className="monthJumpRail">
+      {months.map(m=>{const key=`${m.getFullYear()}-${m.getMonth()}`;return <button key={key} onClick={()=>monthRefs.current[key]?.scrollIntoView({behavior:"smooth",block:"start"})}>{m.toLocaleDateString("hu-HU",{month:"short"}).replace(".","")}</button>})}
+    </div>
     <div className="flowLegend"><span><i className="legendOwn"/>Saját</span><span><i className="legendPlan"/>Munkaterv</span><span><i className="legendHoliday"/>Ünnep</span></div>
     <div className="monthFlowScroll">
       {months.map((m,mi)=>{
         const first=monday(new Date(m.getFullYear(),m.getMonth(),1,12));
         const days=Array.from({length:42},(_,i)=>addDays(first,i));
         const isAnchorMonth=m.getFullYear()===anchor.getFullYear()&&m.getMonth()===anchor.getMonth();
-        return <section key={iso(m)} className="flowMonth" ref={isAnchorMonth?centerRef:undefined}>
+        const key=`${m.getFullYear()}-${m.getMonth()}`;
+        return <section key={iso(m)} className="flowMonth" ref={el=>{monthRefs.current[key]=el;if(isAnchorMonth)(centerRef as any).current=el}}> 
           <h2>{m.toLocaleDateString("hu-HU",{month:"long"})}<small>{m.getFullYear()}</small></h2>
           <div className="flowWeekdays">{["H","K","Sze","Cs","P","Sz","V"].map(x=><span key={x}>{x}</span>)}</div>
           <div className="flowGrid">
@@ -598,9 +606,11 @@ function MobileLandscapeMonth({anchor,events,onPrev,onNext,onToday,onDay,onQuick
     <div className="landscapeGrid">{days.map(d=>{
       const es=events.filter(e=>e.date===iso(d));
       const current=d.getMonth()===anchor.getMonth();
-      return <button key={iso(d)} className={(current?"":"otherMonth ")+(iso(d)===iso(new Date())?"landToday ":"")} onClick={()=>onDay(d)}>
+      const holiday=holidayMap[iso(d)];
+      return <button key={iso(d)} className={(current?"":"otherMonth ")+(iso(d)===iso(new Date())?"landToday ":"")+(holiday?"landHoliday ":"")} onClick={()=>onDay(d)}>
         <b>{d.getDate()}</b>
-        <div>{es.slice(0,3).map(e=><span key={e.id} style={{"--event":calMeta[e.calendar].color} as React.CSSProperties}>{e.start?<i>{e.start}</i>:null}{e.title}</span>)}</div>
+        {holiday&&<em className="landHolidayMark">✦</em>}
+        <div>{es.slice(0,3).map(e=><span key={e.id} className={e.note==="Iskolai munkaterv 2026/2027"?"landWorkPlan":""} style={{"--event":e.note==="Iskolai munkaterv 2026/2027"?"#F59E0B":calMeta[e.calendar].color} as React.CSSProperties}>{e.start?<i>{e.start}</i>:null}{e.title}</span>)}</div>
         {es.length>3&&<small>+{es.length-3}</small>}
       </button>
     })}</div>
@@ -638,7 +648,7 @@ function WheelScroller({label,items,value,onChange}:{label:string;items:{value:n
   </div>
 }
 
-function QuickAddWheel({baseDate,onClose,onCreate}:{baseDate:Date;onClose:()=>void;onCreate:(x:Partial<Ev>)=>Promise<void>}){
+function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onClose:()=>void;onCreate:(x:Partial<Ev>)=>Promise<void>;onDetails?:(x:Partial<Ev>)=>void}){
   const [title,setTitle]=useState("");
   const [year,setYear]=useState(baseDate.getFullYear());
   const [month,setMonth]=useState(baseDate.getMonth());
@@ -670,7 +680,10 @@ function QuickAddWheel({baseDate,onClose,onCreate}:{baseDate:Date;onClose:()=>vo
         <span>{date}</span>
       </div>
       <div className="quickCategories">{(Object.keys(calMeta) as CalKey[]).map(k=><button key={k} className={calendar===k?"active":""} style={{"--event":calMeta[k].color} as React.CSSProperties} onClick={()=>setCalendar(k)}><span>{calMeta[k].icon}</span>{calMeta[k].label}</button>)}</div>
-      <button className="quickSave" onClick={()=>onCreate({title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar})}>Rögzítés <span>→</span></button>
+      <div className="quickFooter">
+        {onDetails&&<button className="quickDetails" onClick={()=>onDetails({title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar})}>Részletek</button>}
+        <button className="quickSave" onClick={()=>onCreate({title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar})}>Rögzítés <span>→</span></button>
+      </div>
     </section>
   </div>
 }
