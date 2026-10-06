@@ -1288,3 +1288,67 @@
   .appShell[data-theme="light"] .monthFlowHead{background:#F8FBFFE8;border-color:#D5E0E9}
   .appShell[data-theme="light"] .monthFlowHead button{background:#F2F6FA;border-color:#C9D7E4;color:#26415D}
 }
+
+/* v7.2 light-mode contrast cleanup */
+@media(max-width:900px){
+  .appShell[data-theme="light"] .yearBack,
+  .appShell[data-theme="light"] .mockActions button,
+  .appShell[data-theme="light"] .mockTodayBtn{
+    background:linear-gradient(180deg,#FFFFFF,#EEF4F9)!important;
+    color:#1B334B!important;
+    border-color:#C7D5E2!important;
+    box-shadow:0 8px 22px #31517318,inset 0 1px 0 #fff!important
+  }
+  .appShell[data-theme="light"] .mockActions .mockPlus,
+  .appShell[data-theme="light"] .mockBottomPlus{
+    background:linear-gradient(135deg,#2563EB,#3B82F6 58%,#22D3EE)!important;
+    color:#fff!important;
+    border-color:#60A5FA!important;
+    box-shadow:0 8px 22px #31517322,0 0 20px #3B82F638!important
+  }
+  .appShell[data-theme="light"] .mockActions .syncDot{color:#C47A08!important}
+  .appShell[data-theme="light"] .mockActions .syncDot.online{color:#16803A!important}
+  .appShell[data-theme="light"] .portraitHint{color:#71849A!important}
+
+  .appShell[data-theme="light"] .mobileDayOverlay{
+    background:#D9E4EF88!important;
+    backdrop-filter:blur(18px) saturate(.9)!important
+  }
+  .appShell[data-theme="light"] .mobileDayPanel>header button{
+    background:linear-gradient(180deg,#FFF1F2,#FDE8EA)!important;
+    color:#B4232F!important;
+    border-color:#F3B6BD!important
+  }
+  .appShell[data-theme="light"] .mobileNoEvents b{color:#2A425A!important}
+  .appShell[data-theme="light"] .mobileNoEvents{color:#71849A!important}
+
+  .appShell[data-theme="light"] .monthFlowHead{
+    background:#F8FBFFEE!important;
+    backdrop-filter:blur(16px)!important
+  }
+  .appShell[data-theme="light"] .flowTodayBtn{
+    background:linear-gradient(180deg,#FFFFFF,#EDF3F8)!important;
+    color:#223A54!important;
+    border-color:#C6D4E1!important;
+    box-shadow:0 10px 24px #31517318!important
+  }
+
+  .appShell[data-theme="light"] .quickBackdrop{
+    background:#D9E4EF88!important;
+    backdrop-filter:blur(14px)!important
+  }
+  .appShell[data-theme="light"] .quickSheet header button{
+    background:linear-gradient(180deg,#FFF1F2,#FDE8EA)!important;
+    color:#B4232F!important;
+    border-color:#F3B6BD!important
+  }
+  .appShell[data-theme="light"] .quickCategories button{
+    background:color-mix(in srgb,var(--event) 8%,#FFFFFF)!important;
+    color:#3A536B!important;
+    border-color:color-mix(in srgb,var(--event) 30%,#C9D7E5)!important
+  }
+  .appShell[data-theme="light"] .quickCategories button.active{
+    background:color-mix(in srgb,var(--event) 18%,#F7FAFD)!important;
+    color:#17314C!important;
+  }
+}
