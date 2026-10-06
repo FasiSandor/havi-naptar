@@ -1953,3 +1953,23 @@
     background:#FCEBED;border-color:#E8B6BC;color:#A24951
   }
 }
+
+/* next-major: time-conflict warnings */
+@media(max-width:900px) and (orientation:portrait){
+  .conflictWarning{
+    display:block!important;margin-top:7px!important;padding:7px 8px!important;border-radius:10px!important;
+    border:1px solid #F59E0B55;background:#2A2113;color:#F8C768!important;
+    font-size:8px!important;line-height:1.35!important;font-style:normal!important;font-weight:850!important
+  }
+  .extractCard.conflict:not(.duplicate){
+    border-color:#F59E0B55;background:linear-gradient(145deg,#211C12,#11161E)
+  }
+  .extractCard.conflict:not(.duplicate) .extractBody small{color:#F6C86C}
+  .appShell[data-theme="light"] .conflictWarning{
+    background:#FFF7E7;border-color:#ECCA83;color:#8A5C00!important
+  }
+  .appShell[data-theme="light"] .extractCard.conflict:not(.duplicate){
+    background:#FFF9EE;border-color:#EACB8D
+  }
+  .appShell[data-theme="light"] .extractCard.conflict:not(.duplicate) .extractBody small{color:#946100}
+}
