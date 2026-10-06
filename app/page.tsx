@@ -244,6 +244,24 @@ export default function Home(){
       return [...filtered,op];
     });
   }
+  function clearQueuedFor(eventId?:string,googleId?:string){
+    if(!eventId&&!googleId)return;
+    setSyncQueue(prev=>prev.filter(op=>{
+      const opEventId=op.event?.id;
+      const opGoogleId=op.googleId||op.event?.googleId;
+      return !((eventId&&opEventId===eventId)||(googleId&&opGoogleId===googleId));
+    }));
+  }
+  function reconcileQueueWithIncoming(incoming:Ev[]){
+    if(!incoming.length)return;
+    const ids=new Set(incoming.map(e=>e.id));
+    const gids=new Set(incoming.map(e=>e.googleId).filter(Boolean) as string[]);
+    setSyncQueue(prev=>prev.filter(op=>{
+      const opEventId=op.event?.id;
+      const opGoogleId=op.googleId||op.event?.googleId;
+      return !((opEventId&&ids.has(opEventId))||(opGoogleId&&gids.has(opGoogleId)));
+    }));
+  }
 
   async function flushSyncQueue(){
     if(!connected||syncQueue.length===0)return;
@@ -288,6 +306,7 @@ export default function Home(){
       setConnected(true);
       const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
       const incoming=(j.items||[]).map(toGoogleEvent);
+      reconcileQueueWithIncoming(incoming);
       setEvents(prev=>mergeGoogleRange(prev,incoming,iso(start),iso(addDays(end,1))));
     }catch{setConnected(false)}
     finally{setSyncing(false)}
@@ -315,6 +334,7 @@ export default function Home(){
         if(!j.connected)return;
         const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
         const incoming=(j.items||[]).map(toGoogleEvent);
+        reconcileQueueWithIncoming(incoming);
         setEvents(prev=>mergeGoogleRange(prev,incoming,iso(from),iso(to)));
       }catch{}
     })();
@@ -333,6 +353,7 @@ export default function Home(){
         setConnected(true);
         const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
         const incoming=(j.items||[]).map(toGoogleEvent);
+        reconcileQueueWithIncoming(incoming);
         setEvents(prev=>mergeGoogleRange(prev,incoming,iso(from),iso(to)));
       }catch{}
     })();
@@ -360,6 +381,7 @@ export default function Home(){
         const j=await r.json();
         gId=j.id||gId;
         const saved={...next,googleId:gId,pendingSync:false};
+        clearQueuedFor(saved.id,gId);
         setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==saved.id&&(!gId||e.googleId!==gId)),saved]));
         return saved;
       }
@@ -394,10 +416,14 @@ export default function Home(){
   }
 
   async function remove(e:Ev){
+    if(!e.googleId){
+      clearQueuedFor(e.id);
+    }
     if(e.googleId&&connected){
       try{
         const r=await fetch("/api/google/events?id="+encodeURIComponent(e.googleId),{method:"DELETE"});
-        if(!r.ok&&r.status!==404)queueSync({id:crypto.randomUUID(),kind:"delete",googleId:e.googleId,createdAt:Date.now()});
+        if(r.ok||r.status===404)clearQueuedFor(e.id,e.googleId);
+        else queueSync({id:crypto.randomUUID(),kind:"delete",googleId:e.googleId,createdAt:Date.now()});
       }catch{
         queueSync({id:crypto.randomUUID(),kind:"delete",googleId:e.googleId,createdAt:Date.now()});
       }
