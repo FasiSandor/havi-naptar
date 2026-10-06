@@ -257,6 +257,10 @@ export default function Home(){
     const ids=new Set(incoming.map(e=>e.id));
     const gids=new Set(incoming.map(e=>e.googleId).filter(Boolean) as string[]);
     setSyncQueue(prev=>prev.filter(op=>{
+      // Csak egy elveszett válaszú CREATE igazolható pusztán abból, hogy ugyanaz
+      // a haviUid/Google ID már megjelent a szerveren. UPDATE/DELETE maradjon,
+      // amíg a konkrét művelet sikeresen le nem fut.
+      if(op.kind!=="create")return true;
       const opEventId=op.event?.id;
       const opGoogleId=op.googleId||op.event?.googleId;
       return !((opEventId&&ids.has(opEventId))||(opGoogleId&&gids.has(opGoogleId)));
