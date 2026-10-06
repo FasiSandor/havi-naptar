@@ -1472,3 +1472,29 @@
     background:#FFF7E6;border-color:#F2C76F;color:#9B6200
   }
 }
+
+/* next-major: quick add options */
+@media(max-width:900px) and (orientation:portrait){
+  .quickOptions{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;margin:11px 0 2px
+  }
+  .quickOptions button{
+    height:38px;padding:0 11px;border-radius:12px;border:1px solid #30445D;
+    background:#101A28;color:#8FA2B8;font-size:10px;font-weight:850;display:flex;align-items:center;gap:7px
+  }
+  .quickOptions button i{
+    width:10px;height:10px;border-radius:50%;background:#64748B
+  }
+  .quickOptions button.on{
+    border-color:#22D3EE88;background:#0E2630;color:#A5F3FC;box-shadow:0 0 16px #22D3EE1F
+  }
+  .quickOptions button.on i{background:#22D3EE;box-shadow:0 0 9px #22D3EE88}
+  .quickOptions>span{font-size:10px;color:#6F849B;font-weight:800}
+  .appShell[data-theme="light"] .quickOptions button{
+    background:#F4F8FB;border-color:#CAD7E3;color:#567088
+  }
+  .appShell[data-theme="light"] .quickOptions button.on{
+    background:#E7F9FC;border-color:#7DDCE7;color:#0C7182
+  }
+  .appShell[data-theme="light"] .quickOptions>span{color:#71849A}
+}
