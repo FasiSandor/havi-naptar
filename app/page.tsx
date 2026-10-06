@@ -159,6 +159,7 @@ export default function Home(){
   const [lastSync,setLastSync]=useState<number|null>(null);
   const [searchOpen,setSearchOpen]=useState(false);
   const [clock,setClock]=useState(()=>Date.now());
+  const [backupPreview,setBackupPreview]=useState<{events:Ev[];total:number;duplicates:number;invalid:number;name:string}|null>(null);
 
   useEffect(()=>{
     try{
@@ -474,6 +475,38 @@ export default function Home(){
     setTimeout(()=>setNotice(""),1800);
   }
 
+  function isBackupEvent(x:any):x is Ev{
+    return !!x&&typeof x==="object"&&typeof x.id==="string"&&typeof x.title==="string"&&typeof x.date==="string"&&
+      /^\d{4}-\d{2}-\d{2}$/.test(x.date)&&["work","personal","family","sport"].includes(x.calendar);
+  }
+  async function inspectBackupFile(file:File){
+    try{
+      const raw=JSON.parse(await file.text());
+      if(raw?.format!=="havi-naptar-backup"||!Array.isArray(raw.events))throw new Error("format");
+      const valid=(raw.events as any[]).filter(isBackupEvent).map((e:Ev)=>({...e,pendingSync:false}));
+      const invalid=raw.events.length-valid.length;
+      let duplicates=0;
+      for(const e of valid){
+        if(events.some(x=>x.id===e.id||(e.googleId&&x.googleId===e.googleId)||nearDuplicate(x,e)))duplicates++;
+      }
+      setBackupPreview({events:valid,total:raw.events.length,duplicates,invalid,name:file.name});
+    }catch{
+      setBackupPreview(null);
+      setNotice("A kiválasztott fájl nem érvényes HAVI NAPTÁR mentés.");
+      setTimeout(()=>setNotice(""),2600);
+    }
+  }
+  function mergeBackup(){
+    if(!backupPreview)return;
+    const before=events.length;
+    const merged=dedupeEvents([...events,...backupPreview.events]);
+    const added=Math.max(0,merged.length-before);
+    setEvents(merged);
+    setBackupPreview(null);
+    setNotice(added+" esemény visszaállítva helyben. Google-ba nem küldtem automatikusan.");
+    setTimeout(()=>setNotice(""),3200);
+  }
+
   function shift(n:number){
     if(mode==="custom"){
       const span=count;
@@ -645,9 +678,22 @@ export default function Home(){
         </div>}
         <div className={"status "+(connected?"ok":"")}><i/><div><b>{connected?"Google Naptár kapcsolódva":"Google Naptár nincs kapcsolva"}</b><span>{connected?"Az iPhone-on használt Google Naptár eseményei megjelennek itt.":"Kapcsold össze egyszer a kétirányú szinkronhoz."}{lastSync?<><br/>Utolsó sikeres szinkron: {new Date(lastSync).toLocaleString("hu-HU")}</>:""}</span></div></div>
         <div className="backupSetting">
-          <div className="settingsTitle"><b>Helyi biztonsági mentés</b><span>Az események és a függő szinkronműveletek JSON-mentése. Semmit nem módosít a naptárban.</span></div>
-          <button onClick={exportBackup}>↓ Mentés exportálása</button>
+          <div className="settingsTitle"><b>Helyi biztonsági mentés</b><span>Export vagy kézi visszaállítás. Importnál semmit nem küldünk automatikusan Google-ba.</span></div>
+          <div className="backupActions">
+            <button onClick={exportBackup}>↓ Export</button>
+            <label className="backupImportBtn">↑ Visszaállítás<input type="file" accept="application/json,.json" onChange={e=>{const f=e.target.files?.[0];if(f)inspectBackupFile(f);e.currentTarget.value=""}}/></label>
+          </div>
         </div>
+        {backupPreview&&<div className="backupPreview">
+          <div className="backupPreviewHead"><div><small>MENTÉS ELŐNÉZET</small><b>{backupPreview.name}</b></div><button onClick={()=>setBackupPreview(null)}>×</button></div>
+          <div className="backupPreviewStats">
+            <span><b>{backupPreview.events.length}</b><small>Érvényes</small></span>
+            <span><b>{backupPreview.duplicates}</b><small>Már megvan</small></span>
+            <span className={backupPreview.invalid?"warn":""}><b>{backupPreview.invalid}</b><small>Hibás sor</small></span>
+          </div>
+          <p>A visszaállítás csak a helyi naptáradatokkal egyesít. Meglévő eseményt nem ír felül és régi sync queue-t nem indít újra.</p>
+          <div className="backupPreviewActions"><button onClick={()=>setBackupPreview(null)}>Mégse</button><button className="primary" disabled={!backupPreview.events.length} onClick={mergeBackup}>Egyesítés</button></div>
+        </div>}
         <button className="primary wide" onClick={()=>location.href="/api/google/connect"}>{connected?"Újracsatlakozás":"Google Naptár csatlakoztatása"}</button>
       </div>
     </Modal>}
