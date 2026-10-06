@@ -1166,6 +1166,52 @@ function DraggableEvent({e,onMove,onEdit,onDelete}:{e:Ev;onMove:(e:Ev,m:number,d
   </article>
 }
 
+function EventSearchOverlay({events,onClose,onOpen}:{events:Ev[];onClose:()=>void;onOpen:(e:Ev)=>void}){
+  const [q,setQ]=useState("");
+  const query=normText(q);
+  const results=useMemo(()=>{
+    const base=[...events].sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
+    if(!query)return base.filter(e=>e.date>=iso(new Date())).slice(0,12);
+    return base.filter(e=>{
+      const hay=normText([e.title,e.location,e.note,calMeta[e.calendar].label,e.date].filter(Boolean).join(" "));
+      return query.split(" ").every(part=>hay.includes(part));
+    }).slice(0,40);
+  },[events,query]);
+  return <div className="searchOverlay" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}>
+    <section className="searchPanel">
+      <header>
+        <div><small>KERESÉS</small><h2>Események</h2></div>
+        <button onClick={onClose}>×</button>
+      </header>
+      <div className="searchBox">
+        <span>⌕</span>
+        <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Cím, helyszín, megjegyzés…"/>
+        {q&&<button onClick={()=>setQ("")}>×</button>}
+      </div>
+      <div className="searchMeta">{q?results.length+" találat":"Következő események"}</div>
+      <div className="searchResults">
+        {results.length?results.map(e=>{
+          const workplan=e.id.startsWith("workplan-");
+          return <button key={e.id+"-"+e.date+"-"+(e.start||"")} className="searchResult" onClick={()=>onOpen(e)}>
+            <div className="searchDate">
+              <b>{parseDate(e.date).getDate()}</b>
+              <span>{parseDate(e.date).toLocaleDateString("hu-HU",{month:"short"})}</span>
+            </div>
+            <div className="searchResultBody">
+              <strong>{e.title}</strong>
+              <span>{e.allDay?"Egész nap":(e.start||"")+" – "+(e.end||"")}{e.location?" · "+e.location:""}</span>
+              <small>
+                {workplan?"Munkaterv":e.googleId?"Google":e.pendingSync?"Szinkronra vár":"Saját"} · {calMeta[e.calendar].label}
+              </small>
+            </div>
+            <em>›</em>
+          </button>
+        }):<div className="searchEmpty"><b>Nincs találat</b><span>Próbálj rövidebb kifejezést, helyszínt vagy dátumot.</span></div>}
+      </div>
+    </section>
+  </div>
+}
+
 function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}){
   const [closing,setClosing]=useState(false);
   const close=()=>{if(closing)return;setClosing(true);setTimeout(onClose,180)};
