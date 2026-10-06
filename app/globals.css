@@ -1352,3 +1352,47 @@
     color:#17314C!important;
   }
 }
+
+/* v7.3 holiday visuals */
+@media(max-width:900px) and (orientation:portrait){
+  .mockMonthGrid>button.holidayDay>b,
+  .flowGrid>button.flowHoliday>b{
+    color:#FF6B74;
+  }
+  .holidayMark{
+    position:absolute;top:7px;right:7px;font-style:normal;font-size:8px;color:#EF4444;
+    text-shadow:0 0 10px #EF444477;
+  }
+  .flowGrid>button.flowHoliday{position:relative}
+  .flowGrid>button.flowHoliday>em{
+    position:absolute;top:5px;right:5px;font-style:normal;font-size:7px;color:#EF4444;
+    text-shadow:0 0 8px #EF444466
+  }
+  .holidayBanner{
+    display:grid;grid-template-columns:38px 1fr;align-items:center;gap:9px;
+    margin:0 2px 10px;padding:10px 11px;border-radius:16px;
+    background:linear-gradient(135deg,#45151A,#6E1C23 62%,#8E222B);
+    border:1px solid #EF4444;color:#fff;
+    box-shadow:0 0 22px #EF444433,inset 0 1px 0 #ffffff12
+  }
+  .holidayBanner>span{
+    width:34px;height:34px;border-radius:11px;display:grid;place-items:center;
+    background:#EF444422;border:1px solid #FF6B7466;color:#FFD4D7;
+    text-shadow:0 0 10px #EF4444
+  }
+  .holidayBanner b,.holidayBanner small{display:block}
+  .holidayBanner b{font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  .holidayBanner small{margin-top:2px;font-size:10px;color:#FFD4D7}
+}
+@media(max-width:900px){
+  .appShell[data-theme="light"] .mockMonthGrid>button.holidayDay>b,
+  .appShell[data-theme="light"] .flowGrid>button.flowHoliday>b{color:#D92D3A}
+  .appShell[data-theme="light"] .holidayBanner{
+    background:linear-gradient(135deg,#FFF1F2,#FFE4E6);
+    color:#8A1C28;border-color:#F3AAB2;box-shadow:0 0 18px #EF444418
+  }
+  .appShell[data-theme="light"] .holidayBanner small{color:#A43A45}
+  .appShell[data-theme="light"] .holidayBanner>span{
+    background:#FFE4E6;border-color:#F3AAB2;color:#B4232F;text-shadow:none
+  }
+}
