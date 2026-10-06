@@ -1542,3 +1542,26 @@
   }
   .appShell[data-theme="light"] .flowGrid>button .flowEvents small{color:#71849A}
 }
+
+/* next-major: safe delete state */
+@media(max-width:900px){
+  .mobileEventDelete{
+    transition:width .16s ease,background .16s ease,border-color .16s ease,color .16s ease;
+    white-space:nowrap;overflow:hidden
+  }
+  .mobileEventDelete.armed{
+    width:58px;
+    background:#5A151C;
+    border-color:#EF4444;
+    color:#fff;
+    font-size:9px;
+    font-weight:900;
+    letter-spacing:.03em;
+    box-shadow:0 0 14px #EF44442B
+  }
+  .appShell[data-theme="light"] .mobileEventDelete.armed{
+    background:#FFE4E6;
+    border-color:#EF8A94;
+    color:#A61B27
+  }
+}
