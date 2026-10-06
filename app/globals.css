@@ -2092,3 +2092,21 @@
 .appShell[data-theme="light"] .syncDiagGrid .warn{background:#FFF7E8;border-color:#EAC67A}
 .appShell[data-theme="light"] .syncDiagGrid .warn b{color:#946000}
 .appShell[data-theme="light"] .syncDiagFoot button{background:#EDF6FF;border-color:#BDD5EA;color:#2469AE}
+
+/* next-major: local backup export */
+.backupSetting{
+  display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  padding:13px 14px;border-radius:16px;border:1px solid #2D4056;
+  background:linear-gradient(145deg,#101A25,#0C141D)
+}
+.backupSetting .settingsTitle{min-width:0}
+.backupSetting>button{
+  height:38px;padding:0 12px;border-radius:11px;border:1px solid #315D86;
+  background:#102A45;color:#8EC8FF;font-size:8px;font-weight:900;white-space:nowrap
+}
+.appShell[data-theme="light"] .backupSetting{
+  background:#F8FBFD;border-color:#CBD8E3
+}
+.appShell[data-theme="light"] .backupSetting>button{
+  background:#EDF6FF;border-color:#BDD5EA;color:#2469AE
+}
