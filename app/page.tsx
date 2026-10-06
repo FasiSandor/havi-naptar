@@ -93,7 +93,9 @@ function nearDuplicate(a:Ev,b:Ev){
 function dedupeEvents(list:Ev[]){
   const out:Ev[]=[];
   for(const e of list){
-    const exact=out.findIndex(x=>eventKey(x)===eventKey(e));
+    const sameId=out.findIndex(x=>x.id===e.id);
+    const sameGoogle=e.googleId?out.findIndex(x=>x.googleId===e.googleId):-1;
+    const exact=sameId>=0?sameId:(sameGoogle>=0?sameGoogle:out.findIndex(x=>eventKey(x)===eventKey(e)));
     const near=exact<0?out.findIndex(x=>nearDuplicate(x,e)):-1;
     const i=exact>=0?exact:near;
     if(i<0){out.push(e);continue}
@@ -106,6 +108,7 @@ function dedupeEvents(list:Ev[]){
 function toGoogleEvent(x:any):Ev{
   const start=x.start?.dateTime||x.start?.date;
   const category=x.extendedProperties?.private?.haviCategory;
+  const haviUid=x.extendedProperties?.private?.haviUid as string|undefined;
   const calendar=(category==="work"||category==="personal"||category==="family"||category==="sport")?category:"work";
   const recurrence=(x.recurrence?.[0]||"") as string;
   let repeat:RepeatMode=x.recurringEventId?"googleSeries":"none";
@@ -114,7 +117,8 @@ function toGoogleEvent(x:any):Ev{
   if(!x.recurringEventId&&recurrence.includes("FREQ=MONTHLY"))repeat="monthly";
   if(!x.recurringEventId&&recurrence.includes("FREQ=YEARLY"))repeat="yearly";
   const reminder=Number(x.reminders?.overrides?.[0]?.minutes||0);
-  return {id:"g-"+x.id,googleId:x.id,title:x.summary||"Esemény",date:(start||"").slice(0,10),start:x.start?.dateTime?.slice(11,16),end:x.end?.dateTime?.slice(11,16),allDay:!!x.start?.date,calendar,location:x.location||"",note:x.description||"",repeat,reminder}
+  const localId=(!x.recurringEventId&&haviUid)?haviUid:"g-"+x.id;
+  return {id:localId,googleId:x.id,title:x.summary||"Esemény",date:(start||"").slice(0,10),start:x.start?.dateTime?.slice(11,16),end:x.end?.dateTime?.slice(11,16),allDay:!!x.start?.date,calendar,location:x.location||"",note:x.description||"",repeat,reminder,pendingSync:false}
 }
 
 function mergeGoogleRange(prev:Ev[],incoming:Ev[],from:string,toExclusive:string){
