@@ -247,7 +247,11 @@ export default function Home(){
         }
       }catch{}
     }
-    if(done.size)setSyncQueue(prev=>prev.filter(x=>!done.has(x.id)));
+    if(done.size){
+      setSyncQueue(prev=>prev.filter(x=>!done.has(x.id)));
+      setNotice(done.size+" függő módosítás szinkronizálva.");
+      setTimeout(()=>setNotice(""),1800);
+    }
   }
   async function sync(){
     setSyncing(true);
@@ -518,6 +522,10 @@ export default function Home(){
           <div className="settingsTitle"><b>Iskolai munkaterv</b><span>A 2026/2027-es Teleki munkaterv fontos dátumai külön rétegként.</span></div>
           <button className={"layerToggle "+(showWorkPlan?"on":"")} onClick={()=>setShowWorkPlan(v=>!v)}><i/><span>{showWorkPlan?"Látható":"Elrejtve"}</span></button>
         </div>
+        {syncQueue.length>0&&<div className="pendingSyncSetting">
+          <div><b>{syncQueue.length} módosítás vár szinkronra</b><span>Offline vagy sikertelen Google-műveletek. Kapcsolat esetén automatikusan újrapróbáljuk.</span></div>
+          <button disabled={!connected} onClick={()=>flushSyncQueue()}>{connected?"Újrapróbálás":"Offline"}</button>
+        </div>}
         <div className={"status "+(connected?"ok":"")}><i/><div><b>{connected?"Google Naptár kapcsolódva":"Google Naptár nincs kapcsolva"}</b><span>{connected?"Az iPhone-on használt Google Naptár eseményei megjelennek itt.":"Kapcsold össze egyszer a kétirányú szinkronhoz."}</span></div></div>
         <button className="primary wide" onClick={()=>location.href="/api/google/connect"}>{connected?"Újracsatlakozás":"Google Naptár csatlakoztatása"}</button>
       </div>
