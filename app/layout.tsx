@@ -3,8 +3,9 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "HAVI NAPTÁR",
-  description: "4 hetes áttekintő naptár iPhone-ra és iPadre",
+  description: "Mobil-first havi és tanévi naptár iskolai munkatervvel és Google Naptár szinkronnal",
   manifest: "/manifest.json",
+  icons: { icon: "/icon", apple: "/apple-icon" },
   appleWebApp: { capable: true, title: "HAVI NAPTÁR", statusBarStyle: "black-translucent" }
 };
 
