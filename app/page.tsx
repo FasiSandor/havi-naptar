@@ -471,13 +471,19 @@ function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,
     <header className="mockHero">
       <div className="monthNavCapsule"><button onClick={onPrevMonth}>‹</button><span>{anchor.getFullYear()}.</span><button onClick={onNextMonth}>›</button></div>
       <div className="mockActions">
-        <button className={"syncDot "+(connected?"online":"")} onClick={onSync}>{syncing?"↻":connected?"●":"○"}</button>
+        <button className={"syncDot "+(connected?"online":"")} aria-label="Google Naptár szinkron" title={connected?"Google Naptár kapcsolódva":"Google Naptár offline"} onClick={onSync}>{syncing?"↻":connected?"●":"○"}</button>
         <button onClick={onSettings}>⚙</button>
         <button className="mockPlus" onClick={onQuickAdd}>＋</button>
       </div>
     </header>
 
     <div className="mockMonthTitle">{anchor.toLocaleDateString("hu-HU",{month:"long"})}</div>
+    <div className="mobileLegend">
+      <span><i className="legendOwn"/>Saját</span>
+      <span><i className="legendPlan"/>Munkaterv</span>
+      <span><i className="legendHoliday"/>Ünnep</span>
+      <span className={connected?"syncState ok":"syncState"}>{connected?"Google ✓":"Offline"}</span>
+    </div>
     <div className="mockWeekdays">{["H","K","Sze","Cs","P","Sz","V"].map(x=><span key={x}>{x}</span>)}</div>
 
     <div className="mockMonthGrid">
@@ -550,6 +556,7 @@ function ContinuousMonthFlow({anchor,events,onClose,onDay,onToday,onQuickAdd}:{a
       <b>Havi áttekintés</b>
       <button onClick={onQuickAdd}>＋</button>
     </header>
+    <div className="flowLegend"><span><i className="legendOwn"/>Saját</span><span><i className="legendPlan"/>Munkaterv</span><span><i className="legendHoliday"/>Ünnep</span></div>
     <div className="monthFlowScroll">
       {months.map((m,mi)=>{
         const first=monday(new Date(m.getFullYear(),m.getMonth(),1,12));
