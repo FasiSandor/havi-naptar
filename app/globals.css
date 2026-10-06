@@ -1908,3 +1908,48 @@
     background:#EDF9F1;border-color:#A9DFB8;color:#247A3E
   }
 }
+
+/* next-major: clipboard + duplicate preview */
+@media(max-width:900px) and (orientation:portrait){
+  .pasteRow{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px
+  }
+  .pasteRow button{
+    height:34px;padding:0 11px;border-radius:11px;border:1px solid #31506F;
+    background:#102033;color:#8CC7FF;font-size:9px;font-weight:900
+  }
+  .pasteRow span{font-size:8px;color:#6F8398}
+  .clipboardError{
+    margin:-2px 0 8px;padding:8px 10px;border-radius:11px;border:1px solid #F59E0B55;
+    background:#281F10;color:#F7C86B;font-size:8px;line-height:1.4
+  }
+  .duplicateWarning{
+    display:block!important;margin-top:7px!important;padding:7px 8px!important;border-radius:10px!important;
+    border:1px solid #EF444455;background:#2A1417;color:#FF9CA4!important;
+    font-size:8px!important;line-height:1.35!important;font-style:normal!important;font-weight:850!important
+  }
+  .extractCard.duplicate{
+    border-color:#EF44445A;background:linear-gradient(145deg,#241518,#11161E)
+  }
+  .extractCard.duplicate .extractBody small{color:#FF9AA3}
+  .extractCard.duplicate .extractSave{
+    border-color:#6B3137;background:#30191D;color:#C98C92;box-shadow:none
+  }
+  .appShell[data-theme="light"] .pasteRow button{
+    background:#EDF6FF;border-color:#BCD5EB;color:#17679B
+  }
+  .appShell[data-theme="light"] .pasteRow span{color:#71849A}
+  .appShell[data-theme="light"] .clipboardError{
+    background:#FFF8E7;border-color:#EDC873;color:#8A5A00
+  }
+  .appShell[data-theme="light"] .duplicateWarning{
+    background:#FFF0F1;border-color:#F1B8BE;color:#A62631!important
+  }
+  .appShell[data-theme="light"] .extractCard.duplicate{
+    background:#FFF5F6;border-color:#F1C0C5
+  }
+  .appShell[data-theme="light"] .extractCard.duplicate .extractBody small{color:#B72E38}
+  .appShell[data-theme="light"] .extractCard.duplicate .extractSave{
+    background:#FCEBED;border-color:#E8B6BC;color:#A24951
+  }
+}
