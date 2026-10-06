@@ -151,11 +151,14 @@ export default function Home(){
   const [showWorkPlan,setShowWorkPlan]=useState(true);
   const [infoEvent,setInfoEvent]=useState<Ev|null>(null);
   const [syncQueue,setSyncQueue]=useState<SyncOp[]>([]);
+  const [lastSync,setLastSync]=useState<number|null>(null);
 
   useEffect(()=>{
     try{
       const stored:Ev[]=JSON.parse(localStorage.getItem("havi-events")||"[]");
-      setEvents(stored.filter(e=>!e.id.startsWith("workplan-")));
+      setEvents(dedupeEvents(stored.filter(e=>!e.id.startsWith("workplan-"))));
+      const last=Number(localStorage.getItem("havi-last-sync")||0);
+      if(last)setLastSync(last);
       setShowWorkPlan(localStorage.getItem("havi-workplan-visible")!=="0");
       localStorage.removeItem("havi-schoolplan-2026-27");
       try{setSyncQueue(JSON.parse(localStorage.getItem("havi-sync-queue")||"[]"))}catch{setSyncQueue([])}
@@ -169,7 +172,7 @@ export default function Home(){
     }catch{}
     finally{setHydrated(true)}
   },[]);
-  useEffect(()=>{if(hydrated)localStorage.setItem("havi-events",JSON.stringify(events.filter(e=>!e.googleId&&!e.id.startsWith("workplan-"))))},[events,hydrated]);
+  useEffect(()=>{if(hydrated)localStorage.setItem("havi-events",JSON.stringify(dedupeEvents(events.filter(e=>!e.id.startsWith("workplan-")))))},[events,hydrated]);
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-workplan-visible",showWorkPlan?"1":"0")},[showWorkPlan,hydrated]);
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-sync-queue",JSON.stringify(syncQueue))},[syncQueue,hydrated]);
   useEffect(()=>{
@@ -265,6 +268,7 @@ export default function Home(){
       const j=await r.json();
       if(!j.connected){setConnected(false);return}
       setConnected(true);
+      const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
       const incoming=(j.items||[]).map(toGoogleEvent);
       setEvents(prev=>mergeGoogleRange(prev,incoming,iso(start),iso(addDays(end,1))));
     }catch{setConnected(false)}
@@ -291,6 +295,7 @@ export default function Home(){
         if(!r.ok)return;
         const j=await r.json();
         if(!j.connected)return;
+        const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
         const incoming=(j.items||[]).map(toGoogleEvent);
         setEvents(prev=>mergeGoogleRange(prev,incoming,iso(from),iso(to)));
       }catch{}
@@ -414,6 +419,7 @@ export default function Home(){
       connected={connected}
       syncing={syncing}
       pendingCount={syncQueue.length}
+      lastSync={lastSync}
       onSync={()=>sync()}
       onDay={d=>{setAnchor(d);setDayOpen(iso(d))}}
       onLongDay={d=>{setAnchor(d);setMonthFlow(true)}}
@@ -530,7 +536,7 @@ export default function Home(){
           <div><b>{syncQueue.length} módosítás vár szinkronra</b><span>Offline vagy sikertelen Google-műveletek. Kapcsolat esetén automatikusan újrapróbáljuk.</span></div>
           <button disabled={!connected} onClick={()=>flushSyncQueue()}>{connected?"Újrapróbálás":"Offline"}</button>
         </div>}
-        <div className={"status "+(connected?"ok":"")}><i/><div><b>{connected?"Google Naptár kapcsolódva":"Google Naptár nincs kapcsolva"}</b><span>{connected?"Az iPhone-on használt Google Naptár eseményei megjelennek itt.":"Kapcsold össze egyszer a kétirányú szinkronhoz."}</span></div></div>
+        <div className={"status "+(connected?"ok":"")}><i/><div><b>{connected?"Google Naptár kapcsolódva":"Google Naptár nincs kapcsolva"}</b><span>{connected?"Az iPhone-on használt Google Naptár eseményei megjelennek itt.":"Kapcsold össze egyszer a kétirányú szinkronhoz."}{lastSync?<><br/>Utolsó sikeres szinkron: {new Date(lastSync).toLocaleString("hu-HU")}</>:""}</span></div></div>
         <button className="primary wide" onClick={()=>location.href="/api/google/connect"}>{connected?"Újracsatlakozás":"Google Naptár csatlakoztatása"}</button>
       </div>
     </Modal>}
@@ -538,7 +544,7 @@ export default function Home(){
 }
 
 
-function MobilePortrait({anchor,events,connected,syncing,pendingCount,onSync,onDay,onLongDay,onQuickAdd,onToday,onPrevMonth,onNextMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;pendingCount:number;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onToday:()=>void;onPrevMonth:()=>void;onNextMonth:()=>void;onSettings:()=>void}){
+function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,onSync,onDay,onLongDay,onQuickAdd,onToday,onPrevMonth,onNextMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;pendingCount:number;lastSync:number|null;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onToday:()=>void;onPrevMonth:()=>void;onNextMonth:()=>void;onSettings:()=>void}){
   const swipeX=useRef<number|null>(null);
   const swipeY=useRef<number|null>(null);
   const swipeMoved=useRef(false);
@@ -574,7 +580,7 @@ function MobilePortrait({anchor,events,connected,syncing,pendingCount,onSync,onD
       <span><i className="legendOwn"/>Saját</span>
       <span><i className="legendPlan"/>Munkaterv</span>
       <span><i className="legendHoliday"/>Ünnep</span>
-      <span className={pendingCount?"syncState pending":connected?"syncState ok":"syncState"}>{pendingCount?pendingCount+" vár szinkronra":connected?"Google ✓":"Offline"}</span>
+      <span className={pendingCount?"syncState pending":connected?"syncState ok":"syncState"} title={lastSync?"Utolsó szinkron: "+new Date(lastSync).toLocaleString("hu-HU"):""}>{pendingCount?pendingCount+" vár szinkronra":connected?"Google ✓":lastSync?"Offline · cache":"Offline"}</span>
     </div>
     <div className="mockWeekdays">{["H","K","Sze","Cs","P","Sz","V"].map(x=><span key={x}>{x}</span>)}</div>
 
