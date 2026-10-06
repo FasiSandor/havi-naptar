@@ -1396,3 +1396,29 @@
     background:#FFE4E6;border-color:#F3AAB2;color:#B4232F;text-shadow:none
   }
 }
+
+/* next-major: workplan source cues */
+@media(max-width:900px){
+  .workPlanMark{
+    box-shadow:0 0 0 1px #F59E0B55,0 0 10px #F59E0B66!important;
+  }
+  .sourceBadge{
+    display:inline-flex!important;
+    width:max-content;
+    margin-top:5px;
+    padding:3px 6px;
+    border-radius:999px;
+    border:1px solid #F59E0B66;
+    background:#F59E0B18;
+    color:#FBBF24!important;
+    font-size:8px!important;
+    line-height:1;
+    font-weight:900;
+    letter-spacing:.08em;
+  }
+  .appShell[data-theme="light"] .sourceBadge{
+    background:#FFF7E6;
+    border-color:#F4C266;
+    color:#A66300!important;
+  }
+}
