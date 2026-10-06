@@ -444,7 +444,7 @@ export default function Home(){
       onNext={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()+1);setAnchor(d)}}
       onToday={()=>setAnchor(new Date())}
       onDay={d=>{setAnchor(d);setDayOpen(iso(d))}}
-      onQuickAdd={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}
+      onQuickAdd={()=>setQuickAdd(true)}
       onSettings={()=>setSettings(true)}
     />
 
@@ -459,7 +459,7 @@ export default function Home(){
         <div className="actions">
           <button className="secondary" onClick={()=>window.print()}>⎙ PDF / Nyomtatás</button>
           <button className="syncBtn" onClick={()=>sync()} disabled={syncing}>{syncing?"Szinkron…":connected?"↻ Szinkron":"○ Offline"}</button>
-          <button className="primary" onClick={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}>＋ Esemény</button>
+          <button className="primary" onClick={()=>setQuickAdd(true)}>＋ Esemény</button>
         </div>
       </header>
 
@@ -482,7 +482,7 @@ export default function Home(){
       </div>:<CalendarGrid days={days} events={shown} anchor={anchor} onDay={(d)=>{setAnchor(d);setDayOpen(iso(d))}} onSwipe={shift}/>} 
     </section>
 
-    <button className="fab desktopFab" onClick={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}>＋</button>
+    <button className="fab desktopFab" onClick={()=>setQuickAdd(true)}>＋</button>
     {quickAdd&&<QuickAddWheel
       baseDate={anchor}
       existingEvents={displayEvents}
@@ -502,7 +502,7 @@ export default function Home(){
     {notice&&<div className="toast">{notice}</div>}
 
     {dayOpen&&<MobileDayCards date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>{if(e.id.startsWith("workplan-"))setInfoEvent(e);else setEditor(e)}} onDelete={e=>{if(!e.id.startsWith("workplan-"))remove(e)}} onAdd={()=>setQuickAdd(true)}/>}
-    {dayOpen&&<DayZoom date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>setEditor(e)} onAdd={()=>setEditor({date:dayOpen,calendar:"work",start:"09:00",end:"10:00"})} onMove={moveEvent} onDelete={remove}/>} 
+    {dayOpen&&<DayZoom date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>setEditor(e)} onAdd={()=>setQuickAdd(true)} onMove={moveEvent} onDelete={remove}/>} 
 
     {infoEvent&&<Modal title="Munkaterv esemény" onClose={()=>setInfoEvent(null)}>
       <div className="readOnlyEvent">
