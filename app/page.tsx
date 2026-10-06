@@ -158,6 +158,7 @@ export default function Home(){
   const [syncQueue,setSyncQueue]=useState<SyncOp[]>([]);
   const [lastSync,setLastSync]=useState<number|null>(null);
   const [searchOpen,setSearchOpen]=useState(false);
+  const [clock,setClock]=useState(()=>Date.now());
 
   useEffect(()=>{
     try{
@@ -181,6 +182,10 @@ export default function Home(){
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-events",JSON.stringify(dedupeEvents(events.filter(e=>!e.id.startsWith("workplan-")))))},[events,hydrated]);
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-workplan-visible",showWorkPlan?"1":"0")},[showWorkPlan,hydrated]);
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-sync-queue",JSON.stringify(syncQueue))},[syncQueue,hydrated]);
+  useEffect(()=>{
+    const t=setInterval(()=>setClock(Date.now()),60000);
+    return ()=>clearInterval(t);
+  },[]);
   useEffect(()=>{
     if(!hydrated)return;
     localStorage.setItem("havi-theme",themeMode);
@@ -225,8 +230,9 @@ export default function Home(){
   const displayEvents=useMemo(()=>dedupeEvents([...events,...(showWorkPlan?schoolPlanEvents:[])]),[events,showWorkPlan]);
   const enabledEvents=useMemo(()=>displayEvents.filter(e=>enabled[e.calendar]),[displayEvents,enabled]);
   const shown=enabledEvents.filter(e=>days.some(d=>iso(d)===e.date)).sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
-  const todayIso=iso(new Date());
-  const nowMinutes=new Date().getHours()*60+new Date().getMinutes();
+  const clockDate=new Date(clock);
+  const todayIso=iso(clockDate);
+  const nowMinutes=clockDate.getHours()*60+clockDate.getMinutes();
   const nextEvent=useMemo(()=>enabledEvents
     .filter(e=>e.date>todayIso||(e.date===todayIso&&(e.allDay||mins(e.end||e.start)>=nowMinutes)))
     .sort((a,b)=>(a.date+(a.allDay?"00:00":a.start||"")).localeCompare(b.date+(b.allDay?"00:00":b.start||"")))[0]||null,[enabledEvents,todayIso,nowMinutes]);
@@ -1189,11 +1195,18 @@ function DraggableEvent({e,onMove,onEdit,onDelete}:{e:Ev;onMove:(e:Ev,m:number,d
 function EventSearchOverlay({events,onClose,onOpen}:{events:Ev[];onClose:()=>void;onOpen:(e:Ev)=>void}){
   const [q,setQ]=useState("");
   const query=normText(q);
+  useEffect(()=>{
+    const key=(e:KeyboardEvent)=>{if(e.key==="Escape")onClose()};
+    window.addEventListener("keydown",key);
+    return ()=>window.removeEventListener("keydown",key);
+  },[onClose]);
   const results=useMemo(()=>{
     const base=[...events].sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
     if(!query)return base.filter(e=>e.date>=iso(new Date())).slice(0,12);
     return base.filter(e=>{
-      const hay=normText([e.title,e.location,e.note,calMeta[e.calendar].label,e.date].filter(Boolean).join(" "));
+      const source=e.id.startsWith("workplan-")?"munkaterv":e.googleId?"google":e.pendingSync?"szinkronra vár saját":"saját";
+      const readableDate=parseDate(e.date).toLocaleDateString("hu-HU",{year:"numeric",month:"long",day:"numeric",weekday:"long"});
+      const hay=normText([e.title,e.location,e.note,calMeta[e.calendar].label,e.date,readableDate,source].filter(Boolean).join(" "));
       return query.split(" ").every(part=>hay.includes(part));
     }).slice(0,40);
   },[events,query]);
