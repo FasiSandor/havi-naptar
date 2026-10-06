@@ -7,14 +7,18 @@ async function access(req:NextRequest){
   const j=await r.json(); return r.ok?j.access_token:null;
 }
 function eventBody(x:any){
-  return {
+  const repeatMap:Record<string,string>={daily:"RRULE:FREQ=DAILY",weekly:"RRULE:FREQ=WEEKLY",monthly:"RRULE:FREQ=MONTHLY",yearly:"RRULE:FREQ=YEARLY"};
+  const body:any={
     summary:x.title||"Esemény",
     location:x.location||"",
     description:x.note||"",
     extendedProperties:{private:{haviCategory:x.calendar||"work"}},
     start:x.allDay?{date:x.date}:{dateTime:x.start,timeZone:"Europe/Budapest"},
-    end:x.allDay?{date:x.endDate||x.date}:{dateTime:x.end,timeZone:"Europe/Budapest"}
-  }
+    end:x.allDay?{date:x.endDate||x.date}:{dateTime:x.end,timeZone:"Europe/Budapest"},
+    reminders:Number(x.reminder||0)>0?{useDefault:false,overrides:[{method:"popup",minutes:Number(x.reminder)}]}:{useDefault:true}
+  };
+  if(x.repeat&&repeatMap[x.repeat])body.recurrence=[repeatMap[x.repeat]];
+  return body;
 }
 export async function GET(req:NextRequest){
   const token=await access(req); if(!token) return NextResponse.json({connected:false},{status:401});
