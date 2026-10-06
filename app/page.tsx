@@ -398,7 +398,7 @@ export default function Home(){
     </div>}
     {notice&&<div className="toast">{notice}</div>}
 
-    {dayOpen&&<MobileDayCards date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>{if(!e.id.startsWith("workplan-"))setEditor(e)}} onAdd={()=>setQuickAdd(true)}/>}
+    {dayOpen&&<MobileDayCards date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>{if(!e.id.startsWith("workplan-"))setEditor(e)}} onDelete={e=>{if(!e.id.startsWith("workplan-"))remove(e)}} onAdd={()=>setQuickAdd(true)}/>}
     {dayOpen&&<DayZoom date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>setEditor(e)} onAdd={()=>setEditor({date:dayOpen,calendar:"work",start:"09:00",end:"10:00"})} onMove={moveEvent} onDelete={remove}/>} 
 
     {editor&&<Modal title={editor.id?"Esemény szerkesztése":"Esemény hozzáadása"} onClose={()=>setEditor(null)}><EventForm value={editor} onSave={save} onCancel={()=>setEditor(null)}/></Modal>}
@@ -486,7 +486,7 @@ function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,
   </section>
 }
 
-function MobileDayCards({date,events,onClose,onEdit,onAdd}:{date:string;events:Ev[];onClose:()=>void;onEdit:(e:Ev)=>void;onAdd:()=>void}){
+function MobileDayCards({date,events,onClose,onEdit,onDelete,onAdd}:{date:string;events:Ev[];onClose:()=>void;onEdit:(e:Ev)=>void;onDelete:(e:Ev)=>void;onAdd:()=>void}){
   const d=parseDate(date);
   const sorted=[...events].sort((a,b)=>(a.start||"").localeCompare(b.start||""));
   const holiday=holidayMap[date];
@@ -501,11 +501,14 @@ function MobileDayCards({date,events,onClose,onEdit,onAdd}:{date:string;events:E
       </header>
       {holiday&&<div className="holidayBanner"><span>✦</span><div><b>Ünnepnap</b><small>{holiday}</small></div></div>}
       <div className="mobileDayList">
-        {sorted.length?sorted.map(e=><button key={e.id} className="mobileEventCard" style={{"--event":calMeta[e.calendar].color} as React.CSSProperties} onClick={()=>onEdit(e)}>
-          <div className="mobileEventTime"><b>{e.allDay?"Egész nap":e.start}</b><span>{e.allDay?"":e.end||""}</span></div>
-          <div className="mobileEventIcon">{calMeta[e.calendar].icon}</div>
-          <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span>{e.note==="Iskolai munkaterv 2026/2027"&&<small className="sourceBadge">MUNKATERV · CSAK OLVASHATÓ</small>}</div>
-        </button>):<div className="mobileNoEvents"><i>✦</i><b>Szabad nap</b><span>Nincs bejegyzett esemény.</span></div>}
+        {sorted.length?sorted.map(e=><div key={e.id} className="mobileEventCard" style={{"--event":e.note==="Iskolai munkaterv 2026/2027"?"#F59E0B":calMeta[e.calendar].color} as React.CSSProperties}>
+          <button className="mobileEventOpen" onClick={()=>onEdit(e)}>
+            <div className="mobileEventTime"><b>{e.allDay?"Egész nap":e.start}</b><span>{e.allDay?"":e.end||""}</span></div>
+            <div className="mobileEventIcon">{calMeta[e.calendar].icon}</div>
+            <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span>{e.note==="Iskolai munkaterv 2026/2027"&&<small className="sourceBadge">MUNKATERV · CSAK OLVASHATÓ</small>}</div>
+          </button>
+          {!e.id.startsWith("workplan-")&&<button className="mobileEventDelete" aria-label="Esemény törlése" onClick={()=>onDelete(e)}>×</button>}
+        </div>)}:<div className="mobileNoEvents"><i>✦</i><b>Szabad nap</b><span>Nincs bejegyzett esemény.</span></div>}
       </div>
       <button className="mobilePanelAdd" onClick={onAdd}>＋ Esemény hozzáadása</button>
     </section>
@@ -540,7 +543,7 @@ function ContinuousMonthFlow({anchor,events,onClose,onDay,onToday,onQuickAdd}:{a
               return <button key={iso(d)} className={(current?"":"outside ")+(today?"flowToday ":"")+(holiday?"flowHoliday ":"")} onClick={()=>onDay(d)}>
                 <b>{d.getDate()}</b>
                 {holiday&&<em>✦</em>}
-                <div>{es.slice(0,3).map(e=><i key={e.id} className={e.note==="Iskolai munkaterv 2026/2027"?"workPlanMark":""} style={{"--event":e.note==="Iskolai munkaterv 2026/2027"?"#F59E0B":calMeta[e.calendar].color} as React.CSSProperties}/>)}</div>
+                <div className="flowEvents">{es.slice(0,2).map(e=><span key={e.id} className={e.note==="Iskolai munkaterv 2026/2027"?"flowWorkPlan":""} style={{"--event":e.note==="Iskolai munkaterv 2026/2027"?"#F59E0B":calMeta[e.calendar].color} as React.CSSProperties}>{e.title}</span>)}{es.length>2&&<small>+{es.length-2}</small>}</div>
               </button>
             })}
           </div>
