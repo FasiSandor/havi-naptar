@@ -709,7 +709,7 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
   }
 
   let startMins:number|undefined;
-  const tm=low.match(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)|([01]?\d|2[0-3])\s*(?:ora|óra|kor))\b/);
+  const tm=low.match(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)(?:\s*-?\s*kor)?|([01]?\d|2[0-3])\s*-?\s*(?:ora|óra|kor))\b/);
   if(tm){const h=Number(tm[1]??tm[3]),m=Number(tm[2]??0);startMins=h*60+m}
 
   let duration=60;
@@ -721,7 +721,7 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
     .replace(/\b(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?\b/g," ")
     .replace(/\b(jan\w*|feb\w*|mar\w*|már\w*|apr\w*|ápr\w*|maj\w*|máj\w*|jun\w*|jún\w*|jul\w*|júl\w*|aug\w*|szept\w*|okt\w*|nov\w*|dec\w*)\s+\d{1,2}\b/gi," ")
     .replace(/\b(vasarnap|vasárnap|hetfo|hétfő|kedd|szerda|csutortok|csütörtök|pentek|péntek|szombat)\b/gi," ")
-    .replace(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)|([01]?\d|2[0-3])\s*(?:ora|óra|kor))\b/gi," ")
+    .replace(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)(?:\s*-?\s*kor)?|([01]?\d|2[0-3])\s*-?\s*(?:ora|óra|kor))\b/gi," ")
     .replace(/\b\d{1,3}\s*(?:perc|p)\b/gi," ")
     .replace(/\s+/g," ").trim()
     .replace(/^[,.;:\-\s]+|[,.;:\-\s]+$/g,"");
