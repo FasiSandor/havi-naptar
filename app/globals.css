@@ -2110,3 +2110,46 @@
 .appShell[data-theme="light"] .backupSetting>button{
   background:#EDF6FF;border-color:#BDD5EA;color:#2469AE
 }
+
+/* next-major: safe backup restore */
+.backupActions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}
+.backupActions>button,.backupImportBtn{
+  height:38px;padding:0 12px;border-radius:11px;border:1px solid #315D86;
+  background:#102A45;color:#8EC8FF;font-size:8px;font-weight:900;white-space:nowrap;
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer
+}
+.backupImportBtn input{display:none}
+.backupPreview{
+  display:grid;gap:10px;padding:13px 14px;border-radius:16px;border:1px solid #3C5570;
+  background:linear-gradient(145deg,#111D29,#0C141D)
+}
+.backupPreviewHead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.backupPreviewHead small,.backupPreviewHead b{display:block}
+.backupPreviewHead small{font-size:7px;letter-spacing:.08em;color:#6E8399;font-weight:900}
+.backupPreviewHead b{margin-top:2px;font-size:10px;color:#DDE8F2;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.backupPreviewHead>button{border:0;background:transparent;color:#8194A7;font-size:18px}
+.backupPreviewStats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.backupPreviewStats>span{
+  padding:9px 6px;border-radius:11px;border:1px solid #2D4054;background:#0B151F;text-align:center
+}
+.backupPreviewStats b,.backupPreviewStats small{display:block}
+.backupPreviewStats b{font-size:13px;color:#EAF2F8}
+.backupPreviewStats small{margin-top:3px;font-size:7px;color:#71859A}
+.backupPreviewStats .warn{border-color:#F59E0B55;background:#251D10}
+.backupPreviewStats .warn b{color:#F5C76B}
+.backupPreview p{margin:0;font-size:8px;line-height:1.45;color:#75899D}
+.backupPreviewActions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.backupPreviewActions button{
+  height:38px;border-radius:11px;border:1px solid #32485F;background:#101B26;color:#91A5B9;font-size:8px;font-weight:900
+}
+.backupPreviewActions .primary{border-color:#3B82F6;background:#1D4ED8;color:#fff}
+.backupPreviewActions .primary:disabled{opacity:.45}
+.appShell[data-theme="light"] .backupActions>button,
+.appShell[data-theme="light"] .backupImportBtn{background:#EDF6FF;border-color:#BDD5EA;color:#2469AE}
+.appShell[data-theme="light"] .backupPreview{background:#F8FBFD;border-color:#CBD8E3}
+.appShell[data-theme="light"] .backupPreviewHead b{color:#294158}
+.appShell[data-theme="light"] .backupPreviewStats>span{background:#fff;border-color:#D5E0E8}
+.appShell[data-theme="light"] .backupPreviewStats b{color:#294158}
+.appShell[data-theme="light"] .backupPreview p{color:#72869A}
+.appShell[data-theme="light"] .backupPreviewActions button{background:#F4F7FA;border-color:#D0DCE6;color:#607489}
+.appShell[data-theme="light"] .backupPreviewActions .primary{background:#2563EB;border-color:#2563EB;color:#fff}
