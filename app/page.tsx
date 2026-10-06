@@ -108,6 +108,7 @@ export default function Home(){
   const [rotateHint,setRotateHint]=useState(false);
   const [monthFlow,setMonthFlow]=useState(false);
   const [showWorkPlan,setShowWorkPlan]=useState(true);
+  const [infoEvent,setInfoEvent]=useState<Ev|null>(null);
 
   useEffect(()=>{
     try{
@@ -405,8 +406,20 @@ export default function Home(){
     </div>}
     {notice&&<div className="toast">{notice}</div>}
 
-    {dayOpen&&<MobileDayCards date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>{if(!e.id.startsWith("workplan-"))setEditor(e)}} onDelete={e=>{if(!e.id.startsWith("workplan-"))remove(e)}} onAdd={()=>setQuickAdd(true)}/>}
+    {dayOpen&&<MobileDayCards date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>{if(e.id.startsWith("workplan-"))setInfoEvent(e);else setEditor(e)}} onDelete={e=>{if(!e.id.startsWith("workplan-"))remove(e)}} onAdd={()=>setQuickAdd(true)}/>}
     {dayOpen&&<DayZoom date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>setEditor(e)} onAdd={()=>setEditor({date:dayOpen,calendar:"work",start:"09:00",end:"10:00"})} onMove={moveEvent} onDelete={remove}/>} 
+
+    {infoEvent&&<Modal title="Munkaterv esemény" onClose={()=>setInfoEvent(null)}>
+      <div className="readOnlyEvent">
+        <div className="readOnlyBadge">ISKOLAI MUNKATERV · CSAK OLVASHATÓ</div>
+        <h3>{infoEvent.title}</h3>
+        <div className="readOnlyMeta">
+          <span><b>Dátum</b>{parseDate(infoEvent.date).toLocaleDateString("hu-HU",{year:"numeric",month:"long",day:"numeric",weekday:"long"})}</span>
+          <span><b>Idő</b>{infoEvent.allDay?"Egész nap":((infoEvent.start||"")+" – "+(infoEvent.end||""))}</span>
+          <span><b>Forrás</b>Teleki 2026/2027-es munkaterv</span>
+        </div>
+      </div>
+    </Modal>}
 
     {editor&&<Modal title={editor.id?"Esemény szerkesztése":"Esemény hozzáadása"} onClose={()=>setEditor(null)}><EventForm value={editor} onSave={save} onCancel={()=>setEditor(null)}/></Modal>}
 
