@@ -881,7 +881,11 @@ function extractEventCandidates(text:string,baseDate:Date){
   const pieces=text.split(/\n+|(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean).slice(0,12);
   const out:SmartParse[]=[];
   for(const piece of pieces){
-    const p=parseSmartEvent(piece,baseDate);
+    let p=parseSmartEvent(piece,baseDate);
+    const deadlineLike=/\b(hatarido|határidő|leadás|leadas|jelentkezési|jelentkezesi|esedékes|esedekes)\b/i.test(piece);
+    if(p.explicitDate&&!p.explicitTime&&!p.allDay&&deadlineLike){
+      p={...p,allDay:true,missing:p.missing.filter(x=>x!=="idő"),confidence:"high"};
+    }
     const eventLike=p.explicitDate&&(p.explicitTime||p.allDay);
     if(!eventLike)continue;
     const loc=p.location||inferProseLocation(piece);
@@ -892,7 +896,9 @@ function extractEventCandidates(text:string,baseDate:Date){
     if(!out.some(x=>x.date===candidate.date&&x.start===candidate.start&&normText(x.title)===normText(candidate.title)))out.push(candidate);
   }
   if(out.length===0){
-    const p=parseSmartEvent(text,baseDate);
+    let p=parseSmartEvent(text,baseDate);
+    const deadlineLike=/\b(hatarido|határidő|leadás|leadas|jelentkezési|jelentkezesi|esedékes|esedekes)\b/i.test(text);
+    if(p.explicitDate&&!p.explicitTime&&!p.allDay&&deadlineLike)p={...p,allDay:true,missing:p.missing.filter(x=>x!=="idő"),confidence:"high"};
     if(p.explicitDate&&(p.explicitTime||p.allDay))out.push({...p,title:cleanExtractedTitle(p.title)||"Esemény",location:p.location||inferProseLocation(text)});
   }
   return out.slice(0,5);
