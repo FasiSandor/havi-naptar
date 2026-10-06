@@ -612,7 +612,6 @@ function QuickAddWheel({baseDate,onClose,onCreate}:{baseDate:Date;onClose:()=>vo
   const [time,setTime]=useState(9*60);
   const [allDay,setAllDay]=useState(false);
   const [calendar,setCalendar]=useState<CalKey>("work");
-  const monthNames=["Jan","Feb","Már","Ápr","Máj","Jún","Júl","Aug","Szept","Okt","Nov","Dec"];
   const maxDay=new Date(year,month+1,0).getDate();
   const safeDay=Math.min(day,maxDay);
   const date=iso(new Date(year,month,safeDay,12));
