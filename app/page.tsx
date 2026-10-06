@@ -799,7 +799,14 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
 
   let startMins:number|undefined;
   if(/\bdelben\b|\bdélben\b/.test(low))startMins=12*60;
-  const daypart=low.match(/\b(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+([01]?\d|2[0-3])(?::|\.([0-5]\d))?\b/);
+  const halfTime=low.match(/\b(?:(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+)?fel\s+([01]?\d|2[0-3])\b|\b(?:(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+)?fél\s+([01]?\d|2[0-3])\b/);
+  if(halfTime){
+    const part=(halfTime[1]||halfTime[3]||"").toLocaleLowerCase("hu-HU");
+    let h=Number(halfTime[2]||halfTime[4])-1;if(h<0)h=23;
+    if((part==="delutan"||part==="délután"||part==="este")&&h<12)h+=12;
+    startMins=h*60+30;
+  }
+  const daypart=low.match(/\b(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+([01]?\d|2[0-3])(?:(?::|\.)([0-5]\d))?\b/);
   if(startMins===undefined&&daypart){
     let h=Number(daypart[2]),m=Number(daypart[3]||0);
     const part=daypart[1];
@@ -830,7 +837,8 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
     .replace(/\b(jovo|jövő)\b/gi," ")
     .replace(/\b(vasarnap(?:on)?|vasárnap(?:on)?|hetfo(?:n)?|hétfő(?:n)?|kedd(?:en)?|szerda(?:n|án)?|csutortok(?:on)?|csütörtök(?:ön)?|pentek(?:en)?|péntek(?:en)?|szombat(?:on)?)\b/gi," ")
     .replace(/\bdelben\b|\bdélben\b/gi," ")
-    .replace(/\b(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+([01]?\d|2[0-3])(?::|\.([0-5]\d))?\b/gi," ")
+    .replace(/\b(?:(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+)?(?:fel|fél)\s+([01]?\d|2[0-3])\b/gi," ")
+    .replace(/\b(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+([01]?\d|2[0-3])(?:(?::|\.)([0-5]\d))?\b/gi," ")
     .replace(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)(?:\s*-?\s*kor)?|([01]?\d|2[0-3])\s*-?\s*(?:ora|óra|kor))\b/gi," ")
     .replace(/\b\d{1,3}\s*(?:perc|p)\b/gi," ")
     .replace(/\b\d+(?:[.,]\d+)?\s*(?:ora|óra)\s*(?:hosszu|hosszú|idotartam|időtartam)?\b/gi," ")
