@@ -606,6 +606,19 @@ export default function Home(){
           <div className="settingsTitle"><b>Iskolai munkaterv</b><span>A 2026/2027-es Teleki munkaterv fontos dátumai külön rétegként.</span></div>
           <button className={"layerToggle "+(showWorkPlan?"on":"")} onClick={()=>setShowWorkPlan(v=>!v)}><i/><span>{showWorkPlan?"Látható":"Elrejtve"}</span></button>
         </div>
+        <div className="syncDiagnostics">
+          <div className="settingsTitle"><b>Szinkron állapot</b><span>Gyors ellenőrzés a háttérszinkronról és a helyi cache-ről.</span></div>
+          <div className="syncDiagGrid">
+            <span><b>{connected?"ONLINE":"OFFLINE"}</b><small>Google</small></span>
+            <span><b>{events.filter(e=>!!e.googleId).length}</b><small>Google cache</small></span>
+            <span><b>{events.filter(e=>!e.googleId&&!e.id.startsWith("workplan-")).length}</b><small>Saját</small></span>
+            <span className={syncQueue.length?"warn":""}><b>{syncQueue.length}</b><small>Függő művelet</small></span>
+          </div>
+          <div className="syncDiagFoot">
+            <span>{lastSync?"Utolsó sikeres sync: "+new Date(lastSync).toLocaleString("hu-HU"):"Még nem volt sikeres Google-szinkron."}</span>
+            <button disabled={syncing} onClick={()=>sync()}>{syncing?"Szinkron…":"Szinkron most"}</button>
+          </div>
+        </div>
         {syncQueue.length>0&&<div className="pendingSyncSetting">
           <div><b>{syncQueue.length} módosítás vár szinkronra</b><span>Offline vagy sikertelen Google-műveletek. Kapcsolat esetén automatikusan újrapróbáljuk.</span></div>
           <button disabled={!connected} onClick={()=>flushSyncQueue()}>{connected?"Újrapróbálás":"Offline"}</button>
