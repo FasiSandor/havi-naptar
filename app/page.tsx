@@ -90,6 +90,11 @@ function nearDuplicate(a:Ev,b:Ev){
   if(a.allDay||b.allDay)return !!a.allDay===!!b.allDay;
   return Math.abs(mins(a.start)-mins(b.start))<=15;
 }
+function timeOverlap(a:Ev,b:Ev){
+  if(a.date!==b.date||a.allDay||b.allDay)return false;
+  const as=mins(a.start),ae=mins(a.end),bs=mins(b.start),be=mins(b.end);
+  return Math.max(as,bs)<Math.min(ae,be);
+}
 function dedupeEvents(list:Ev[]){
   const out:Ev[]=[];
   for(const e of list){
@@ -943,10 +948,9 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
   const [clipboardError,setClipboardError]=useState("");
   const parsed=useMemo(()=>parseSmartEvent(smartText,baseDate),[smartText,baseDate]);
   const extracted=useMemo(()=>extractEventCandidates(smartText,baseDate),[smartText,baseDate]);
-  const duplicateFor=(x:Partial<Ev>)=>existingEvents.find(e=>{
-    const candidate:Ev={id:"candidate",title:x.title||"",date:x.date||iso(baseDate),start:x.start,end:x.end,allDay:!!x.allDay,calendar:(x.calendar||"personal") as CalKey,location:x.location||""};
-    return nearDuplicate(e,candidate);
-  });
+  const asCandidate=(x:Partial<Ev>):Ev=>({id:"candidate",title:x.title||"",date:x.date||iso(baseDate),start:x.start,end:x.end,allDay:!!x.allDay,calendar:(x.calendar||"personal") as CalKey,location:x.location||""});
+  const duplicateFor=(x:Partial<Ev>)=>{const candidate=asCandidate(x);return existingEvents.find(e=>nearDuplicate(e,candidate))};
+  const conflictFor=(x:Partial<Ev>)=>{const candidate=asCandidate(x);return existingEvents.find(e=>!nearDuplicate(e,candidate)&&timeOverlap(e,candidate))};
   const pastedMode=!manual&&(smartText.includes("\n")||smartText.trim().length>=70);
   const maxDay=new Date(year,month+1,0).getDate();
   const safeDay=Math.min(day,maxDay);
@@ -959,6 +963,7 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
   const manualPayload:Partial<Ev>={title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar};
   const payload=manual?manualPayload:smartPayload;
   const smartDuplicate=duplicateFor(smartPayload);
+  const smartConflict=conflictFor(smartPayload);
   const canSmartSave=!manual&&!!parsed.title&&parsed.missing.length===0&&!smartDuplicate;
 
   async function pasteClipboard(){
@@ -1004,6 +1009,7 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
           <p>{parsed.allDay?"Egész nap":parsed.start+" – "+parsed.end}{parsed.duration!==60&&!parsed.allDay?" · "+parsed.duration+" perc":""}{parsed.location?" · @"+parsed.location:""}</p>
           {parsed.missing.length>0&&<em>Hiányzik: {parsed.missing.join(", ")}</em>}
           {smartDuplicate&&<em className="duplicateWarning">Már szerepel: {smartDuplicate.title} · {smartDuplicate.date}{smartDuplicate.start?" · "+smartDuplicate.start:""}</em>}
+          {!smartDuplicate&&smartConflict&&<em className="conflictWarning">Időütközés: {smartConflict.title} · {smartConflict.start}–{smartConflict.end}</em>}
         </div>}
 
         {pastedMode&&<div className="extractArea">
@@ -1011,12 +1017,12 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
             <div><small>KINYERÉS</small><b>{extracted.length?extracted.length+" egyértelmű eseményt találtam":"Még nincs biztos találat"}</b></div>
             <span>Semmi nem kerül be automatikusan.</span>
           </div>
-          {extracted.length?extracted.map((c,i)=>{const dup=duplicateFor({title:c.title,date:c.date,allDay:c.allDay,start:c.start,end:c.end,calendar:c.calendar,location:c.location});return <article key={i} className={"extractCard "+(savedCandidates[i]?"saved ":"")+(dup?"duplicate":"")}>
+          {extracted.length?extracted.map((c,i)=>{const candidate={title:c.title,date:c.date,allDay:c.allDay,start:c.start,end:c.end,calendar:c.calendar,location:c.location};const dup=duplicateFor(candidate),conflict=dup?undefined:conflictFor(candidate);return <article key={i} className={"extractCard "+(savedCandidates[i]?"saved ":"")+(dup?"duplicate ":"")+(conflict?"conflict":"")}>
             <div className="extractDate"><b>{parseDate(c.date).getDate()}</b><span>{parseDate(c.date).toLocaleDateString("hu-HU",{month:"short"})}</span></div>
             <div className="extractBody">
               <strong>{c.title}</strong>
               <span>{c.allDay?"Egész nap":(c.start||"")+" – "+(c.end||"")}{c.location?" · "+c.location:""}</span>
-              <small>{dup?"Már szerepel a naptárban":calMeta[c.calendar].label}</small>
+              <small>{dup?"Már szerepel a naptárban":conflict?"Ütközik: "+conflict.title+" "+(conflict.start||"")+"–"+(conflict.end||""):calMeta[c.calendar].label}</small>
             </div>
             <div className="extractActions">
               {onDetails&&<button disabled={!!savedCandidates[i]||!!dup} onClick={()=>onDetails({title:c.title,date:c.date,allDay:c.allDay,start:c.start,end:c.end,calendar:c.calendar,location:c.location})}>Szerkesztés</button>}
