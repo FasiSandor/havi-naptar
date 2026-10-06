@@ -3,11 +3,14 @@
   "short_name": "Naptár",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0B0F14",
-  "theme_color": "#0B0F14",
-  "icons": [],
+  "background_color": "#F7FAFD",
+  "theme_color": "#3B82F6",
+  "icons": [
+    {"src":"/icon","sizes":"512x512","type":"image/png","purpose":"any maskable"},
+    {"src":"/apple-icon","sizes":"180x180","type":"image/png","purpose":"any"}
+  ],
   "scope": "/",
   "lang": "hu",
   "orientation": "any",
-  "description": "4 hetes áttekintő naptár iPhone-ra és iPadre"
+  "description": "Mobil-first havi és tanévi naptár iskolai munkatervvel és Google Naptár szinkronnal"
 }
