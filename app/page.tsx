@@ -292,37 +292,35 @@ export default function Home(){
   async function persist(next:Ev){
     let gId=next.googleId;
     const isExistingGoogle=!!gId;
-    if(isExistingGoogle&&!connected){
-      setNotice("Nincs Google-kapcsolat. A módosítást nem mentettem.");
-      return null;
+    const sd=parseDate(next.date);
+    const payload:any={...next};
+    payload.start=next.allDay?next.date:(next.date+"T"+next.start+":00");
+    payload.end=next.allDay?iso(addDays(sd,1)):(next.date+"T"+next.end+":00");
+    payload.endDate=iso(addDays(sd,1));
+
+    if(!connected){
+      const local={...next,pendingSync:true};
+      setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==local.id),local]));
+      queueSync({id:crypto.randomUUID(),kind:isExistingGoogle?"update":"create",event:local,googleId:gId,createdAt:Date.now()});
+      return local;
     }
-    if(connected){
-      const sd=parseDate(next.date);
-      const payload={...next,start:next.allDay?next.date:`${next.date}T${next.start}:00`,end:next.allDay?iso(addDays(sd,1)):`${next.date}T${next.end}:00`,endDate:iso(addDays(sd,1))};
-      try{
-        const r=await fetch("/api/google/events",{method:gId?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-        if(r.ok){
-          const j=await r.json();
-          gId=j.id||gId;
-        }else if(isExistingGoogle){
-          setNotice("A Google Naptár módosítása nem sikerült. Az eredeti esemény megmaradt.");
-          return null;
-        }else{
-          setNotice("Google-szinkron hiba. Az új eseményt csak helyben mentettem.");
-          gId=undefined;
-        }
-      }catch{
-        if(isExistingGoogle){
-          setNotice("A Google Naptár módosítása nem sikerült. Az eredeti esemény megmaradt.");
-          return null;
-        }
-        setNotice("Google-szinkron hiba. Az új eseményt csak helyben mentettem.");
-        gId=undefined;
+
+    try{
+      const r=await fetch("/api/google/events",{method:gId?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      if(r.ok){
+        const j=await r.json();
+        gId=j.id||gId;
+        const saved={...next,googleId:gId,pendingSync:false};
+        setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==saved.id&&(!gId||e.googleId!==gId)),saved]));
+        return saved;
       }
-    }
-    const saved={...next,googleId:gId};
-    setEvents(prev=>[...prev.filter(e=>e.id!==saved.id&&(!gId||e.googleId!==gId)),saved]);
-    return saved;
+    }catch{}
+
+    const local={...next,pendingSync:true};
+    setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==local.id),local]));
+    queueSync({id:crypto.randomUUID(),kind:isExistingGoogle?"update":"create",event:local,googleId:gId,createdAt:Date.now()});
+    setNotice("Kapcsolati hiba: az eseményt helyben mentettem, később szinkronizálom.");
+    return local;
   }
 
   async function save(x:Partial<Ev>){
@@ -341,24 +339,18 @@ export default function Home(){
   }
 
   async function remove(e:Ev){
-    if(e.googleId){
-      if(!connected){
-        setNotice("Nincs Google-kapcsolat. A törlést nem hajtottam végre.");
-        return;
-      }
+    if(e.googleId&&connected){
       try{
         const r=await fetch("/api/google/events?id="+encodeURIComponent(e.googleId),{method:"DELETE"});
-        if(!r.ok){
-          setNotice("A Google Naptár törlése nem sikerült. Az esemény megmaradt.");
-          return;
-        }
+        if(!r.ok&&r.status!==404)queueSync({id:crypto.randomUUID(),kind:"delete",googleId:e.googleId,createdAt:Date.now()});
       }catch{
-        setNotice("A Google Naptár törlése nem sikerült. Az esemény megmaradt.");
-        return;
+        queueSync({id:crypto.randomUUID(),kind:"delete",googleId:e.googleId,createdAt:Date.now()});
       }
+    }else if(e.googleId){
+      queueSync({id:crypto.randomUUID(),kind:"delete",googleId:e.googleId,createdAt:Date.now()});
     }
-    setEvents(p=>p.filter(x=>x.id!==e.id));
-    setNotice("Esemény törölve.");
+    setEvents(p=>p.filter(x=>x.id!==e.id&&(!e.googleId||x.googleId!==e.googleId)));
+    setNotice(e.googleId&&!connected?"Esemény törölve helyben, a Google-t később frissítem.":"Esemény törölve.");
     setTimeout(()=>setNotice(""),1600);
   }
 
