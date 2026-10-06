@@ -1498,3 +1498,47 @@
   }
   .appShell[data-theme="light"] .quickOptions>span{color:#71849A}
 }
+
+/* next-major: readable school-year flow + mobile delete */
+@media(max-width:900px) and (orientation:portrait){
+  .mobileEventCard{
+    display:grid!important;grid-template-columns:minmax(0,1fr) 34px!important;gap:6px!important;padding:6px!important
+  }
+  .mobileEventOpen{
+    display:grid;grid-template-columns:57px 40px minmax(0,1fr);align-items:center;gap:9px;
+    min-width:0;border:0;background:transparent;color:inherit;text-align:left;padding:4px
+  }
+  .mobileEventDelete{
+    align-self:center;width:32px;height:32px;border-radius:11px;border:1px solid #7F1D2D;
+    background:#2A1217;color:#FCA5A5;font-size:19px;line-height:1
+  }
+  .flowGrid>button{overflow:hidden}
+  .flowGrid>button .flowEvents{
+    width:100%;height:24px;display:flex;flex-direction:column;gap:2px;margin-top:2px;overflow:hidden
+  }
+  .flowGrid>button .flowEvents span{
+    display:block;width:100%;height:10px;padding:1px 3px;border-radius:4px;
+    background:color-mix(in srgb,var(--event) 18%,transparent);
+    border-left:2px solid var(--event);
+    color:#DDE8F3;font-size:6px;line-height:8px;text-align:left;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+  }
+  .flowGrid>button .flowEvents small{
+    font-size:6px;line-height:7px;color:#7D90A7;text-align:left;padding-left:3px
+  }
+  .flowGrid>button .flowEvents .flowWorkPlan{
+    background:#F59E0B1A;color:#FCD38A
+  }
+}
+@media(max-width:900px){
+  .appShell[data-theme="light"] .mobileEventDelete{
+    background:#FFF1F2;color:#B4232F;border-color:#F3B6BD
+  }
+  .appShell[data-theme="light"] .flowGrid>button .flowEvents span{
+    color:#284159;background:color-mix(in srgb,var(--event) 12%,#FFFFFF)
+  }
+  .appShell[data-theme="light"] .flowGrid>button .flowEvents .flowWorkPlan{
+    background:#FFF6E2;color:#9A6200
+  }
+  .appShell[data-theme="light"] .flowGrid>button .flowEvents small{color:#71849A}
+}
