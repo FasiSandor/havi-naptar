@@ -745,13 +745,14 @@ function WheelScroller({label,items,value,onChange}:{label:string;items:{value:n
   </div>
 }
 
-type SmartParse={title:string;date:string;start?:string;end?:string;allDay:boolean;duration:number;location?:string;calendar:CalKey;confidence:"high"|"medium"|"low";missing:string[]};
+type SmartParse={title:string;date:string;start?:string;end?:string;allDay:boolean;duration:number;location?:string;calendar:CalKey;confidence:"high"|"medium"|"low";missing:string[];explicitDate:boolean;explicitTime:boolean};
 
 function parseSmartEvent(input:string,baseDate:Date):SmartParse{
   let raw=input.trim();
   const low=raw.toLocaleLowerCase("hu-HU").replace(/\s+/g," ");
   const missing:string[]=[];
   let d=new Date(baseDate); d.setHours(12,0,0,0);
+  let explicitDate=false;
 
   const monthMap:Record<string,number>={
     jan:0,januar:0,január:0,feb:1,februar:1,február:1,mar:2,marc:2,már:2,március:2,
@@ -762,17 +763,18 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
   };
   const weekdays:Record<string,number>={vasarnap:0,vasárnap:0,vasarnapon:0,vasárnapon:0,hetfo:1,hétfő:1,hetfon:1,hétfőn:1,kedd:2,kedden:2,szerda:3,szerdan:3,szerdán:3,csutortok:4,csütörtök:4,csutortokon:4,csütörtökön:4,pentek:5,péntek:5,penteken:5,pénteken:5,szombat:6,szombaton:6};
 
-  if(/\bholnaputan\b|\bholnapután\b/.test(low)) d=addDays(d,2);
-  else if(/\bholnap\b/.test(low)) d=addDays(d,1);
-  else if(!/\bma\b/.test(low)){
+  if(/\bholnaputan\b|\bholnapután\b/.test(low)){d=addDays(d,2);explicitDate=true}
+  else if(/\bholnap\b/.test(low)){d=addDays(d,1);explicitDate=true}
+  else if(/\bma\b/.test(low)){explicitDate=true}
+  else {
     let matched=false;
     const m1=low.match(/\b(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?\b/);
     if(m1){
       let y=m1[3]?Number(m1[3]):d.getFullYear(); if(y<100)y+=2000;
-      d=new Date(y,Number(m1[2])-1,Number(m1[1]),12); matched=true;
+      d=new Date(y,Number(m1[2])-1,Number(m1[1]),12); matched=true; explicitDate=true;
     }
     if(!matched){
-      const m2=low.match(/\b(jan\w*|feb\w*|mar\w*|már\w*|apr\w*|ápr\w*|maj\w*|máj\w*|jun\w*|jún\w*|jul\w*|júl\w*|aug\w*|szept\w*|okt\w*|nov\w*|dec\w*)\s+(\d{1,2})\b/);
+      const m2=low.match(/\b(jan\w*|feb\w*|mar\w*|már\w*|apr\w*|ápr\w*|maj\w*|máj\w*|jun\w*|jún\w*|jul\w*|júl\w*|aug\w*|szept\w*|okt\w*|nov\w*|dec\w*)\s+(\d{1,2})(?:[-.]?(?:an|en|án|én))?\b/);
       if(m2){
         const key=m2[1].replace(/[.]$/,"");
         const plain=key.normalize("NFD").replace(/[\u0300-\u036f]/g,"");
@@ -781,7 +783,7 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
           const da=Number(m2[2]); let y=d.getFullYear();
           const cand=new Date(y,mo,da,12);
           if(cand.getTime()<addDays(baseDate,-7).getTime()) y++;
-          d=new Date(y,mo,da,12); matched=true;
+          d=new Date(y,mo,da,12); matched=true; explicitDate=true;
         }
       }
     }
@@ -791,7 +793,7 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
         if(new RegExp("\\b"+name+"\\b").test(low)){
           let delta=(target-d.getDay()+7)%7; if(delta===0)delta=7;
           if(forceNextWeek&&delta<7)delta+=7;
-          d=addDays(d,delta); matched=true; break;
+          d=addDays(d,delta); matched=true; explicitDate=true; break;
         }
       }
     }
@@ -833,7 +835,7 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
   let title=raw
     .replace(/\bholnaputan\b|\bholnapután\b|\bholnap\b|\bma\b/gi," ")
     .replace(/\b(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?\b/g," ")
-    .replace(/\b(jan\w*|feb\w*|mar\w*|már\w*|apr\w*|ápr\w*|maj\w*|máj\w*|jun\w*|jún\w*|jul\w*|júl\w*|aug\w*|szept\w*|okt\w*|nov\w*|dec\w*)\s+\d{1,2}\b/gi," ")
+    .replace(/\b(jan\w*|feb\w*|mar\w*|már\w*|apr\w*|ápr\w*|maj\w*|máj\w*|jun\w*|jún\w*|jul\w*|júl\w*|aug\w*|szept\w*|okt\w*|nov\w*|dec\w*)\s+\d{1,2}(?:[-.]?(?:an|en|án|én))?\b/gi," ")
     .replace(/\b(jovo|jövő)\b/gi," ")
     .replace(/\b(vasarnap(?:on)?|vasárnap(?:on)?|hetfo(?:n)?|hétfő(?:n)?|kedd(?:en)?|szerda(?:n|án)?|csutortok(?:on)?|csütörtök(?:ön)?|pentek(?:en)?|péntek(?:en)?|szombat(?:on)?)\b/gi," ")
     .replace(/\bdelben\b|\bdélben\b/gi," ")
@@ -854,10 +856,46 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
   const confidence=missing.length===0?"high":title&&missing.length===1?"medium":"low";
   return {
     title:title?title.charAt(0).toUpperCase()+title.slice(1):"",
-    date:iso(d),allDay,duration,location,calendar:suggestedCalendar,confidence,missing,
+    date:iso(d),allDay,duration,location,calendar:suggestedCalendar,confidence,missing,explicitDate,explicitTime:startMins!==undefined,
     start:startMins===undefined?undefined:hhmm(startMins),
     end:startMins===undefined?undefined:hhmm(startMins+duration)
   };
+}
+
+
+function cleanExtractedTitle(v:string){
+  return v
+    .replace(/^(tisztelt|kedves)\b[^.!?]*[.!?]?\s*/i,"")
+    .replace(/\b(kérjük|kerjuk|szeretném jelezni|szeretnem jelezni|tájékoztatjuk|tajekoztatjuk|értesítjük|ertesitjuk)\b[^.!?]*$/i,"")
+    .replace(/\b(lesz|kerül megrendezésre|kerul megrendezesre|kezdődik|kezdodik)\b.*$/i,"")
+    .replace(/^[,.;:\-\s]+|[,.;:\-\s]+$/g,"")
+    .trim();
+}
+function inferProseLocation(sentence:string){
+  const at=sentence.match(/@([^,@;\n]+)/);
+  if(at)return at[1].trim();
+  const m=sentence.match(/\b(?:a|az)\s+([A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű0-9 .-]{2,40}?)(?:ban|ben|nál|nél|on|en|ön)\b/i);
+  return m?.[1]?.trim()||"";
+}
+function extractEventCandidates(text:string,baseDate:Date){
+  const pieces=text.split(/\n+|(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean).slice(0,12);
+  const out:SmartParse[]=[];
+  for(const piece of pieces){
+    const p=parseSmartEvent(piece,baseDate);
+    const eventLike=p.explicitDate&&(p.explicitTime||p.allDay);
+    if(!eventLike)continue;
+    const loc=p.location||inferProseLocation(piece);
+    let title=cleanExtractedTitle(p.title);
+    title=title.replace(/\b(?:a|az)\s+[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű0-9 .-]{2,40}?(?:ban|ben|nál|nél|on|en|ön)\b/gi," ").replace(/\s+/g," ").trim();
+    if(!title)title="Esemény";
+    const candidate={...p,title:title.charAt(0).toUpperCase()+title.slice(1),location:loc};
+    if(!out.some(x=>x.date===candidate.date&&x.start===candidate.start&&normText(x.title)===normText(candidate.title)))out.push(candidate);
+  }
+  if(out.length===0){
+    const p=parseSmartEvent(text,baseDate);
+    if(p.explicitDate&&(p.explicitTime||p.allDay))out.push({...p,title:cleanExtractedTitle(p.title)||"Esemény",location:p.location||inferProseLocation(text)});
+  }
+  return out.slice(0,5);
 }
 
 function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onClose:()=>void;onCreate:(x:Partial<Ev>)=>Promise<void>;onDetails?:(x:Partial<Ev>)=>void}){
