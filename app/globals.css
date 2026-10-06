@@ -1696,3 +1696,16 @@
     background:#FFF6E2;border-color:#EABF68;color:#8B5900
   }
 }
+
+/* next-major: advanced calendar fields */
+.googleOnlyHint{
+  display:block;margin:-2px 0 4px;padding:8px 10px;border-radius:11px;
+  border:1px solid #33465D;background:#111A27;color:#8296AD;
+  font-size:9px;line-height:1.35
+}
+.advancedFields select:disabled{
+  opacity:.55;cursor:not-allowed
+}
+.appShell[data-theme="light"] .googleOnlyHint{
+  background:#F3F7FA;border-color:#CDD9E4;color:#657B90
+}
