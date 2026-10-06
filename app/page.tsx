@@ -783,9 +783,9 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
 
   let duration=60;
   const durM=low.match(/\b(\d{1,3})\s*(perc|p)\b/);
-  const hourDurM=low.match(/\b(\d+(?:[.,]\d+)?)\s*(?:ora|óra)\s*(?:hosszu|hosszú|idotartam|időtartam)?\b/);
+  const hourDurM=low.match(/\b(?:(\d+[.,]\d+)\s*(?:ora|óra)|(\d+)\s*(?:ora|óra)\s*(?:hosszu|hosszú|idotartam|időtartam))\b/);
   if(durM)duration=Math.max(15,Math.min(12*60,Number(durM[1])));
-  else if(hourDurM)duration=Math.max(15,Math.min(12*60,Math.round(Number(hourDurM[1].replace(",","."))*60)));
+  else if(hourDurM){const hv=hourDurM[1]||hourDurM[2];duration=Math.max(15,Math.min(12*60,Math.round(Number(hv.replace(",","."))*60)))}
   const explicitAllDay=/\begesz\s+nap(?:os)?\b|\begész\s+nap(?:os)?\b/.test(low);
 
   const locMatch=raw.match(/@([^,@;]+?)(?=\s+\d{1,2}(?::|\.|\s*-?\s*kor)|$|[,;])/i);
