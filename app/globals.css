@@ -1763,3 +1763,31 @@
   .appShell[data-theme="light"] .smartExamples span{color:#58718A}
   .appShell[data-theme="light"] .manualToggle{color:#2469AE}
 }
+
+/* next-major: pending sync states */
+@media(max-width:900px){
+  .syncState.pending{
+    border-color:#F59E0B66;background:#2B210E;color:#FBBF24;
+    box-shadow:0 0 14px #F59E0B20
+  }
+  .pendingBadge{
+    display:inline-flex!important;
+    width:max-content;
+    margin-top:5px;
+    padding:3px 6px;
+    border-radius:999px;
+    border:1px solid #22D3EE66;
+    background:#22D3EE14;
+    color:#67E8F9!important;
+    font-size:8px!important;
+    line-height:1;
+    font-weight:900;
+    letter-spacing:.08em
+  }
+  .appShell[data-theme="light"] .syncState.pending{
+    background:#FFF7E6;border-color:#F2C76F;color:#9A6200
+  }
+  .appShell[data-theme="light"] .pendingBadge{
+    background:#E9FAFD;border-color:#91DCE6;color:#0C7182!important
+  }
+}
