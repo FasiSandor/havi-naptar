@@ -4,7 +4,8 @@ import {useEffect,useMemo,useRef,useState} from "react";
 type CalKey="work"|"personal"|"family"|"sport";
 type RangeMode="1w"|"2w"|"4w"|"month"|"custom"|"list";
 type ThemeMode="dark"|"light"|"system";
-type Ev={id:string;googleId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string};
+type RepeatMode="none"|"daily"|"weekly"|"monthly"|"yearly"|"googleSeries";
+type Ev={id:string;googleId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string;repeat?:RepeatMode;reminder?:number};
 
 const calMeta:Record<CalKey,{label:string;color:string;icon:string}>={
   work:{label:"Suli / Munka",color:"#3B82F6",icon:"▦"},
@@ -77,7 +78,14 @@ function toGoogleEvent(x:any):Ev{
   const start=x.start?.dateTime||x.start?.date;
   const category=x.extendedProperties?.private?.haviCategory;
   const calendar=(category==="work"||category==="personal"||category==="family"||category==="sport")?category:"work";
-  return {id:"g-"+x.id,googleId:x.id,title:x.summary||"Esemény",date:(start||"").slice(0,10),start:x.start?.dateTime?.slice(11,16),end:x.end?.dateTime?.slice(11,16),allDay:!!x.start?.date,calendar,location:x.location||"",note:x.description||""}
+  const recurrence=(x.recurrence?.[0]||"") as string;
+  let repeat:RepeatMode=x.recurringEventId?"googleSeries":"none";
+  if(!x.recurringEventId&&recurrence.includes("FREQ=DAILY"))repeat="daily";
+  if(!x.recurringEventId&&recurrence.includes("FREQ=WEEKLY"))repeat="weekly";
+  if(!x.recurringEventId&&recurrence.includes("FREQ=MONTHLY"))repeat="monthly";
+  if(!x.recurringEventId&&recurrence.includes("FREQ=YEARLY"))repeat="yearly";
+  const reminder=Number(x.reminders?.overrides?.[0]?.minutes||0);
+  return {id:"g-"+x.id,googleId:x.id,title:x.summary||"Esemény",date:(start||"").slice(0,10),start:x.start?.dateTime?.slice(11,16),end:x.end?.dateTime?.slice(11,16),allDay:!!x.start?.date,calendar,location:x.location||"",note:x.description||"",repeat,reminder}
 }
 
 function mergeGoogleRange(prev:Ev[],incoming:Ev[],from:string,toExclusive:string){
@@ -251,7 +259,9 @@ export default function Home(){
     if(!(x.title||"").trim()){setNotice("Adj nevet az eseménynek.");return false}
     if(!x.date){setNotice("Válassz dátumot.");return false}
     if(!x.allDay&&x.start&&x.end&&x.end<=x.start){setNotice("A befejezés legyen később a kezdésnél.");return false}
-    const base:Ev={id:x.id||crypto.randomUUID(),googleId:x.googleId,title:(x.title||"Esemény").trim(),date:x.date,start:x.start||"09:00",end:x.end||"10:00",allDay:!!x.allDay,calendar:(x.calendar||"work") as CalKey,location:x.location||"",note:x.note||""};
+    if(!connected&&x.repeat&&x.repeat!=="none"&&x.repeat!=="googleSeries"){setNotice("Az ismétlődő eseményhez Google Naptár-kapcsolat kell.");return false}
+    if(!connected&&Number(x.reminder||0)>0){setNotice("Az emlékeztetőhöz Google Naptár-kapcsolat kell.");return false}
+    const base:Ev={id:x.id||crypto.randomUUID(),googleId:x.googleId,title:(x.title||"Esemény").trim(),date:x.date,start:x.start||"09:00",end:x.end||"10:00",allDay:!!x.allDay,calendar:(x.calendar||"work") as CalKey,location:x.location||"",note:x.note||"",repeat:(x.repeat||"none") as RepeatMode,reminder:Number(x.reminder||0)};
     const saved=await persist(base);
     if(!saved)return false;
     setEditor(null);
@@ -422,7 +432,7 @@ export default function Home(){
       </div>
     </Modal>}
 
-    {editor&&<Modal title={editor.id?"Esemény szerkesztése":"Esemény hozzáadása"} onClose={()=>setEditor(null)}><EventForm value={editor} onSave={save} onCancel={()=>setEditor(null)}/></Modal>}
+    {editor&&<Modal title={editor.id?"Esemény szerkesztése":"Esemény hozzáadása"} onClose={()=>setEditor(null)}><EventForm value={editor} connected={connected} onSave={save} onCancel={()=>setEditor(null)}/></Modal>}
 
     {settings&&<Modal title="Beállítások" onClose={()=>setSettings(false)}>
       <div className="settingsBox">
@@ -780,13 +790,23 @@ function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:
   const close=()=>{if(closing)return;setClosing(true);setTimeout(onClose,180)};
   return <div className={"backdrop "+(closing?"closing":"")} onMouseDown={e=>{if(e.currentTarget===e.target)close()}}><div className="modal"><div className="modalHead"><b>{title}</b><button onClick={close}>×</button></div>{children}</div></div>
 }
-function EventForm({value,onSave,onCancel}:{value:Partial<Ev>;onSave:(x:Partial<Ev>)=>void;onCancel:()=>void}){
+function EventForm({value,connected,onSave,onCancel}:{value:Partial<Ev>;connected:boolean;onSave:(x:Partial<Ev>)=>void;onCancel:()=>void}){
   const [x,setX]=useState(value);
   return <div className="form">
     <label><span>Cím</span><input value={x.title||""} onChange={e=>setX({...x,title:e.target.value})} placeholder="Esemény neve"/></label>
     <div className="two"><label><span>Dátum</span><input type="date" value={x.date||""} onChange={e=>setX({...x,date:e.target.value})}/></label><label className="toggleLabel"><span>Egész napos</span><input type="checkbox" checked={!!x.allDay} onChange={e=>setX({...x,allDay:e.target.checked})}/></label></div>
     {!x.allDay&&<div className="two"><label><span>Kezdés</span><input type="time" step="900" value={x.start||""} onChange={e=>setX({...x,start:e.target.value})}/></label><label><span>Vége</span><input type="time" step="900" value={x.end||""} onChange={e=>setX({...x,end:e.target.value})}/></label></div>}
     <label><span>Naptár</span><select value={x.calendar||"work"} onChange={e=>setX({...x,calendar:e.target.value as CalKey})}>{(Object.keys(calMeta) as CalKey[]).map(k=><option key={k} value={k}>{calMeta[k].icon} {calMeta[k].label}</option>)}</select></label>
+    <div className="two advancedFields">
+      <label><span>Ismétlődés</span><select disabled={!connected||x.repeat==="googleSeries"} value={x.repeat||"none"} onChange={e=>setX({...x,repeat:e.target.value as RepeatMode})}>
+        {x.repeat==="googleSeries"&&<option value="googleSeries">Google-sorozat</option>}
+        <option value="none">Nincs</option><option value="daily">Naponta</option><option value="weekly">Hetente</option><option value="monthly">Havonta</option><option value="yearly">Évente</option>
+      </select></label>
+      <label><span>Emlékeztető</span><select disabled={!connected} value={Number(x.reminder||0)} onChange={e=>setX({...x,reminder:Number(e.target.value)})}>
+        <option value={0}>Nincs</option><option value={5}>5 perccel előtte</option><option value={10}>10 perccel előtte</option><option value={15}>15 perccel előtte</option><option value={30}>30 perccel előtte</option><option value={60}>1 órával előtte</option><option value={1440}>1 nappal előtte</option>
+      </select></label>
+    </div>
+    {!connected&&<small className="googleOnlyHint">Az ismétlődés és az emlékeztető Google Naptár-kapcsolattal érhető el.</small>}
     <label><span>Helyszín</span><input value={x.location||""} onChange={e=>setX({...x,location:e.target.value})} placeholder="Opcionális"/></label>
     <label><span>Megjegyzés</span><textarea value={x.note||""} onChange={e=>setX({...x,note:e.target.value})} placeholder="Opcionális"/></label>
     <div className="modalActions"><button className="secondary" onClick={onCancel}>Mégse</button><button className="primary" onClick={()=>onSave(x)}>Mentés</button></div>
