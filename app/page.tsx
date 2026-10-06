@@ -15,6 +15,20 @@ const calMeta:Record<CalKey,{label:string;color:string;icon:string}>={
 const dayNames=["Vasárnap","Hétfő","Kedd","Szerda","Csütörtök","Péntek","Szombat"];
 const shortDays=["V","H","K","Sze","Cs","P","Szo"];
 
+const holidayMap:Record<string,string>={
+  "2026-10-23":"Nemzeti ünnep · 1956-os forradalom",
+  "2026-11-01":"Mindenszentek",
+  "2026-12-25":"Karácsony",
+  "2026-12-26":"Karácsony másnapja",
+  "2027-01-01":"Újév",
+  "2027-03-15":"Nemzeti ünnep · 1848–49-es forradalom",
+  "2027-03-26":"Nagypéntek",
+  "2027-03-29":"Húsvéthétfő",
+  "2027-05-01":"A munka ünnepe",
+  "2027-05-17":"Pünkösdhétfő",
+  "2027-08-20":"Államalapítás ünnepe"
+};
+
 const schoolPlanEvents:Ev[]=[
   {id:"workplan-2026-10-06",title:"Aradi vértanúk megemlékezése",date:"2026-10-06",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
   {id:"workplan-2026-10-15",title:"Fecskeavató",date:"2026-10-15",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
@@ -172,7 +186,7 @@ export default function Home(){
     if(!hydrated||!monthFlow)return;
     const schoolStartYear=anchor.getMonth()>=8?anchor.getFullYear():anchor.getFullYear()-1;
     const from=new Date(schoolStartYear,8,1,0,0,0,0);
-    const to=new Date(schoolStartYear+1,6,1,0,0,0,0);
+    const to=new Date(schoolStartYear+1,8,1,0,0,0,0);
     (async()=>{
       try{
         const r=await fetch(`/api/google/events?from=${from.toISOString()}&to=${to.toISOString()}`);
@@ -438,13 +452,15 @@ function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,
         const current=d.getMonth()===anchor.getMonth();
         const es=events.filter(e=>e.date===iso(d));
         const today=iso(d)===iso(new Date());
+        const holiday=holidayMap[iso(d)];
         return <button key={iso(d)}
-          className={(current?"":"outside ")+(today?"mockToday ":"")}
+          className={(current?"":"outside ")+(today?"mockToday ":"")+(holiday?"holidayDay ":"")}
           onPointerDown={()=>pressStart(d)}
           onPointerUp={()=>pressEnd(d)}
           onPointerCancel={()=>{if(longTimer.current)window.clearTimeout(longTimer.current)}}
           onPointerLeave={()=>{if(longTimer.current)window.clearTimeout(longTimer.current)}}>
           <b>{d.getDate()}</b>
+          {holiday&&<em className="holidayMark">✦</em>}
           <div className="eventMarks">
             {es.slice(0,4).map((e,i)=><i key={e.id} className={es.length>2?"eventBar":"eventDot"} style={{"--event":calMeta[e.calendar].color,"--i":i} as React.CSSProperties}/>)}
           </div>
@@ -463,6 +479,7 @@ function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,
 function MobileDayCards({date,events,onClose,onEdit,onAdd}:{date:string;events:Ev[];onClose:()=>void;onEdit:(e:Ev)=>void;onAdd:()=>void}){
   const d=parseDate(date);
   const sorted=[...events].sort((a,b)=>(a.start||"").localeCompare(b.start||""));
+  const holiday=holidayMap[date];
   const [closing,setClosing]=useState(false);
   const close=()=>{if(closing)return;setClosing(true);setTimeout(onClose,190)};
   return <div className={"mobileDayOverlay "+(closing?"closing":"")} onMouseDown={e=>{if(e.currentTarget===e.target)close()}}>
@@ -472,6 +489,7 @@ function MobileDayCards({date,events,onClose,onEdit,onAdd}:{date:string;events:E
         <div><small>{d.toLocaleDateString("hu-HU",{weekday:"long"})}</small><h2>{d.toLocaleDateString("hu-HU",{year:"numeric",month:"long",day:"numeric"})}</h2></div>
         <button onClick={close}>×</button>
       </header>
+      {holiday&&<div className="holidayBanner"><span>✦</span><div><b>Ünnepnap</b><small>{holiday}</small></div></div>}
       <div className="mobileDayList">
         {sorted.length?sorted.map(e=><button key={e.id} className="mobileEventCard" style={{"--event":calMeta[e.calendar].color} as React.CSSProperties} onClick={()=>onEdit(e)}>
           <div className="mobileEventTime"><b>{e.allDay?"Egész nap":e.start}</b><span>{e.allDay?"":e.end||""}</span></div>
@@ -486,7 +504,7 @@ function MobileDayCards({date,events,onClose,onEdit,onAdd}:{date:string;events:E
 
 function ContinuousMonthFlow({anchor,events,onClose,onDay,onToday,onQuickAdd}:{anchor:Date;events:Ev[];onClose:()=>void;onDay:(d:Date)=>void;onToday:()=>void;onQuickAdd:()=>void}){
   const schoolStartYear=anchor.getMonth()>=8?anchor.getFullYear():anchor.getFullYear()-1;
-  const months=Array.from({length:10},(_,i)=>new Date(schoolStartYear,8+i,1,12));
+  const months=Array.from({length:12},(_,i)=>new Date(schoolStartYear,8+i,1,12));
   const centerRef=useRef<HTMLDivElement>(null);
   useEffect(()=>{setTimeout(()=>centerRef.current?.scrollIntoView({block:"start",behavior:"auto"}),30)},[schoolStartYear]);
   return <div className="monthFlow">
@@ -508,8 +526,10 @@ function ContinuousMonthFlow({anchor,events,onClose,onDay,onToday,onQuickAdd}:{a
               const current=d.getMonth()===m.getMonth();
               const es=events.filter(e=>e.date===iso(d));
               const today=iso(d)===iso(new Date());
-              return <button key={iso(d)} className={(current?"":"outside ")+(today?"flowToday ":"")} onClick={()=>onDay(d)}>
+              const holiday=holidayMap[iso(d)];
+              return <button key={iso(d)} className={(current?"":"outside ")+(today?"flowToday ":"")+(holiday?"flowHoliday ":"")} onClick={()=>onDay(d)}>
                 <b>{d.getDate()}</b>
+                {holiday&&<em>✦</em>}
                 <div>{es.slice(0,3).map(e=><i key={e.id} style={{"--event":calMeta[e.calendar].color} as React.CSSProperties}/>)}</div>
               </button>
             })}
