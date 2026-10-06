@@ -454,6 +454,26 @@ export default function Home(){
     setTimeout(()=>setNotice(""),1500);
   }
 
+  function exportBackup(){
+    const payload={
+      format:"havi-naptar-backup",
+      version:1,
+      exportedAt:new Date().toISOString(),
+      events:dedupeEvents(events.filter(e=>!e.id.startsWith("workplan-"))),
+      syncQueue,
+      settings:{themeMode,showWorkPlan,lastSync}
+    };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download="havi-naptar-backup-"+iso(new Date())+".json";
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    setNotice("Biztonsági mentés elkészült.");
+    setTimeout(()=>setNotice(""),1800);
+  }
+
   function shift(n:number){
     if(mode==="custom"){
       const span=count;
@@ -624,6 +644,10 @@ export default function Home(){
           <button disabled={!connected} onClick={()=>flushSyncQueue()}>{connected?"Újrapróbálás":"Offline"}</button>
         </div>}
         <div className={"status "+(connected?"ok":"")}><i/><div><b>{connected?"Google Naptár kapcsolódva":"Google Naptár nincs kapcsolva"}</b><span>{connected?"Az iPhone-on használt Google Naptár eseményei megjelennek itt.":"Kapcsold össze egyszer a kétirányú szinkronhoz."}{lastSync?<><br/>Utolsó sikeres szinkron: {new Date(lastSync).toLocaleString("hu-HU")}</>:""}</span></div></div>
+        <div className="backupSetting">
+          <div className="settingsTitle"><b>Helyi biztonsági mentés</b><span>Az események és a függő szinkronműveletek JSON-mentése. Semmit nem módosít a naptárban.</span></div>
+          <button onClick={exportBackup}>↓ Mentés exportálása</button>
+        </div>
         <button className="primary wide" onClick={()=>location.href="/api/google/connect"}>{connected?"Újracsatlakozás":"Google Naptár csatlakoztatása"}</button>
       </div>
     </Modal>}
