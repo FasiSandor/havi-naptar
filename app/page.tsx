@@ -99,14 +99,14 @@ export default function Home(){
   const [quickAdd,setQuickAdd]=useState(false);
   const [rotateHint,setRotateHint]=useState(false);
   const [monthFlow,setMonthFlow]=useState(false);
+  const [showWorkPlan,setShowWorkPlan]=useState(true);
 
   useEffect(()=>{
     try{
       const stored:Ev[]=JSON.parse(localStorage.getItem("havi-events")||"[]");
-      const seeded=localStorage.getItem("havi-schoolplan-2026-27")==="1";
-      const merged=seeded?stored:[...stored,...schoolPlanEvents.filter(s=>!stored.some(e=>e.id===s.id))];
-      setEvents(merged);
-      if(!seeded)localStorage.setItem("havi-schoolplan-2026-27","1");
+      setEvents(stored.filter(e=>!e.id.startsWith("workplan-")));
+      setShowWorkPlan(localStorage.getItem("havi-workplan-visible")!=="0");
+      localStorage.removeItem("havi-schoolplan-2026-27");
       const savedTheme=localStorage.getItem("havi-theme");
       if(savedTheme==="dark"||savedTheme==="light"||savedTheme==="system") setThemeMode(savedTheme);
       const status=new URLSearchParams(window.location.search).get("google");
@@ -117,7 +117,8 @@ export default function Home(){
     }catch{}
     finally{setHydrated(true)}
   },[]);
-  useEffect(()=>{if(hydrated)localStorage.setItem("havi-events",JSON.stringify(events.filter(e=>!e.googleId)))},[events,hydrated]);
+  useEffect(()=>{if(hydrated)localStorage.setItem("havi-events",JSON.stringify(events.filter(e=>!e.googleId&&!e.id.startsWith("workplan-"))))},[events,hydrated]);
+  useEffect(()=>{if(hydrated)localStorage.setItem("havi-workplan-visible",showWorkPlan?"1":"0")},[showWorkPlan,hydrated]);
   useEffect(()=>{
     if(!hydrated)return;
     localStorage.setItem("havi-theme",themeMode);
@@ -159,7 +160,8 @@ export default function Home(){
 
   const days=useMemo(()=>Array.from({length:count},(_,i)=>addDays(start,i)),[start,count]);
   const end=days[days.length-1];
-  const shown=events.filter(e=>enabled[e.calendar]&&days.some(d=>iso(d)===e.date)).sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
+  const displayEvents=useMemo(()=>[...events,...(showWorkPlan?schoolPlanEvents:[])],[events,showWorkPlan]);
+  const shown=displayEvents.filter(e=>enabled[e.calendar]&&days.some(d=>iso(d)===e.date)).sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
 
   async function sync(){
     setSyncing(true);
@@ -314,7 +316,7 @@ export default function Home(){
 
     <MobilePortrait
       anchor={anchor}
-      events={events.filter(e=>enabled[e.calendar])}
+      events={displayEvents.filter(e=>enabled[e.calendar])}
       connected={connected}
       syncing={syncing}
       onSync={()=>sync()}
@@ -323,11 +325,12 @@ export default function Home(){
       onQuickAdd={()=>setQuickAdd(true)}
       onToday={()=>setAnchor(new Date())}
       onPrevMonth={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()-1);setAnchor(d)}}
+      onNextMonth={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()+1);setAnchor(d)}}
       onSettings={()=>setSettings(true)}
     />
     {monthFlow&&<ContinuousMonthFlow
       anchor={anchor}
-      events={events.filter(e=>enabled[e.calendar])}
+      events={displayEvents.filter(e=>enabled[e.calendar])}
       onClose={()=>setMonthFlow(false)}
       onDay={d=>{setAnchor(d);setDayOpen(iso(d));setMonthFlow(false)}}
       onToday={()=>setAnchor(new Date())}
@@ -335,7 +338,7 @@ export default function Home(){
     />}
     <MobileLandscapeMonth
       anchor={anchor}
-      events={events.filter(e=>enabled[e.calendar])}
+      events={displayEvents.filter(e=>enabled[e.calendar])}
       onPrev={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()-1);setAnchor(d)}}
       onNext={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()+1);setAnchor(d)}}
       onToday={()=>setAnchor(new Date())}
@@ -395,8 +398,8 @@ export default function Home(){
     </div>}
     {notice&&<div className="toast">{notice}</div>}
 
-    {dayOpen&&<MobileDayCards date={dayOpen} events={events.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>setEditor(e)} onAdd={()=>setQuickAdd(true)}/>}
-    {dayOpen&&<DayZoom date={dayOpen} events={events.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>setEditor(e)} onAdd={()=>setEditor({date:dayOpen,calendar:"work",start:"09:00",end:"10:00"})} onMove={moveEvent} onDelete={remove}/>} 
+    {dayOpen&&<MobileDayCards date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>{if(!e.id.startsWith("workplan-"))setEditor(e)}} onAdd={()=>setQuickAdd(true)}/>}
+    {dayOpen&&<DayZoom date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>setEditor(e)} onAdd={()=>setEditor({date:dayOpen,calendar:"work",start:"09:00",end:"10:00"})} onMove={moveEvent} onDelete={remove}/>} 
 
     {editor&&<Modal title={editor.id?"Esemény szerkesztése":"Esemény hozzáadása"} onClose={()=>setEditor(null)}><EventForm value={editor} onSave={save} onCancel={()=>setEditor(null)}/></Modal>}
 
@@ -411,6 +414,10 @@ export default function Home(){
           </div>
           <small className="themeHint">Aktív: {resolvedTheme==="dark"?"sötét":"világos"} mód</small>
         </div>
+        <div className="workPlanSetting">
+          <div className="settingsTitle"><b>Iskolai munkaterv</b><span>A 2026/2027-es Teleki munkaterv fontos dátumai külön rétegként.</span></div>
+          <button className={"layerToggle "+(showWorkPlan?"on":"")} onClick={()=>setShowWorkPlan(v=>!v)}><i/><span>{showWorkPlan?"Látható":"Elrejtve"}</span></button>
+        </div>
         <div className={"status "+(connected?"ok":"")}><i/><div><b>{connected?"Google Naptár kapcsolódva":"Google Naptár nincs kapcsolva"}</b><span>{connected?"Az iPhone-on használt Google Naptár eseményei megjelennek itt.":"Kapcsold össze egyszer a kétirányú szinkronhoz."}</span></div></div>
         <button className="primary wide" onClick={()=>location.href="/api/google/connect"}>{connected?"Újracsatlakozás":"Google Naptár csatlakoztatása"}</button>
       </div>
@@ -419,7 +426,8 @@ export default function Home(){
 }
 
 
-function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,onQuickAdd,onToday,onPrevMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onToday:()=>void;onPrevMonth:()=>void;onSettings:()=>void}){
+function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,onQuickAdd,onToday,onPrevMonth,onNextMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onToday:()=>void;onPrevMonth:()=>void;onNextMonth:()=>void;onSettings:()=>void}){
+  const swipeX=useRef<number|null>(null);
   const first=monday(new Date(anchor.getFullYear(),anchor.getMonth(),1,12));
   const days=Array.from({length:42},(_,i)=>addDays(first,i));
   const longTimer=useRef<number|undefined>(undefined);
@@ -434,9 +442,11 @@ function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,
     if(!longFired.current)onDay(d);
     setTimeout(()=>{longFired.current=false},60);
   }
-  return <section className="mobilePortraitCalendar">
+  return <section className="mobilePortraitCalendar"
+    onPointerDown={e=>{swipeX.current=e.clientX}}
+    onPointerUp={e=>{if(swipeX.current===null)return;const dx=e.clientX-swipeX.current;swipeX.current=null;if(Math.abs(dx)>70)dx<0?onNextMonth():onPrevMonth()}}> 
     <header className="mockHero">
-      <button className="yearBack" onClick={onPrevMonth}>‹ <span>{anchor.getFullYear()}.</span></button>
+      <div className="monthNavCapsule"><button onClick={onPrevMonth}>‹</button><span>{anchor.getFullYear()}.</span><button onClick={onNextMonth}>›</button></div>
       <div className="mockActions">
         <button className={"syncDot "+(connected?"online":"")} onClick={onSync}>{syncing?"↻":connected?"●":"○"}</button>
         <button onClick={onSettings}>⚙</button>
@@ -494,7 +504,7 @@ function MobileDayCards({date,events,onClose,onEdit,onAdd}:{date:string;events:E
         {sorted.length?sorted.map(e=><button key={e.id} className="mobileEventCard" style={{"--event":calMeta[e.calendar].color} as React.CSSProperties} onClick={()=>onEdit(e)}>
           <div className="mobileEventTime"><b>{e.allDay?"Egész nap":e.start}</b><span>{e.allDay?"":e.end||""}</span></div>
           <div className="mobileEventIcon">{calMeta[e.calendar].icon}</div>
-          <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span>{e.note==="Iskolai munkaterv 2026/2027"&&<small className="sourceBadge">MUNKATERV</small>}</div>
+          <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span>{e.note==="Iskolai munkaterv 2026/2027"&&<small className="sourceBadge">MUNKATERV · CSAK OLVASHATÓ</small>}</div>
         </button>):<div className="mobileNoEvents"><i>✦</i><b>Szabad nap</b><span>Nincs bejegyzett esemény.</span></div>}
       </div>
       <button className="mobilePanelAdd" onClick={onAdd}>＋ Esemény hozzáadása</button>
