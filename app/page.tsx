@@ -720,7 +720,7 @@ function WheelScroller({label,items,value,onChange}:{label:string;items:{value:n
   </div>
 }
 
-type SmartParse={title:string;date:string;start?:string;end?:string;allDay:boolean;duration:number;confidence:"high"|"medium"|"low";missing:string[]};
+type SmartParse={title:string;date:string;start?:string;end?:string;allDay:boolean;duration:number;location?:string;calendar:CalKey;confidence:"high"|"medium"|"low";missing:string[]};
 
 function parseSmartEvent(input:string,baseDate:Date):SmartParse{
   let raw=input.trim();
@@ -778,6 +778,13 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
   const durM=low.match(/\b(\d{1,3})\s*(perc|p)\b/);
   if(durM)duration=Math.max(15,Math.min(12*60,Number(durM[1])));
 
+  const locMatch=raw.match(/@([^,@;]+?)(?=\s+\d{1,2}(?::|\.|\s*-?\s*kor)|$|[,;])/i);
+  const location=locMatch?.[1]?.trim()||"";
+  let suggestedCalendar:CalKey="personal";
+  if(/#?(suli|iskola|munka)\b/i.test(raw))suggestedCalendar="work";
+  else if(/#?(csalad|család)\b/i.test(raw))suggestedCalendar="family";
+  else if(/#?(sport|edzes|edzés)\b/i.test(raw))suggestedCalendar="sport";
+
   let title=raw
     .replace(/\bholnaputan\b|\bholnapután\b|\bholnap\b|\bma\b/gi," ")
     .replace(/\b(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?\b/g," ")
@@ -785,6 +792,8 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
     .replace(/\b(vasarnap|vasárnap|hetfo|hétfő|kedd|szerda|csutortok|csütörtök|pentek|péntek|szombat)\b/gi," ")
     .replace(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)(?:\s*-?\s*kor)?|([01]?\d|2[0-3])\s*-?\s*(?:ora|óra|kor))\b/gi," ")
     .replace(/\b\d{1,3}\s*(?:perc|p)\b/gi," ")
+    .replace(/@([^,@;]+?)(?=\s+\d{1,2}(?::|\.|\s*-?\s*kor)|$|[,;])/gi," ")
+    .replace(/#?(suli|iskola|munka|csalad|család|sport|edzes|edzés)\b/gi," ")
     .replace(/\s+/g," ").trim()
     .replace(/^[,.;:\-\s]+|[,.;:\-\s]+$/g,"");
 
@@ -794,7 +803,7 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
   const confidence=missing.length===0?"high":title&&missing.length===1?"medium":"low";
   return {
     title:title?title.charAt(0).toUpperCase()+title.slice(1):"",
-    date:iso(d),allDay,duration,confidence,missing,
+    date:iso(d),allDay,duration,location,calendar:suggestedCalendar,confidence,missing,
     start:startMins===undefined?undefined:hhmm(startMins),
     end:startMins===undefined?undefined:hhmm(startMins+duration)
   };
@@ -810,6 +819,7 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
   const [time,setTime]=useState(9*60);
   const [allDay,setAllDay]=useState(false);
   const [calendar,setCalendar]=useState<CalKey>("personal");
+  const [calendarTouched,setCalendarTouched]=useState(false);
   const parsed=useMemo(()=>parseSmartEvent(smartText,baseDate),[smartText,baseDate]);
   const maxDay=new Date(year,month+1,0).getDate();
   const safeDay=Math.min(day,maxDay);
@@ -817,7 +827,8 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
   const monthItems=Array.from({length:14},(_,i)=>{const d=new Date(baseDate.getFullYear(),baseDate.getMonth()-2+i,1,12);return {value:d.getFullYear()*12+d.getMonth(),label:d.toLocaleDateString("hu-HU",{month:"short"})+" "+String(d.getFullYear()).slice(2)}});
   const monthValue=year*12+month;
   const chooseMonth=(v:number)=>{const y=Math.floor(v/12),m=v%12;setYear(y);setMonth(m);setDay(d=>Math.min(d,new Date(y,m+1,0).getDate()))};
-  const smartPayload:Partial<Ev>={title:parsed.title,date:parsed.date,allDay:parsed.allDay,start:parsed.start,end:parsed.end,calendar};
+  const smartCalendar=calendarTouched?calendar:parsed.calendar;
+  const smartPayload:Partial<Ev>={title:parsed.title,date:parsed.date,allDay:parsed.allDay,start:parsed.start,end:parsed.end,calendar:smartCalendar,location:parsed.location};
   const manualPayload:Partial<Ev>={title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar};
   const payload=manual?manualPayload:smartPayload;
   const canSmartSave=!manual&&!!parsed.title&&parsed.confidence!=="low";
@@ -831,7 +842,7 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
         <div className={"smartPreview "+parsed.confidence}>
           <div className="smartPreviewHead"><span>{parsed.confidence==="high"?"Értettem ✓":parsed.confidence==="medium"?"Majdnem kész":"Írd le az eseményt"}</span><small>{parsed.date}</small></div>
           {parsed.title?<b>{parsed.title}</b>:<b>Mi legyen az esemény?</b>}
-          <p>{parsed.allDay?"Egész nap":parsed.start+" – "+parsed.end}{parsed.duration!==60&&!parsed.allDay?" · "+parsed.duration+" perc":""}</p>
+          <p>{parsed.allDay?"Egész nap":parsed.start+" – "+parsed.end}{parsed.duration!==60&&!parsed.allDay?" · "+parsed.duration+" perc":""}{parsed.location?" · @"+parsed.location:""}</p>
           {parsed.missing.length>0&&<em>Hiányzik: {parsed.missing.join(", ")}</em>}
         </div>
         <div className="smartExamples">Példák: <span>holnap értekezlet 14.30</span> · <span>péntek fogorvos 8-kor 30 perc</span></div>
@@ -847,7 +858,7 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
         <div className="quickOptions"><button type="button" className={allDay?"on":""} onClick={()=>setAllDay(v=>!v)}><i/> Egész napos</button><span>{date}</span></div>
       </>}
 
-      <div className="quickCategories">{(Object.keys(calMeta) as CalKey[]).map(k=><button key={k} className={calendar===k?"active":""} style={{"--event":calMeta[k].color} as React.CSSProperties} onClick={()=>setCalendar(k)}><span>{calMeta[k].icon}</span>{calMeta[k].label}</button>)}</div>
+      <div className="quickCategories">{(Object.keys(calMeta) as CalKey[]).map(k=><button key={k} className={(manual?calendar:(calendarTouched?calendar:parsed.calendar))===k?"active":""} style={{"--event":calMeta[k].color} as React.CSSProperties} onClick={()=>{setCalendar(k);setCalendarTouched(true)}}><span>{calMeta[k].icon}</span>{calMeta[k].label}</button>)}</div>
 
       <button className="manualToggle" onClick={()=>setManual(v=>!v)}>{manual?"← Intelligens bevitel":"Dátum/idő kézi beállítása"}</button>
 
