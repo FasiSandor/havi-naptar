@@ -80,6 +80,14 @@ function toGoogleEvent(x:any):Ev{
   return {id:"g-"+x.id,googleId:x.id,title:x.summary||"Esemény",date:(start||"").slice(0,10),start:x.start?.dateTime?.slice(11,16),end:x.end?.dateTime?.slice(11,16),allDay:!!x.start?.date,calendar,location:x.location||"",note:x.description||""}
 }
 
+function mergeGoogleRange(prev:Ev[],incoming:Ev[],from:string,toExclusive:string){
+  const local=prev.filter(e=>!e.googleId);
+  const keepGoogle=prev.filter(e=>e.googleId&&(e.date<from||e.date>=toExclusive));
+  const byId=new Map<string,Ev>();
+  for(const e of [...keepGoogle,...incoming]) if(e.googleId) byId.set(e.googleId,e);
+  return [...local,...byId.values()];
+}
+
 export default function Home(){
   const [anchor,setAnchor]=useState(()=>new Date());
   const [mode,setMode]=useState<RangeMode>("4w");
@@ -171,7 +179,8 @@ export default function Home(){
       const j=await r.json();
       if(!j.connected){setConnected(false);return}
       setConnected(true);
-      setEvents(prev=>[...prev.filter(e=>!e.googleId),...(j.items||[]).map(toGoogleEvent)]);
+      const incoming=(j.items||[]).map(toGoogleEvent);
+      setEvents(prev=>mergeGoogleRange(prev,incoming,iso(start),iso(addDays(end,1))));
     }catch{setConnected(false)}
     finally{setSyncing(false)}
   }
@@ -195,10 +204,8 @@ export default function Home(){
         if(!r.ok)return;
         const j=await r.json();
         if(!j.connected)return;
-        setEvents(prev=>{
-          const local=prev.filter(e=>!e.googleId);
-          return [...local,...(j.items||[]).map(toGoogleEvent)];
-        });
+        const incoming=(j.items||[]).map(toGoogleEvent);
+        setEvents(prev=>mergeGoogleRange(prev,incoming,iso(from),iso(to)));
       }catch{}
     })();
   },[monthFlow,hydrated,anchor.getFullYear(),anchor.getMonth()]);
