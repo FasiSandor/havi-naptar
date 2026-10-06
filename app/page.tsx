@@ -15,6 +15,40 @@ const calMeta:Record<CalKey,{label:string;color:string;icon:string}>={
 const dayNames=["Vasárnap","Hétfő","Kedd","Szerda","Csütörtök","Péntek","Szombat"];
 const shortDays=["V","H","K","Sze","Cs","P","Szo"];
 
+const schoolPlanEvents:Ev[]=[
+  {id:"workplan-2026-10-06",title:"Aradi vértanúk megemlékezése",date:"2026-10-06",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2026-10-15",title:"Fecskeavató",date:"2026-10-15",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2026-10-22",title:"Október 23-i iskolai megemlékezés",date:"2026-10-22",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2026-10-23",title:"Őszi szünet kezdete",date:"2026-10-23",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2026-11-01",title:"Őszi szünet vége",date:"2026-11-01",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2026-11-19",title:"Nyílt nap I.",date:"2026-11-19",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2026-11-20",title:"Nyílt nap II.",date:"2026-11-20",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2026-11-27",title:"Fogadó óra I.",date:"2026-11-27",start:"15:00",end:"17:00",calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2026-12-12",title:"Szalagavató · tanítási nap",date:"2026-12-12",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2026-12-16",title:"Karácsonyi vásár",date:"2026-12-16",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2026-12-18",title:"Karácsonyi ünnepség",date:"2026-12-18",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2026-12-19",title:"Téli szünet kezdete",date:"2026-12-19",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-01-03",title:"Téli szünet vége",date:"2027-01-03",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-01-14",title:"Pályaorientációs nap",date:"2027-01-14",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-01-22",title:"I. félév utolsó napja",date:"2027-01-22",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-01-29",title:"Félévi eredmények közlése",date:"2027-01-29",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-02-05",title:"Szülői értekezlet II.",date:"2027-02-05",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-03-12",title:"Március 15-i ünnepség",date:"2027-03-12",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-03-19",title:"Fogadó óra II.",date:"2027-03-19",start:"15:00",end:"17:00",calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-03-25",title:"Tavaszi szünet kezdete",date:"2027-03-25",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-04-04",title:"Tavaszi szünet vége",date:"2027-04-04",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-04-07",title:"Teleki nap",date:"2027-04-07",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-04-16",title:"Holokauszt áldozatainak megemlékezése",date:"2027-04-16",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-04-27",title:"Szerenád",date:"2027-04-27",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-04-30",title:"Ballagás",date:"2027-04-30",start:"10:00",end:"12:00",calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-05-03",title:"Érettségi szünet",date:"2027-05-03",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-05-04",title:"Érettségi szünet",date:"2027-05-04",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-06-04",title:"Nemzeti Összetartozás Napja",date:"2027-06-04",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-06-10",title:"Év végi osztályozó értekezlet",date:"2027-06-10",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-06-15",title:"Tanévzáró · utolsó tanítási nap",date:"2027-06-15",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"},
+  {id:"workplan-2027-06-28",title:"Év végi értékelő értekezlet",date:"2027-06-28",allDay:true,calendar:"work",note:"Iskolai munkaterv 2026/2027"}
+];
+
 function iso(d:Date){const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,"0");const day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`}
 function parseDate(s:string){const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d,12)}
 function monday(d:Date){const x=new Date(d);const day=(x.getDay()+6)%7;x.setDate(x.getDate()-day);x.setHours(12,0,0,0);return x}
@@ -54,7 +88,11 @@ export default function Home(){
 
   useEffect(()=>{
     try{
-      setEvents(JSON.parse(localStorage.getItem("havi-events")||"[]"));
+      const stored:Ev[]=JSON.parse(localStorage.getItem("havi-events")||"[]");
+      const seeded=localStorage.getItem("havi-schoolplan-2026-27")==="1";
+      const merged=seeded?stored:[...stored,...schoolPlanEvents.filter(s=>!stored.some(e=>e.id===s.id))];
+      setEvents(merged);
+      if(!seeded)localStorage.setItem("havi-schoolplan-2026-27","1");
       const savedTheme=localStorage.getItem("havi-theme");
       if(savedTheme==="dark"||savedTheme==="light"||savedTheme==="system") setThemeMode(savedTheme);
       const status=new URLSearchParams(window.location.search).get("google");
@@ -85,7 +123,7 @@ export default function Home(){
     const portrait=window.matchMedia("(orientation: portrait)");
     const apply=()=>{
       if(!mq.matches)return;
-      setMode(portrait.matches?"1w":"month");
+      setMode("month");
       if(!portrait.matches)setRotateHint(false);
     };
     apply();
@@ -130,6 +168,24 @@ export default function Home(){
     document.addEventListener("visibilitychange",refresh);
     return ()=>{clearInterval(timer);window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",refresh)};
   },[hydrated,start.getTime(),end.getTime()]);
+  useEffect(()=>{
+    if(!hydrated||!monthFlow)return;
+    const schoolStartYear=anchor.getMonth()>=8?anchor.getFullYear():anchor.getFullYear()-1;
+    const from=new Date(schoolStartYear,8,1,0,0,0,0);
+    const to=new Date(schoolStartYear+1,6,1,0,0,0,0);
+    (async()=>{
+      try{
+        const r=await fetch(`/api/google/events?from=${from.toISOString()}&to=${to.toISOString()}`);
+        if(!r.ok)return;
+        const j=await r.json();
+        if(!j.connected)return;
+        setEvents(prev=>{
+          const local=prev.filter(e=>!e.googleId);
+          return [...local,...(j.items||[]).map(toGoogleEvent)];
+        });
+      }catch{}
+    })();
+  },[monthFlow,hydrated,anchor.getFullYear(),anchor.getMonth()]);
 
   async function persist(next:Ev){
     let gId=next.googleId;
@@ -429,9 +485,10 @@ function MobileDayCards({date,events,onClose,onEdit,onAdd}:{date:string;events:E
 }
 
 function ContinuousMonthFlow({anchor,events,onClose,onDay,onToday,onQuickAdd}:{anchor:Date;events:Ev[];onClose:()=>void;onDay:(d:Date)=>void;onToday:()=>void;onQuickAdd:()=>void}){
-  const months=Array.from({length:5},(_,i)=>new Date(anchor.getFullYear(),anchor.getMonth()+i-2,1,12));
+  const schoolStartYear=anchor.getMonth()>=8?anchor.getFullYear():anchor.getFullYear()-1;
+  const months=Array.from({length:10},(_,i)=>new Date(schoolStartYear,8+i,1,12));
   const centerRef=useRef<HTMLDivElement>(null);
-  useEffect(()=>{setTimeout(()=>centerRef.current?.scrollIntoView({block:"start",behavior:"auto"}),30)},[]);
+  useEffect(()=>{setTimeout(()=>centerRef.current?.scrollIntoView({block:"start",behavior:"auto"}),30)},[schoolStartYear]);
   return <div className="monthFlow">
     <header className="monthFlowHead">
       <button onClick={onClose}>‹</button>
@@ -442,7 +499,8 @@ function ContinuousMonthFlow({anchor,events,onClose,onDay,onToday,onQuickAdd}:{a
       {months.map((m,mi)=>{
         const first=monday(new Date(m.getFullYear(),m.getMonth(),1,12));
         const days=Array.from({length:42},(_,i)=>addDays(first,i));
-        return <section key={iso(m)} className="flowMonth" ref={mi===2?centerRef:undefined}>
+        const isAnchorMonth=m.getFullYear()===anchor.getFullYear()&&m.getMonth()===anchor.getMonth();
+        return <section key={iso(m)} className="flowMonth" ref={isAnchorMonth?centerRef:undefined}>
           <h2>{m.toLocaleDateString("hu-HU",{month:"long"})}<small>{m.getFullYear()}</small></h2>
           <div className="flowWeekdays">{["H","K","Sze","Cs","P","Sz","V"].map(x=><span key={x}>{x}</span>)}</div>
           <div className="flowGrid">
