@@ -789,6 +789,20 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
       }
     }
     if(!matched){
+      const bareDay=low.match(/\b(\d{1,2})[-.]?(?:an|en|án|én)\b/);
+      if(bareDay){
+        const da=Number(bareDay[1]);
+        if(da>=1&&da<=31){
+          let y=d.getFullYear(),mo=d.getMonth();
+          const candidate=new Date(y,mo,da,12);
+          if(candidate.getTime()<addDays(baseDate,-7).getTime()){
+            const next=new Date(y,mo+1,da,12); y=next.getFullYear();mo=next.getMonth();
+          }
+          d=new Date(y,mo,da,12);matched=true;explicitDate=true;
+        }
+      }
+    }
+    if(!matched){
       const forceNextWeek=/\bjovo\b|\bjövő\b/.test(low);
       for(const [name,target] of Object.entries(weekdays)){
         if(new RegExp("\\b"+name+"\\b").test(low)){
@@ -802,7 +816,7 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
 
   let startMins:number|undefined;
   let explicitEndMins:number|undefined;
-  const range=low.match(/\b([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:-|–|—|tol|tól|tol\s+|tól\s+)([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:ig)?\b/);
+  const range=low.match(/\b([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:-?\s*(?:tol|tól|től)|-|–|—)\s*([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:-?\s*ig)?\b/);
   if(range){
     const sh=Number(range[1]),sm=Number(range[2]||0),eh=Number(range[3]),em=Number(range[4]||0);
     startMins=sh*60+sm; explicitEndMins=eh*60+em;
@@ -844,9 +858,10 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
     .replace(/\bholnaputan\b|\bholnapután\b|\bholnap\b|\bma\b/gi," ")
     .replace(/\b(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?\b/g," ")
     .replace(/\b(jan\w*|feb\w*|mar\w*|már\w*|apr\w*|ápr\w*|maj\w*|máj\w*|jun\w*|jún\w*|jul\w*|júl\w*|aug\w*|szept\w*|okt\w*|nov\w*|dec\w*)\s+\d{1,2}(?:[-.]?(?:an|en|án|én))?\b/gi," ")
+    .replace(/\b\d{1,2}[-.]?(?:an|en|án|én)\b/gi," ")
     .replace(/\b(jovo|jövő)\b/gi," ")
     .replace(/\b(vasarnap(?:on)?|vasárnap(?:on)?|hetfo(?:n)?|hétfő(?:n)?|kedd(?:en)?|szerda(?:n|án)?|csutortok(?:on)?|csütörtök(?:ön)?|pentek(?:en)?|péntek(?:en)?|szombat(?:on)?)\b/gi," ")
-    .replace(/\b([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:-|–|—|tol|tól)\s*([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:ig)?\b/gi," ")
+    .replace(/\b([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:-?\s*(?:tol|tól|től)|-|–|—)\s*([01]?\d|2[0-3])(?:[:.]([0-5]\d))?\s*(?:-?\s*ig)?\b/gi," ")
     .replace(/\bdelben\b|\bdélben\b/gi," ")
     .replace(/\b(?:(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+)?(?:fel|fél)\s+([01]?\d|2[0-3])\b/gi," ")
     .replace(/\b(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+([01]?\d|2[0-3])(?:(?::|\.)([0-5]\d))?\b/gi," ")
@@ -887,7 +902,7 @@ function inferProseLocation(sentence:string){
   return m?.[1]?.trim()||"";
 }
 function extractEventCandidates(text:string,baseDate:Date){
-  const pieces=text.split(/\n+|(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean).slice(0,12);
+  const pieces=text.split(/\n+|\s*[;•·]\s*|(?<=[.!?])\s+/).map(x=>x.trim()).filter(Boolean).slice(0,16);
   const out:SmartParse[]=[];
   for(const piece of pieces){
     let p=parseSmartEvent(piece,baseDate);
@@ -1004,7 +1019,7 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
               <small>{dup?"Már szerepel a naptárban":calMeta[c.calendar].label}</small>
             </div>
             <div className="extractActions">
-              {onDetails&&<button disabled={!!savedCandidates[i]||!!dup} onClick={()=>onDetails({title:c.title,date:c.date,allDay:c.allDay,start:c.start,end:c.end,calendar:c.calendar,location:c.location})}>Részletek</button>}
+              {onDetails&&<button disabled={!!savedCandidates[i]||!!dup} onClick={()=>onDetails({title:c.title,date:c.date,allDay:c.allDay,start:c.start,end:c.end,calendar:c.calendar,location:c.location})}>Szerkesztés</button>}
               <button className="extractSave" disabled={!!savedCandidates[i]||!!dup} onClick={()=>saveExtracted(c,i)}>{dup?"Már szerepel":savedCandidates[i]?"Rögzítve ✓":"Rögzítés"}</button>
             </div>
           </article>}) :<div className="extractEmpty">
