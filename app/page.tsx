@@ -658,41 +658,140 @@ function WheelScroller({label,items,value,onChange}:{label:string;items:{value:n
   </div>
 }
 
+type SmartParse={title:string;date:string;start?:string;end?:string;allDay:boolean;duration:number;confidence:"high"|"medium"|"low";missing:string[]};
+
+function parseSmartEvent(input:string,baseDate:Date):SmartParse{
+  let raw=input.trim();
+  const low=raw.toLocaleLowerCase("hu-HU").replace(/\s+/g," ");
+  const missing:string[]=[];
+  let d=new Date(baseDate); d.setHours(12,0,0,0);
+
+  const monthMap:Record<string,number>={
+    jan:0,januar:0,január:0,feb:1,februar:1,február:1,mar:2,marc:2,már:2,március:2,
+    apr:3,aprilis:3,ápr:3,április:3,maj:4,majus:4,máj:4,május:4,
+    jun:5,junius:5,jún:5,június:5,jul:6,julius:6,júl:6,július:6,
+    aug:7,augusztus:7,szept:8,szeptember:8,okt:9,oktober:9,október:9,
+    nov:10,november:10,dec:11,december:11
+  };
+  const weekdays:Record<string,number>={vasarnap:0,vasárnap:0,hetfo:1,hétfő:1,kedd:2,szerda:3,csutortok:4,csütörtök:4,pentek:5,péntek:5,szombat:6};
+
+  if(/\bholnaputan\b|\bholnapután\b/.test(low)) d=addDays(d,2);
+  else if(/\bholnap\b/.test(low)) d=addDays(d,1);
+  else if(!/\bma\b/.test(low)){
+    let matched=false;
+    const m1=low.match(/\b(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?\b/);
+    if(m1){
+      let y=m1[3]?Number(m1[3]):d.getFullYear(); if(y<100)y+=2000;
+      d=new Date(y,Number(m1[2])-1,Number(m1[1]),12); matched=true;
+    }
+    if(!matched){
+      const m2=low.match(/\b(jan\w*|feb\w*|mar\w*|már\w*|apr\w*|ápr\w*|maj\w*|máj\w*|jun\w*|jún\w*|jul\w*|júl\w*|aug\w*|szept\w*|okt\w*|nov\w*|dec\w*)\s+(\d{1,2})\b/);
+      if(m2){
+        const key=m2[1].replace(/[.]$/,"");
+        const plain=key.normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+        const mo=monthMap[key] ?? monthMap[plain];
+        if(mo!==undefined){
+          const da=Number(m2[2]); let y=d.getFullYear();
+          const cand=new Date(y,mo,da,12);
+          if(cand.getTime()<addDays(baseDate,-7).getTime()) y++;
+          d=new Date(y,mo,da,12); matched=true;
+        }
+      }
+    }
+    if(!matched){
+      for(const [name,target] of Object.entries(weekdays)){
+        if(new RegExp("\\b"+name+"\\b").test(low)){
+          let delta=(target-d.getDay()+7)%7; if(delta===0)delta=7;
+          d=addDays(d,delta); matched=true; break;
+        }
+      }
+    }
+  }
+
+  let startMins:number|undefined;
+  const tm=low.match(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)|([01]?\d|2[0-3])\s*(?:ora|óra|kor))\b/);
+  if(tm){const h=Number(tm[1]??tm[3]),m=Number(tm[2]??0);startMins=h*60+m}
+
+  let duration=60;
+  const durM=low.match(/\b(\d{1,3})\s*(perc|p)\b/);
+  if(durM)duration=Math.max(15,Math.min(12*60,Number(durM[1])));
+
+  let title=raw
+    .replace(/\bholnaputan\b|\bholnapután\b|\bholnap\b|\bma\b/gi," ")
+    .replace(/\b(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?\b/g," ")
+    .replace(/\b(jan\w*|feb\w*|mar\w*|már\w*|apr\w*|ápr\w*|maj\w*|máj\w*|jun\w*|jún\w*|jul\w*|júl\w*|aug\w*|szept\w*|okt\w*|nov\w*|dec\w*)\s+\d{1,2}\b/gi," ")
+    .replace(/\b(vasarnap|vasárnap|hetfo|hétfő|kedd|szerda|csutortok|csütörtök|pentek|péntek|szombat)\b/gi," ")
+    .replace(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)|([01]?\d|2[0-3])\s*(?:ora|óra|kor))\b/gi," ")
+    .replace(/\b\d{1,3}\s*(?:perc|p)\b/gi," ")
+    .replace(/\s+/g," ").trim()
+    .replace(/^[,.;:\-\s]+|[,.;:\-\s]+$/g,"");
+
+  if(!title) missing.push("cím");
+  if(startMins===undefined) missing.push("idő");
+  const allDay=startMins===undefined;
+  const confidence=missing.length===0?"high":title&&missing.length===1?"medium":"low";
+  return {
+    title:title?title.charAt(0).toUpperCase()+title.slice(1):"",
+    date:iso(d),allDay,duration,confidence,missing,
+    start:startMins===undefined?undefined:hhmm(startMins),
+    end:startMins===undefined?undefined:hhmm(startMins+duration)
+  };
+}
+
 function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onClose:()=>void;onCreate:(x:Partial<Ev>)=>Promise<void>;onDetails?:(x:Partial<Ev>)=>void}){
+  const [smartText,setSmartText]=useState("");
+  const [manual,setManual]=useState(false);
   const [title,setTitle]=useState("");
   const [year,setYear]=useState(baseDate.getFullYear());
   const [month,setMonth]=useState(baseDate.getMonth());
   const [day,setDay]=useState(baseDate.getDate());
   const [time,setTime]=useState(9*60);
   const [allDay,setAllDay]=useState(false);
-  const [calendar,setCalendar]=useState<CalKey>("work");
+  const [calendar,setCalendar]=useState<CalKey>("personal");
+  const parsed=useMemo(()=>parseSmartEvent(smartText,baseDate),[smartText,baseDate]);
   const maxDay=new Date(year,month+1,0).getDate();
   const safeDay=Math.min(day,maxDay);
   const date=iso(new Date(year,month,safeDay,12));
-  const monthItems=Array.from({length:14},(_,i)=>{
-    const d=new Date(baseDate.getFullYear(),baseDate.getMonth()-2+i,1,12);
-    return {value:d.getFullYear()*12+d.getMonth(),label:d.toLocaleDateString("hu-HU",{month:"short"})+" "+String(d.getFullYear()).slice(2)}
-  });
+  const monthItems=Array.from({length:14},(_,i)=>{const d=new Date(baseDate.getFullYear(),baseDate.getMonth()-2+i,1,12);return {value:d.getFullYear()*12+d.getMonth(),label:d.toLocaleDateString("hu-HU",{month:"short"})+" "+String(d.getFullYear()).slice(2)}});
   const monthValue=year*12+month;
   const chooseMonth=(v:number)=>{const y=Math.floor(v/12),m=v%12;setYear(y);setMonth(m);setDay(d=>Math.min(d,new Date(y,m+1,0).getDate()))};
+  const smartPayload:Partial<Ev>={title:parsed.title,date:parsed.date,allDay:parsed.allDay,start:parsed.start,end:parsed.end,calendar};
+  const manualPayload:Partial<Ev>={title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar};
+  const payload=manual?manualPayload:smartPayload;
+  const canSmartSave=!manual&&!!parsed.title&&parsed.confidence!=="low";
   return <div className="quickBackdrop" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}>
-    <section className="quickSheet">
+    <section className="quickSheet smartQuickSheet">
       <div className="quickGrabber"/>
       <header><div><small>GYORS BEVITEL</small><h2>Új esemény</h2></div><button onClick={onClose}>×</button></header>
-      <input className="quickTitle" autoFocus placeholder="Mi legyen?" value={title} onChange={e=>setTitle(e.target.value)}/>
-      <div className="wheelPicker">
-        <WheelScroller label="HÓNAP" items={monthItems} value={monthValue} onChange={chooseMonth}/>
-        <WheelScroller label="NAP" items={Array.from({length:maxDay},(_,i)=>({value:i+1,label:String(i+1)}))} value={safeDay} onChange={setDay}/>
-        <WheelScroller label={allDay?"EGÉSZ NAP":"IDŐ"} items={allDay?[{value:0,label:"—"}]:Array.from({length:96},(_,i)=>({value:i*15,label:hhmm(i*15)}))} value={allDay?0:time} onChange={setTime}/>
-      </div>
-      <div className="quickOptions">
-        <button type="button" className={allDay?"on":""} onClick={()=>setAllDay(v=>!v)}><i/> Egész napos</button>
-        <span>{date}</span>
-      </div>
+
+      {!manual&&<>
+        <textarea className="smartInput" autoFocus rows={2} placeholder="pl. okt 15 fodrász 16.10-kor" value={smartText} onChange={e=>setSmartText(e.target.value)} onKeyDown={e=>{if((e.metaKey||e.ctrlKey)&&e.key==="Enter"&&canSmartSave)onCreate(smartPayload)}}/>
+        <div className={"smartPreview "+parsed.confidence}>
+          <div className="smartPreviewHead"><span>{parsed.confidence==="high"?"Értettem ✓":parsed.confidence==="medium"?"Majdnem kész":"Írd le az eseményt"}</span><small>{parsed.date}</small></div>
+          {parsed.title?<b>{parsed.title}</b>:<b>Mi legyen az esemény?</b>}
+          <p>{parsed.allDay?"Egész nap":parsed.start+" – "+parsed.end}{parsed.duration!==60&&!parsed.allDay?" · "+parsed.duration+" perc":""}</p>
+          {parsed.missing.length>0&&<em>Hiányzik: {parsed.missing.join(", ")}</em>}
+        </div>
+        <div className="smartExamples">Példák: <span>holnap értekezlet 14.30</span> · <span>péntek fogorvos 8-kor 30 perc</span></div>
+      </>}
+
+      {manual&&<>
+        <input className="quickTitle" autoFocus placeholder="Mi legyen?" value={title} onChange={e=>setTitle(e.target.value)}/>
+        <div className="wheelPicker">
+          <WheelScroller label="HÓNAP" items={monthItems} value={monthValue} onChange={chooseMonth}/>
+          <WheelScroller label="NAP" items={Array.from({length:maxDay},(_,i)=>({value:i+1,label:String(i+1)}))} value={safeDay} onChange={setDay}/>
+          <WheelScroller label={allDay?"EGÉSZ NAP":"IDŐ"} items={allDay?[{value:0,label:"—"}]:Array.from({length:96},(_,i)=>({value:i*15,label:hhmm(i*15)}))} value={allDay?0:time} onChange={setTime}/>
+        </div>
+        <div className="quickOptions"><button type="button" className={allDay?"on":""} onClick={()=>setAllDay(v=>!v)}><i/> Egész napos</button><span>{date}</span></div>
+      </>}
+
       <div className="quickCategories">{(Object.keys(calMeta) as CalKey[]).map(k=><button key={k} className={calendar===k?"active":""} style={{"--event":calMeta[k].color} as React.CSSProperties} onClick={()=>setCalendar(k)}><span>{calMeta[k].icon}</span>{calMeta[k].label}</button>)}</div>
+
+      <button className="manualToggle" onClick={()=>setManual(v=>!v)}>{manual?"← Intelligens bevitel":"Dátum/idő kézi beállítása"}</button>
+
       <div className="quickFooter">
-        {onDetails&&<button className="quickDetails" onClick={()=>onDetails({title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar})}>Részletek</button>}
-        <button className="quickSave" onClick={()=>onCreate({title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar})}>Rögzítés <span>→</span></button>
+        {onDetails&&<button className="quickDetails" disabled={!manual&&!parsed.title} onClick={()=>onDetails(payload)}>Részletek</button>}
+        <button className="quickSave" disabled={manual?!title.trim():!canSmartSave} onClick={()=>onCreate(payload)}>Rögzítés <span>→</span></button>
       </div>
     </section>
   </div>
