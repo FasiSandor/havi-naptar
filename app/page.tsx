@@ -209,7 +209,7 @@ export default function Home(){
 
   const days=useMemo(()=>Array.from({length:count},(_,i)=>addDays(start,i)),[start,count]);
   const end=days[days.length-1];
-  const displayEvents=useMemo(()=>[...events,...(showWorkPlan?schoolPlanEvents:[])],[events,showWorkPlan]);
+  const displayEvents=useMemo(()=>dedupeEvents([...events,...(showWorkPlan?schoolPlanEvents:[])]),[events,showWorkPlan]);
   const shown=displayEvents.filter(e=>enabled[e.calendar]&&days.some(d=>iso(d)===e.date)).sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
 
   function queueSync(op:SyncOp){
@@ -330,6 +330,12 @@ export default function Home(){
     if(!connected&&x.repeat&&x.repeat!=="none"&&x.repeat!=="googleSeries"){setNotice("Az ismétlődő eseményhez Google Naptár-kapcsolat kell.");return false}
     if(!connected&&Number(x.reminder||0)>0){setNotice("Az emlékeztetőhöz Google Naptár-kapcsolat kell.");return false}
     const base:Ev={id:x.id||crypto.randomUUID(),googleId:x.googleId,title:(x.title||"Esemény").trim(),date:x.date,start:x.start||"09:00",end:x.end||"10:00",allDay:!!x.allDay,calendar:(x.calendar||"work") as CalKey,location:x.location||"",note:x.note||"",repeat:(x.repeat||"none") as RepeatMode,reminder:Number(x.reminder||0)};
+    const duplicate=displayEvents.find(e=>e.id!==base.id&&(!base.googleId||e.googleId!==base.googleId)&&nearDuplicate(e,base));
+    if(duplicate){
+      setNotice("Hasonló esemény már szerepel a naptárban: "+duplicate.title);
+      setTimeout(()=>setNotice(""),2600);
+      return false;
+    }
     const saved=await persist(base);
     if(!saved)return false;
     setEditor(null);
@@ -794,7 +800,7 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
     .replace(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)(?:\s*-?\s*kor)?|([01]?\d|2[0-3])\s*-?\s*(?:ora|óra|kor))\b/gi," ")
     .replace(/\b\d{1,3}\s*(?:perc|p)\b/gi," ")
     .replace(/@([^,@;]+?)(?=\s+\d{1,2}(?::|\.|\s*-?\s*kor)|$|[,;])/gi," ")
-    .replace(/#?(suli|iskola|munka|csalad|család|sport|edzes|edzés)\b/gi," ")
+    .replace(/#(suli|iskola|munka|csalad|család|sport|edzes|edzés)\b/gi," ")
     .replace(/\s+/g," ").trim()
     .replace(/^[,.;:\-\s]+|[,.;:\-\s]+$/g,"");
 
