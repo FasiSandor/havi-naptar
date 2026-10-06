@@ -12,7 +12,7 @@ function eventBody(x:any){
     summary:x.title||"Esemény",
     location:x.location||"",
     description:x.note||"",
-    extendedProperties:{private:{haviCategory:x.calendar||"work"}},
+    extendedProperties:{private:{haviCategory:x.calendar||"work",haviUid:x.id||""}},
     start:x.allDay?{date:x.date}:{dateTime:x.start,timeZone:"Europe/Budapest"},
     end:x.allDay?{date:x.endDate||x.date}:{dateTime:x.end,timeZone:"Europe/Budapest"},
     reminders:Number(x.reminder||0)>0?{useDefault:false,overrides:[{method:"popup",minutes:Number(x.reminder)}]}:{useDefault:true}
