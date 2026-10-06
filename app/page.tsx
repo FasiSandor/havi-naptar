@@ -485,6 +485,7 @@ export default function Home(){
     <button className="fab desktopFab" onClick={()=>setEditor({date:iso(anchor),calendar:"work",start:"09:00",end:"10:00"})}>＋</button>
     {quickAdd&&<QuickAddWheel
       baseDate={anchor}
+      existingEvents={displayEvents}
       onClose={()=>setQuickAdd(false)}
       onCreate={async x=>await save(x)}
       onDetails={x=>{setQuickAdd(false);setEditor(x)}}
@@ -912,7 +913,7 @@ function extractEventCandidates(text:string,baseDate:Date){
   return out.slice(0,5);
 }
 
-function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onClose:()=>void;onCreate:(x:Partial<Ev>)=>Promise<boolean>;onDetails?:(x:Partial<Ev>)=>void}){
+function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{baseDate:Date;existingEvents:Ev[];onClose:()=>void;onCreate:(x:Partial<Ev>)=>Promise<boolean>;onDetails?:(x:Partial<Ev>)=>void}){
   const [smartText,setSmartText]=useState("");
   const [manual,setManual]=useState(false);
   const [title,setTitle]=useState("");
@@ -924,8 +925,13 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
   const [calendar,setCalendar]=useState<CalKey>("personal");
   const [calendarTouched,setCalendarTouched]=useState(false);
   const [savedCandidates,setSavedCandidates]=useState<Record<number,boolean>>({});
+  const [clipboardError,setClipboardError]=useState("");
   const parsed=useMemo(()=>parseSmartEvent(smartText,baseDate),[smartText,baseDate]);
   const extracted=useMemo(()=>extractEventCandidates(smartText,baseDate),[smartText,baseDate]);
+  const duplicateFor=(x:Partial<Ev>)=>existingEvents.find(e=>{
+    const candidate:Ev={id:"candidate",title:x.title||"",date:x.date||iso(baseDate),start:x.start,end:x.end,allDay:!!x.allDay,calendar:(x.calendar||"personal") as CalKey,location:x.location||""};
+    return nearDuplicate(e,candidate);
+  });
   const pastedMode=!manual&&(smartText.includes("\n")||smartText.trim().length>=70);
   const maxDay=new Date(year,month+1,0).getDate();
   const safeDay=Math.min(day,maxDay);
@@ -937,8 +943,18 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
   const smartPayload:Partial<Ev>={title:parsed.title,date:parsed.date,allDay:parsed.allDay,start:parsed.start,end:parsed.end,calendar:smartCalendar,location:parsed.location};
   const manualPayload:Partial<Ev>={title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar};
   const payload=manual?manualPayload:smartPayload;
-  const canSmartSave=!manual&&!!parsed.title&&parsed.missing.length===0;
+  const smartDuplicate=duplicateFor(smartPayload);
+  const canSmartSave=!manual&&!!parsed.title&&parsed.missing.length===0&&!smartDuplicate;
 
+  async function pasteClipboard(){
+    try{
+      const text=await navigator.clipboard.readText();
+      if(!text.trim()){setClipboardError("A vágólap üres.");return}
+      setSmartText(text);setSavedCandidates({});setClipboardError("");
+    }catch{
+      setClipboardError("A vágólap olvasása nem engedélyezett. Hosszan nyomva továbbra is beilleszthetsz.");
+    }
+  }
   async function saveSingle(x:Partial<Ev>){
     const ok=await onCreate(x);
     if(ok)onClose();
@@ -958,6 +974,8 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
 
       {!manual&&<>
         <div className="activeDateHint"><span>Aktív nap</span><b>{baseDate.toLocaleDateString("hu-HU",{month:"short",day:"numeric",weekday:"short"})}</b><em>Ha nem írsz dátumot, erre a napra kerül.</em></div>
+        <div className="pasteRow"><button type="button" onClick={pasteClipboard}>⌘ Beillesztés vágólapról</button><span>Emailből vagy üzenetből</span></div>
+        {clipboardError&&<div className="clipboardError">{clipboardError}</div>}
         <textarea className={"smartInput "+(pastedMode?"pasteInput":"")} autoFocus rows={pastedMode?5:2}
           placeholder={"Írj röviden vagy másolj be szöveget…\npl. okt 15 fodrász 16.10"}
           value={smartText}
@@ -970,6 +988,7 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
           {parsed.title?<b>{parsed.title}</b>:<b>Mi legyen az esemény?</b>}
           <p>{parsed.allDay?"Egész nap":parsed.start+" – "+parsed.end}{parsed.duration!==60&&!parsed.allDay?" · "+parsed.duration+" perc":""}{parsed.location?" · @"+parsed.location:""}</p>
           {parsed.missing.length>0&&<em>Hiányzik: {parsed.missing.join(", ")}</em>}
+          {smartDuplicate&&<em className="duplicateWarning">Már szerepel: {smartDuplicate.title} · {smartDuplicate.date}{smartDuplicate.start?" · "+smartDuplicate.start:""}</em>}
         </div>}
 
         {pastedMode&&<div className="extractArea">
@@ -977,18 +996,18 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
             <div><small>KINYERÉS</small><b>{extracted.length?extracted.length+" egyértelmű eseményt találtam":"Még nincs biztos találat"}</b></div>
             <span>Semmi nem kerül be automatikusan.</span>
           </div>
-          {extracted.length?extracted.map((c,i)=><article key={i} className={"extractCard "+(savedCandidates[i]?"saved":"")}>
+          {extracted.length?extracted.map((c,i)=>{const dup=duplicateFor({title:c.title,date:c.date,allDay:c.allDay,start:c.start,end:c.end,calendar:c.calendar,location:c.location});return <article key={i} className={"extractCard "+(savedCandidates[i]?"saved ":"")+(dup?"duplicate":"")}>
             <div className="extractDate"><b>{parseDate(c.date).getDate()}</b><span>{parseDate(c.date).toLocaleDateString("hu-HU",{month:"short"})}</span></div>
             <div className="extractBody">
               <strong>{c.title}</strong>
               <span>{c.allDay?"Egész nap":(c.start||"")+" – "+(c.end||"")}{c.location?" · "+c.location:""}</span>
-              <small>{calMeta[c.calendar].label}</small>
+              <small>{dup?"Már szerepel a naptárban":calMeta[c.calendar].label}</small>
             </div>
             <div className="extractActions">
-              {onDetails&&<button disabled={!!savedCandidates[i]} onClick={()=>onDetails({title:c.title,date:c.date,allDay:c.allDay,start:c.start,end:c.end,calendar:c.calendar,location:c.location})}>Részletek</button>}
-              <button className="extractSave" disabled={!!savedCandidates[i]} onClick={()=>saveExtracted(c,i)}>{savedCandidates[i]?"Rögzítve ✓":"Rögzítés"}</button>
+              {onDetails&&<button disabled={!!savedCandidates[i]||!!dup} onClick={()=>onDetails({title:c.title,date:c.date,allDay:c.allDay,start:c.start,end:c.end,calendar:c.calendar,location:c.location})}>Részletek</button>}
+              <button className="extractSave" disabled={!!savedCandidates[i]||!!dup} onClick={()=>saveExtracted(c,i)}>{dup?"Már szerepel":savedCandidates[i]?"Rögzítve ✓":"Rögzítés"}</button>
             </div>
-          </article>):<div className="extractEmpty">
+          </article>}) :<div className="extractEmpty">
             <b>Nem találtam még egyértelmű dátum + idő párost.</b>
             <span>A szöveget nem mentem el és nem teszek semmit automatikusan. Egészítsd ki, vagy használd a Részletek nézetet.</span>
           </div>}
