@@ -562,7 +562,7 @@ export default function Home(){
 }
 
 
-function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,onSync,onDay,onLongDay,onQuickAdd,onToday,onPrevMonth,onNextMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;pendingCount:number;lastSync:number|null;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onToday:()=>void;onPrevMonth:()=>void;onNextMonth:()=>void;onSettings:()=>void}){
+function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,onSync,onDay,onLongDay,onQuickAdd,onSearch,nextEvent,onNextEvent,onToday,onPrevMonth,onNextMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;pendingCount:number;lastSync:number|null;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onSearch:()=>void;nextEvent:Ev|null;onNextEvent:(e:Ev)=>void;onToday:()=>void;onPrevMonth:()=>void;onNextMonth:()=>void;onSettings:()=>void}){
   const swipeX=useRef<number|null>(null);
   const swipeY=useRef<number|null>(null);
   const swipeMoved=useRef(false);
@@ -588,6 +588,7 @@ function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,o
       <div className="monthNavCapsule"><button onClick={onPrevMonth}>‹</button><span>{anchor.getFullYear()}.</span><button onClick={onNextMonth}>›</button></div>
       <div className="mockActions">
         <button className={"syncDot "+(connected?"online":"")} aria-label="Google Naptár szinkron" title={connected?"Google Naptár kapcsolódva":"Google Naptár offline"} onClick={onSync}>{syncing?"↻":connected?"●":"○"}</button>
+        <button aria-label="Esemény keresése" onClick={onSearch}>⌕</button>
         <button onClick={onSettings}>⚙</button>
         <button className="mockPlus" onClick={onQuickAdd}>＋</button>
       </div>
@@ -600,6 +601,12 @@ function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,o
       <span><i className="legendHoliday"/>Ünnep</span>
       <span className={pendingCount?"syncState pending":connected?"syncState ok":"syncState"} title={lastSync?"Utolsó szinkron: "+new Date(lastSync).toLocaleString("hu-HU"):""}>{pendingCount?pendingCount+" vár szinkronra":connected?"Google ✓":lastSync?"Offline · cache":"Offline"}</span>
     </div>
+    {nextEvent&&<button className="nextEventStrip" onClick={()=>onNextEvent(nextEvent)}>
+      <span className="nextEventLabel">KÖVETKEZŐ</span>
+      <b>{nextEvent.title}</b>
+      <small>{parseDate(nextEvent.date).toLocaleDateString("hu-HU",{month:"short",day:"numeric"})}{nextEvent.allDay?" · egész nap":nextEvent.start?" · "+nextEvent.start:""}{nextEvent.location?" · "+nextEvent.location:""}</small>
+      <em>›</em>
+    </button>}
     <div className="mockWeekdays">{["H","K","Sze","Cs","P","Sz","V"].map(x=><span key={x}>{x}</span>)}</div>
 
     <div className="mockMonthGrid">
