@@ -33,6 +33,21 @@ export async function GET(req:NextRequest){
 export async function POST(req:NextRequest){
   const token=await access(req); if(!token) return NextResponse.json({error:"not_connected"},{status:401});
   const x=await req.json();
+
+  // Idempotens létrehozás: ugyanaz a HAVI-esemény hálózati újrapróbálásnál se duplázódjon.
+  if(x.id){
+    const lookup=new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
+    lookup.searchParams.set("privateExtendedProperty","haviUid="+x.id);
+    lookup.searchParams.set("maxResults","1");
+    lookup.searchParams.set("showDeleted","false");
+    const lr=await fetch(lookup,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
+    if(lr.ok){
+      const lj=await lr.json();
+      const existing=lj.items?.[0];
+      if(existing) return NextResponse.json(existing,{status:200});
+    }
+  }
+
   const r=await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events",{method:"POST",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify(eventBody(x))});
   return NextResponse.json(await r.json(),{status:r.status});
 }
