@@ -462,7 +462,7 @@ function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,
           <b>{d.getDate()}</b>
           {holiday&&<em className="holidayMark">✦</em>}
           <div className="eventMarks">
-            {es.slice(0,4).map((e,i)=><i key={e.id} className={es.length>2?"eventBar":"eventDot"} style={{"--event":calMeta[e.calendar].color,"--i":i} as React.CSSProperties}/>)}
+            {es.slice(0,4).map((e,i)=><i key={e.id} className={(es.length>2?"eventBar":"eventDot")+(e.note==="Iskolai munkaterv 2026/2027"?" workPlanMark":"")} style={{"--event":e.note==="Iskolai munkaterv 2026/2027"?"#F59E0B":calMeta[e.calendar].color,"--i":i} as React.CSSProperties}/>)}
           </div>
         </button>
       })}
@@ -494,7 +494,7 @@ function MobileDayCards({date,events,onClose,onEdit,onAdd}:{date:string;events:E
         {sorted.length?sorted.map(e=><button key={e.id} className="mobileEventCard" style={{"--event":calMeta[e.calendar].color} as React.CSSProperties} onClick={()=>onEdit(e)}>
           <div className="mobileEventTime"><b>{e.allDay?"Egész nap":e.start}</b><span>{e.allDay?"":e.end||""}</span></div>
           <div className="mobileEventIcon">{calMeta[e.calendar].icon}</div>
-          <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span></div>
+          <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span>{e.note==="Iskolai munkaterv 2026/2027"&&<small className="sourceBadge">MUNKATERV</small>}</div>
         </button>):<div className="mobileNoEvents"><i>✦</i><b>Szabad nap</b><span>Nincs bejegyzett esemény.</span></div>}
       </div>
       <button className="mobilePanelAdd" onClick={onAdd}>＋ Esemény hozzáadása</button>
@@ -530,7 +530,7 @@ function ContinuousMonthFlow({anchor,events,onClose,onDay,onToday,onQuickAdd}:{a
               return <button key={iso(d)} className={(current?"":"outside ")+(today?"flowToday ":"")+(holiday?"flowHoliday ":"")} onClick={()=>onDay(d)}>
                 <b>{d.getDate()}</b>
                 {holiday&&<em>✦</em>}
-                <div>{es.slice(0,3).map(e=><i key={e.id} style={{"--event":calMeta[e.calendar].color} as React.CSSProperties}/>)}</div>
+                <div>{es.slice(0,3).map(e=><i key={e.id} className={e.note==="Iskolai munkaterv 2026/2027"?"workPlanMark":""} style={{"--event":e.note==="Iskolai munkaterv 2026/2027"?"#F59E0B":calMeta[e.calendar].color} as React.CSSProperties}/>)}</div>
               </button>
             })}
           </div>
