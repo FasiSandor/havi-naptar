@@ -2061,3 +2061,34 @@
 .appShell[data-theme="light"] .searchResultBody span{color:#6F8396}
 .appShell[data-theme="light"] .searchEmpty{background:#F8FAFC;border-color:#CEDAE4}
 .appShell[data-theme="light"] .searchEmpty b{color:#324B61}
+
+/* next-major: compact sync diagnostics */
+.syncDiagnostics{
+  display:grid;gap:10px;padding:13px 14px;border-radius:16px;border:1px solid #2D4056;
+  background:linear-gradient(145deg,#101A25,#0C141D)
+}
+.syncDiagGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.syncDiagGrid>span{
+  min-width:0;padding:9px 6px;border-radius:11px;border:1px solid #293B4F;background:#0B151F;text-align:center
+}
+.syncDiagGrid b,.syncDiagGrid small{display:block}
+.syncDiagGrid b{font-size:11px;color:#DDE8F2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.syncDiagGrid small{margin-top:3px;font-size:7px;color:#6E8297}
+.syncDiagGrid .warn{border-color:#F59E0B55;background:#251D10}
+.syncDiagGrid .warn b{color:#F7C76C}
+.syncDiagFoot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.syncDiagFoot>span{font-size:8px;line-height:1.35;color:#71859A}
+.syncDiagFoot button{
+  flex:0 0 auto;height:34px;padding:0 11px;border-radius:10px;border:1px solid #356DA6;
+  background:#123054;color:#8DC6FF;font-size:8px;font-weight:900
+}
+.syncDiagFoot button:disabled{opacity:.5}
+.appShell[data-theme="light"] .syncDiagnostics{
+  background:#F8FBFD;border-color:#CBD8E3
+}
+.appShell[data-theme="light"] .syncDiagGrid>span{background:#FFFFFF;border-color:#D5E0E8}
+.appShell[data-theme="light"] .syncDiagGrid b{color:#294158}
+.appShell[data-theme="light"] .syncDiagGrid small,.appShell[data-theme="light"] .syncDiagFoot>span{color:#73879B}
+.appShell[data-theme="light"] .syncDiagGrid .warn{background:#FFF7E8;border-color:#EAC67A}
+.appShell[data-theme="light"] .syncDiagGrid .warn b{color:#946000}
+.appShell[data-theme="light"] .syncDiagFoot button{background:#EDF6FF;border-color:#BDD5EA;color:#2469AE}
