@@ -435,23 +435,26 @@ export default function Home(){
 
 function MobilePortrait({anchor,events,connected,syncing,onSync,onDay,onLongDay,onQuickAdd,onToday,onPrevMonth,onNextMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onToday:()=>void;onPrevMonth:()=>void;onNextMonth:()=>void;onSettings:()=>void}){
   const swipeX=useRef<number|null>(null);
+  const swipeY=useRef<number|null>(null);
+  const swipeMoved=useRef(false);
   const first=monday(new Date(anchor.getFullYear(),anchor.getMonth(),1,12));
   const days=Array.from({length:42},(_,i)=>addDays(first,i));
   const longTimer=useRef<number|undefined>(undefined);
   const longFired=useRef(false);
   function pressStart(d:Date){
     longFired.current=false;
-    longTimer.current=window.setTimeout(()=>{longFired.current=true;onLongDay(d)},460);
+    longTimer.current=window.setTimeout(()=>{if(!swipeMoved.current){longFired.current=true;onLongDay(d)}},460);
   }
   function pressEnd(d:Date){
     if(longTimer.current)window.clearTimeout(longTimer.current);
     longTimer.current=undefined;
-    if(!longFired.current)onDay(d);
+    if(!longFired.current&&!swipeMoved.current)onDay(d);
     setTimeout(()=>{longFired.current=false},60);
   }
   return <section className="mobilePortraitCalendar"
-    onPointerDown={e=>{swipeX.current=e.clientX}}
-    onPointerUp={e=>{if(swipeX.current===null)return;const dx=e.clientX-swipeX.current;swipeX.current=null;if(Math.abs(dx)>70)dx<0?onNextMonth():onPrevMonth()}}> 
+    onPointerDown={e=>{swipeX.current=e.clientX;swipeY.current=e.clientY;swipeMoved.current=false}}
+    onPointerMove={e=>{if(swipeX.current===null||swipeY.current===null)return;const dx=e.clientX-swipeX.current,dy=e.clientY-swipeY.current;if(Math.abs(dx)>12||Math.abs(dy)>12){swipeMoved.current=true;if(longTimer.current)window.clearTimeout(longTimer.current)}}}
+    onPointerUp={e=>{if(swipeX.current===null||swipeY.current===null)return;const dx=e.clientX-swipeX.current,dy=e.clientY-swipeY.current;swipeX.current=null;swipeY.current=null;if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.25)dx<0?onNextMonth():onPrevMonth();setTimeout(()=>{swipeMoved.current=false},80)}}> 
     <header className="mockHero">
       <div className="monthNavCapsule"><button onClick={onPrevMonth}>‹</button><span>{anchor.getFullYear()}.</span><button onClick={onNextMonth}>›</button></div>
       <div className="mockActions">
@@ -498,6 +501,7 @@ function MobileDayCards({date,events,onClose,onEdit,onDelete,onAdd}:{date:string
   const sorted=[...events].sort((a,b)=>(a.start||"").localeCompare(b.start||""));
   const holiday=holidayMap[date];
   const [closing,setClosing]=useState(false);
+  const [deleteId,setDeleteId]=useState<string|null>(null);
   const close=()=>{if(closing)return;setClosing(true);setTimeout(onClose,190)};
   return <div className={"mobileDayOverlay "+(closing?"closing":"")} onMouseDown={e=>{if(e.currentTarget===e.target)close()}}>
     <section className="mobileDayPanel">
@@ -514,7 +518,7 @@ function MobileDayCards({date,events,onClose,onEdit,onDelete,onAdd}:{date:string
             <div className="mobileEventIcon">{calMeta[e.calendar].icon}</div>
             <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span>{e.note==="Iskolai munkaterv 2026/2027"&&<small className="sourceBadge">MUNKATERV · CSAK OLVASHATÓ</small>}</div>
           </button>
-          {!e.id.startsWith("workplan-")&&<button className="mobileEventDelete" aria-label="Esemény törlése" onClick={()=>onDelete(e)}>×</button>}
+          {!e.id.startsWith("workplan-")&&<button className={"mobileEventDelete "+(deleteId===e.id?"armed":"")} aria-label="Esemény törlése" onClick={()=>{if(deleteId===e.id){onDelete(e);setDeleteId(null)}else{setDeleteId(e.id);setTimeout(()=>setDeleteId(id=>id===e.id?null:id),2200)}}}>{deleteId===e.id?"Törlés":"×"}</button>}
         </div>)}:<div className="mobileNoEvents"><i>✦</i><b>Szabad nap</b><span>Nincs bejegyzett esemény.</span></div>}
       </div>
       <button className="mobilePanelAdd" onClick={onAdd}>＋ Esemény hozzáadása</button>
