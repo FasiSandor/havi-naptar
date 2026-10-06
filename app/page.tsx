@@ -486,7 +486,7 @@ export default function Home(){
     {quickAdd&&<QuickAddWheel
       baseDate={anchor}
       onClose={()=>setQuickAdd(false)}
-      onCreate={async x=>{const ok=await save(x);if(ok)setQuickAdd(false)}}
+      onCreate={async x=>await save(x)}
       onDetails={x=>{setQuickAdd(false);setEditor(x)}}
     />}
     {rotateHint&&<div className="rotateHintBackdrop" onClick={()=>setRotateHint(false)}>
@@ -898,7 +898,7 @@ function extractEventCandidates(text:string,baseDate:Date){
   return out.slice(0,5);
 }
 
-function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onClose:()=>void;onCreate:(x:Partial<Ev>)=>Promise<void>;onDetails?:(x:Partial<Ev>)=>void}){
+function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onClose:()=>void;onCreate:(x:Partial<Ev>)=>Promise<boolean>;onDetails?:(x:Partial<Ev>)=>void}){
   const [smartText,setSmartText]=useState("");
   const [manual,setManual]=useState(false);
   const [title,setTitle]=useState("");
@@ -909,7 +909,10 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
   const [allDay,setAllDay]=useState(false);
   const [calendar,setCalendar]=useState<CalKey>("personal");
   const [calendarTouched,setCalendarTouched]=useState(false);
+  const [savedCandidates,setSavedCandidates]=useState<Record<number,boolean>>({});
   const parsed=useMemo(()=>parseSmartEvent(smartText,baseDate),[smartText,baseDate]);
+  const extracted=useMemo(()=>extractEventCandidates(smartText,baseDate),[smartText,baseDate]);
+  const pastedMode=!manual&&(smartText.includes("\n")||smartText.trim().length>=70);
   const maxDay=new Date(year,month+1,0).getDate();
   const safeDay=Math.min(day,maxDay);
   const date=iso(new Date(year,month,safeDay,12));
@@ -921,20 +924,63 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
   const manualPayload:Partial<Ev>={title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar};
   const payload=manual?manualPayload:smartPayload;
   const canSmartSave=!manual&&!!parsed.title&&parsed.missing.length===0;
+
+  async function saveSingle(x:Partial<Ev>){
+    const ok=await onCreate(x);
+    if(ok)onClose();
+  }
+  async function saveExtracted(c:SmartParse,index:number){
+    const ok=await onCreate({title:c.title,date:c.date,allDay:c.allDay,start:c.start,end:c.end,calendar:c.calendar,location:c.location});
+    if(ok){
+      setSavedCandidates(prev=>({...prev,[index]:true}));
+      if(extracted.length===1)setTimeout(onClose,180);
+    }
+  }
+
   return <div className="quickBackdrop" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}>
     <section className="quickSheet smartQuickSheet">
       <div className="quickGrabber"/>
-      <header><div><small>GYORS BEVITEL</small><h2>Új esemény</h2></div><button onClick={onClose}>×</button></header>
+      <header><div><small>ÚJ ESEMÉNY</small><h2>{pastedMode?"Szövegből kinyerés":"Gyors bevitel"}</h2></div><button onClick={onClose}>×</button></header>
 
       {!manual&&<>
-        <textarea className="smartInput" autoFocus rows={2} placeholder="pl. okt 15 fodrász 16.10-kor" value={smartText} onChange={e=>setSmartText(e.target.value)} onKeyDown={e=>{if((e.metaKey||e.ctrlKey)&&e.key==="Enter"&&canSmartSave)onCreate(smartPayload)}}/>
-        <div className={"smartPreview "+parsed.confidence}>
+        <div className="activeDateHint"><span>Aktív nap</span><b>{baseDate.toLocaleDateString("hu-HU",{month:"short",day:"numeric",weekday:"short"})}</b><em>Ha nem írsz dátumot, erre a napra kerül.</em></div>
+        <textarea className={"smartInput "+(pastedMode?"pasteInput":"")} autoFocus rows={pastedMode?5:2}
+          placeholder={"Írj röviden vagy másolj be szöveget…\npl. okt 15 fodrász 16.10"}
+          value={smartText}
+          onChange={e=>{setSmartText(e.target.value);setSavedCandidates({})}}
+          onPaste={()=>setSavedCandidates({})}
+          onKeyDown={e=>{if(!pastedMode&&(e.metaKey||e.ctrlKey)&&e.key==="Enter"&&canSmartSave)saveSingle(smartPayload)}}/>
+
+        {!pastedMode&&<div className={"smartPreview "+parsed.confidence}>
           <div className="smartPreviewHead"><span>{parsed.confidence==="high"?"Értettem ✓":parsed.confidence==="medium"?"Majdnem kész":"Írd le az eseményt"}</span><small>{parsed.date}</small></div>
           {parsed.title?<b>{parsed.title}</b>:<b>Mi legyen az esemény?</b>}
           <p>{parsed.allDay?"Egész nap":parsed.start+" – "+parsed.end}{parsed.duration!==60&&!parsed.allDay?" · "+parsed.duration+" perc":""}{parsed.location?" · @"+parsed.location:""}</p>
           {parsed.missing.length>0&&<em>Hiányzik: {parsed.missing.join(", ")}</em>}
-        </div>
-        <div className="smartExamples">Példák: <span>holnap értekezlet 14.30</span> · <span>jövő kedden fodrász 16.10</span> · <span>pénteken reggel 8 fogorvos</span></div>
+        </div>}
+
+        {pastedMode&&<div className="extractArea">
+          <div className="extractHead">
+            <div><small>KINYERÉS</small><b>{extracted.length?extracted.length+" egyértelmű eseményt találtam":"Még nincs biztos találat"}</b></div>
+            <span>Semmi nem kerül be automatikusan.</span>
+          </div>
+          {extracted.length?extracted.map((c,i)=><article key={i} className={"extractCard "+(savedCandidates[i]?"saved":"")}>
+            <div className="extractDate"><b>{parseDate(c.date).getDate()}</b><span>{parseDate(c.date).toLocaleDateString("hu-HU",{month:"short"})}</span></div>
+            <div className="extractBody">
+              <strong>{c.title}</strong>
+              <span>{c.allDay?"Egész nap":(c.start||"")+" – "+(c.end||"")}{c.location?" · "+c.location:""}</span>
+              <small>{calMeta[c.calendar].label}</small>
+            </div>
+            <div className="extractActions">
+              {onDetails&&<button disabled={!!savedCandidates[i]} onClick={()=>onDetails({title:c.title,date:c.date,allDay:c.allDay,start:c.start,end:c.end,calendar:c.calendar,location:c.location})}>Részletek</button>}
+              <button className="extractSave" disabled={!!savedCandidates[i]} onClick={()=>saveExtracted(c,i)}>{savedCandidates[i]?"Rögzítve ✓":"Rögzítés"}</button>
+            </div>
+          </article>):<div className="extractEmpty">
+            <b>Nem találtam még egyértelmű dátum + idő párost.</b>
+            <span>A szöveget nem mentem el és nem teszek semmit automatikusan. Egészítsd ki, vagy használd a Részletek nézetet.</span>
+          </div>}
+        </div>}
+
+        {!pastedMode&&<div className="smartExamples">Példák: <span>holnap értekezlet 14.30</span> · <span>jövő kedden fodrász 16.10</span> · <span>emailből 1–5 mondatot is bemásolhatsz</span></div>}
       </>}
 
       {manual&&<>
@@ -947,14 +993,15 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
         <div className="quickOptions"><button type="button" className={allDay?"on":""} onClick={()=>setAllDay(v=>!v)}><i/> Egész napos</button><span>{date}</span></div>
       </>}
 
-      <div className="quickCategories">{(Object.keys(calMeta) as CalKey[]).map(k=><button key={k} className={(manual?calendar:(calendarTouched?calendar:parsed.calendar))===k?"active":""} style={{"--event":calMeta[k].color} as React.CSSProperties} onClick={()=>{setCalendar(k);setCalendarTouched(true)}}><span>{calMeta[k].icon}</span>{calMeta[k].label}</button>)}</div>
+      {!pastedMode&&<div className="quickCategories">{(Object.keys(calMeta) as CalKey[]).map(k=><button key={k} className={(manual?calendar:(calendarTouched?calendar:parsed.calendar))===k?"active":""} style={{"--event":calMeta[k].color} as React.CSSProperties} onClick={()=>{setCalendar(k);setCalendarTouched(true)}}><span>{calMeta[k].icon}</span>{calMeta[k].label}</button>)}</div>}
 
       <button className="manualToggle" onClick={()=>setManual(v=>!v)}>{manual?"← Intelligens bevitel":"Dátum/idő kézi beállítása"}</button>
 
-      <div className="quickFooter">
+      {!pastedMode&&<div className="quickFooter">
         {onDetails&&<button className="quickDetails" disabled={!manual&&!parsed.title} onClick={()=>onDetails(payload)}>Részletek</button>}
-        <button className="quickSave" disabled={manual?!title.trim():!canSmartSave} onClick={()=>onCreate(payload)}>Rögzítés <span>→</span></button>
-      </div>
+        <button className="quickSave" disabled={manual?!title.trim():!canSmartSave} onClick={()=>saveSingle(payload)}>Rögzítés <span>→</span></button>
+      </div>}
+      {pastedMode&&extracted.length>1&&Object.keys(savedCandidates).length===extracted.length&&<button className="extractDone" onClick={onClose}>Kész</button>}
     </section>
   </div>
 }
