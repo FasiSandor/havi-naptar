@@ -1589,3 +1589,25 @@
   }
   .appShell[data-theme="light"] .readOnlyMeta b{color:#71849A}
 }
+
+/* next-major: compact calendar legend */
+@media(max-width:900px){
+  .mobileLegend,.flowLegend{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#7E91A7;font-size:8px;font-weight:800
+  }
+  .mobileLegend{margin:-4px 0 8px}
+  .mobileLegend span,.flowLegend span{display:inline-flex;align-items:center;gap:4px}
+  .mobileLegend i,.flowLegend i{display:block;width:7px;height:7px;border-radius:50%}
+  .legendOwn{background:#3B82F6;box-shadow:0 0 8px #3B82F655}
+  .legendPlan{background:#F59E0B;box-shadow:0 0 8px #F59E0B55}
+  .legendHoliday{background:#EF4444;box-shadow:0 0 8px #EF444455}
+  .syncState{margin-left:auto;padding:4px 7px;border-radius:999px;border:1px solid #39495D;background:#111A25;color:#8191A3}
+  .syncState.ok{border-color:#22C55E55;background:#10261A;color:#62D987}
+  .flowLegend{
+    padding:7px 16px;border-bottom:1px solid #1E2833;background:#0A1018D9;backdrop-filter:blur(12px)
+  }
+  .appShell[data-theme="light"] .mobileLegend,.appShell[data-theme="light"] .flowLegend{color:#62778D}
+  .appShell[data-theme="light"] .syncState{background:#F2F6FA;border-color:#CBD8E4;color:#61758A}
+  .appShell[data-theme="light"] .syncState.ok{background:#ECF9F0;border-color:#A9DFB8;color:#247A3E}
+  .appShell[data-theme="light"] .flowLegend{background:#F8FBFFEB;border-color:#D6E0E8}
+}
