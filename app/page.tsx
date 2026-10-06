@@ -606,27 +606,38 @@ function WheelScroller({label,items,value,onChange}:{label:string;items:{value:n
 
 function QuickAddWheel({baseDate,onClose,onCreate}:{baseDate:Date;onClose:()=>void;onCreate:(x:Partial<Ev>)=>Promise<void>}){
   const [title,setTitle]=useState("");
+  const [year,setYear]=useState(baseDate.getFullYear());
   const [month,setMonth]=useState(baseDate.getMonth());
   const [day,setDay]=useState(baseDate.getDate());
   const [time,setTime]=useState(9*60);
+  const [allDay,setAllDay]=useState(false);
   const [calendar,setCalendar]=useState<CalKey>("work");
-  const year=baseDate.getFullYear();
   const monthNames=["Jan","Feb","Már","Ápr","Máj","Jún","Júl","Aug","Szept","Okt","Nov","Dec"];
   const maxDay=new Date(year,month+1,0).getDate();
   const safeDay=Math.min(day,maxDay);
   const date=iso(new Date(year,month,safeDay,12));
+  const monthItems=Array.from({length:14},(_,i)=>{
+    const d=new Date(baseDate.getFullYear(),baseDate.getMonth()-2+i,1,12);
+    return {value:d.getFullYear()*12+d.getMonth(),label:d.toLocaleDateString("hu-HU",{month:"short"})+" "+String(d.getFullYear()).slice(2)}
+  });
+  const monthValue=year*12+month;
+  const chooseMonth=(v:number)=>{const y=Math.floor(v/12),m=v%12;setYear(y);setMonth(m);setDay(d=>Math.min(d,new Date(y,m+1,0).getDate()))};
   return <div className="quickBackdrop" onMouseDown={e=>{if(e.currentTarget===e.target)onClose()}}>
     <section className="quickSheet">
       <div className="quickGrabber"/>
       <header><div><small>GYORS BEVITEL</small><h2>Új esemény</h2></div><button onClick={onClose}>×</button></header>
       <input className="quickTitle" autoFocus placeholder="Mi legyen?" value={title} onChange={e=>setTitle(e.target.value)}/>
       <div className="wheelPicker">
-        <WheelScroller label="HÓNAP" items={monthNames.map((label,value)=>({value,label}))} value={month} onChange={m=>{setMonth(m);setDay(d=>Math.min(d,new Date(year,m+1,0).getDate()))}}/>
+        <WheelScroller label="HÓNAP" items={monthItems} value={monthValue} onChange={chooseMonth}/>
         <WheelScroller label="NAP" items={Array.from({length:maxDay},(_,i)=>({value:i+1,label:String(i+1)}))} value={safeDay} onChange={setDay}/>
-        <WheelScroller label="IDŐ" items={Array.from({length:96},(_,i)=>({value:i*15,label:hhmm(i*15)}))} value={time} onChange={setTime}/>
+        <WheelScroller label={allDay?"EGÉSZ NAP":"IDŐ"} items={allDay?[{value:0,label:"—"}]:Array.from({length:96},(_,i)=>({value:i*15,label:hhmm(i*15)}))} value={allDay?0:time} onChange={setTime}/>
+      </div>
+      <div className="quickOptions">
+        <button type="button" className={allDay?"on":""} onClick={()=>setAllDay(v=>!v)}><i/> Egész napos</button>
+        <span>{date}</span>
       </div>
       <div className="quickCategories">{(Object.keys(calMeta) as CalKey[]).map(k=><button key={k} className={calendar===k?"active":""} style={{"--event":calMeta[k].color} as React.CSSProperties} onClick={()=>setCalendar(k)}><span>{calMeta[k].icon}</span>{calMeta[k].label}</button>)}</div>
-      <button className="quickSave" onClick={()=>onCreate({title,date,start:hhmm(time),end:hhmm(time+60),calendar})}>Rögzítés <span>→</span></button>
+      <button className="quickSave" onClick={()=>onCreate({title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar})}>Rögzítés <span>→</span></button>
     </section>
   </div>
 }
