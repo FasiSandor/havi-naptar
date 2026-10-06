@@ -5,7 +5,7 @@ type CalKey="work"|"personal"|"family"|"sport";
 type RangeMode="1w"|"2w"|"4w"|"month"|"custom"|"list";
 type ThemeMode="dark"|"light"|"system";
 type RepeatMode="none"|"daily"|"weekly"|"monthly"|"yearly"|"googleSeries";
-type Ev={id:string;googleId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string;repeat?:RepeatMode;reminder?:number};
+type Ev={id:string;googleId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string;repeat?:RepeatMode;reminder?:number;pendingSync?:boolean};
 
 const calMeta:Record<CalKey,{label:string;color:string;icon:string}>={
   work:{label:"Suli / Munka",color:"#3B82F6",icon:"▦"},
@@ -74,6 +74,34 @@ function fmtRange(a:Date,b:Date){return a.toLocaleDateString("hu-HU",{month:"sho
 function mins(t?:string){if(!t)return 9*60;const [h,m]=t.split(":").map(Number);return h*60+m}
 function hhmm(m:number){m=Math.max(0,Math.min(23*60+45,m));return `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`}
 function duration(e:Ev){return Math.max(15,mins(e.end)-mins(e.start))}
+function normText(v?:string){
+  return (v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("hu-HU").replace(/[^a-z0-9]+/g," ").trim();
+}
+function eventKey(e:Pick<Ev,"title"|"date"|"start"|"allDay"|"location">){
+  const t=normText(e.title),loc=normText(e.location);
+  const time=e.allDay?"allday":(e.start||"").slice(0,5);
+  return [e.date,time,t,loc].join("|");
+}
+function nearDuplicate(a:Ev,b:Ev){
+  if(a.date!==b.date)return false;
+  if(normText(a.title)!==normText(b.title))return false;
+  if(normText(a.location)&&normText(b.location)&&normText(a.location)!==normText(b.location))return false;
+  if(a.allDay||b.allDay)return !!a.allDay===!!b.allDay;
+  return Math.abs(mins(a.start)-mins(b.start))<=15;
+}
+function dedupeEvents(list:Ev[]){
+  const out:Ev[]=[];
+  for(const e of list){
+    const exact=out.findIndex(x=>eventKey(x)===eventKey(e));
+    const near=exact<0?out.findIndex(x=>nearDuplicate(x,e)):-1;
+    const i=exact>=0?exact:near;
+    if(i<0){out.push(e);continue}
+    const old=out[i];
+    if(e.googleId&&!old.googleId)out[i]={...old,...e,pendingSync:false};
+    else if(!old.googleId&&!e.googleId)out[i]={...old,...e};
+  }
+  return out;
+}
 function toGoogleEvent(x:any):Ev{
   const start=x.start?.dateTime||x.start?.date;
   const category=x.extendedProperties?.private?.haviCategory;
@@ -92,8 +120,8 @@ function mergeGoogleRange(prev:Ev[],incoming:Ev[],from:string,toExclusive:string
   const local=prev.filter(e=>!e.googleId);
   const keepGoogle=prev.filter(e=>e.googleId&&(e.date<from||e.date>=toExclusive));
   const byId=new Map<string,Ev>();
-  for(const e of [...keepGoogle,...incoming]) if(e.googleId) byId.set(e.googleId,e);
-  return [...local,...byId.values()];
+  for(const e of [...keepGoogle,...incoming]) if(e.googleId) byId.set(e.googleId,{...e,pendingSync:false});
+  return dedupeEvents([...local,...byId.values()]);
 }
 
 export default function Home(){
