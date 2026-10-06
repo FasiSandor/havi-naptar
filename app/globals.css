@@ -1814,3 +1814,97 @@
 .appShell[data-theme="light"] .pendingSyncSetting button{
   background:#FFF1C9;border-color:#E8B95D;color:#8B5900
 }
+
+/* next-major: unified quick add + pasted text extraction */
+@media(max-width:900px) and (orientation:portrait){
+  .activeDateHint{
+    display:grid;grid-template-columns:auto auto 1fr;gap:7px;align-items:center;
+    margin:0 0 9px;padding:8px 10px;border-radius:13px;
+    border:1px solid #2C3E54;background:#0E1722;color:#7F93AA
+  }
+  .activeDateHint>span{font-size:8px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+  .activeDateHint>b{font-size:10px;color:#DCE7F2}
+  .activeDateHint>em{font-style:normal;font-size:8px;text-align:right;color:#6C8097}
+  .smartInput.pasteInput{min-height:132px;font-size:14px;font-weight:650;line-height:1.45}
+  .extractArea{display:grid;gap:9px;margin-top:10px}
+  .extractHead{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;padding:0 2px}
+  .extractHead>div small,.extractHead>div b{display:block}
+  .extractHead small{font-size:8px;color:#6E839A;font-weight:900;letter-spacing:.08em}
+  .extractHead b{margin-top:2px;font-size:12px;color:#E6EEF7}
+  .extractHead>span{max-width:128px;font-size:8px;line-height:1.3;text-align:right;color:#6D8095}
+  .extractCard{
+    display:grid;grid-template-columns:48px minmax(0,1fr);grid-template-areas:
+      "date body"
+      "actions actions";
+    gap:9px;padding:10px;border:1px solid #2C4058;border-radius:16px;
+    background:linear-gradient(145deg,#111C29,#0D1620);
+    box-shadow:inset 0 1px 0 #ffffff08,0 8px 22px #0002
+  }
+  .extractCard.saved{border-color:#22C55E55;background:linear-gradient(145deg,#102117,#0D1720)}
+  .extractDate{
+    grid-area:date;display:grid;place-content:center;text-align:center;width:48px;height:48px;border-radius:14px;
+    background:#14243A;border:1px solid #2D4B6D
+  }
+  .extractDate b{font-size:20px;line-height:1;color:#F8FAFC}
+  .extractDate span{margin-top:3px;font-size:8px;color:#7EA3CB;text-transform:capitalize}
+  .extractBody{grid-area:body;min-width:0;display:grid;align-content:center}
+  .extractBody strong{font-size:13px;line-height:1.25;color:#EFF5FA}
+  .extractBody>span{margin-top:3px;font-size:10px;color:#90A5BA}
+  .extractBody small{margin-top:3px;font-size:8px;color:#5FA8F1;font-weight:800}
+  .extractActions{grid-area:actions;display:grid;grid-template-columns:.8fr 1.2fr;gap:7px}
+  .extractActions button,.extractDone{
+    height:38px;border-radius:12px;font-size:9px;font-weight:900
+  }
+  .extractActions button:first-child{
+    border:1px solid #334A64;background:#111C29;color:#9EB2C8
+  }
+  .extractActions .extractSave{
+    border:1px solid #3B82F6AA;background:linear-gradient(135deg,#1D4ED8,#2563EB);color:white;
+    box-shadow:0 8px 18px #1D4ED82A
+  }
+  .extractActions button:disabled{opacity:.58}
+  .extractCard.saved .extractSave{border-color:#22C55E88;background:#163F24;color:#8EF0AA}
+  .extractEmpty{
+    padding:13px;border-radius:15px;border:1px dashed #3A4C60;background:#0E1620
+  }
+  .extractEmpty b,.extractEmpty span{display:block}
+  .extractEmpty b{font-size:11px;color:#CBD8E5}
+  .extractEmpty span{margin-top:5px;font-size:9px;line-height:1.45;color:#73879C}
+  .extractDone{
+    width:100%;margin-top:3px;border:1px solid #22C55E66;background:#153A22;color:#8DE7A6
+  }
+
+  .appShell[data-theme="light"] .activeDateHint{
+    background:#F5F9FC;border-color:#CBD8E4;color:#62778C
+  }
+  .appShell[data-theme="light"] .activeDateHint>b{color:#29435B}
+  .appShell[data-theme="light"] .activeDateHint>em{color:#71869A}
+  .appShell[data-theme="light"] .extractHead b{color:#284159}
+  .appShell[data-theme="light"] .extractHead small,.appShell[data-theme="light"] .extractHead>span{color:#71849A}
+  .appShell[data-theme="light"] .extractCard{
+    background:linear-gradient(145deg,#FFFFFF,#F3F8FC);border-color:#C7D6E3;
+    box-shadow:0 8px 20px #31517310,inset 0 1px 0 #fff
+  }
+  .appShell[data-theme="light"] .extractCard.saved{
+    background:#F0FBF4;border-color:#A8DDB7
+  }
+  .appShell[data-theme="light"] .extractDate{
+    background:#EDF5FC;border-color:#C2D8EA
+  }
+  .appShell[data-theme="light"] .extractDate b{color:#1F3B56}
+  .appShell[data-theme="light"] .extractDate span{color:#5D7A96}
+  .appShell[data-theme="light"] .extractBody strong{color:#243D54}
+  .appShell[data-theme="light"] .extractBody>span{color:#61788E}
+  .appShell[data-theme="light"] .extractBody small{color:#2469AE}
+  .appShell[data-theme="light"] .extractActions button:first-child{
+    background:#F2F6FA;border-color:#CAD7E2;color:#5D7388
+  }
+  .appShell[data-theme="light"] .extractEmpty{
+    background:#F7FAFD;border-color:#C8D5E0
+  }
+  .appShell[data-theme="light"] .extractEmpty b{color:#29435B}
+  .appShell[data-theme="light"] .extractEmpty span{color:#71849A}
+  .appShell[data-theme="light"] .extractDone{
+    background:#EDF9F1;border-color:#A9DFB8;color:#247A3E
+  }
+}
