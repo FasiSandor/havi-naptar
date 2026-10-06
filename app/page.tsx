@@ -760,7 +760,7 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
     aug:7,augusztus:7,szept:8,szeptember:8,okt:9,oktober:9,október:9,
     nov:10,november:10,dec:11,december:11
   };
-  const weekdays:Record<string,number>={vasarnap:0,vasárnap:0,hetfo:1,hétfő:1,kedd:2,szerda:3,csutortok:4,csütörtök:4,pentek:5,péntek:5,szombat:6};
+  const weekdays:Record<string,number>={vasarnap:0,vasárnap:0,vasarnapon:0,vasárnapon:0,hetfo:1,hétfő:1,hetfon:1,hétfőn:1,kedd:2,kedden:2,szerda:3,szerdan:3,szerdán:3,csutortok:4,csütörtök:4,csutortokon:4,csütörtökön:4,pentek:5,péntek:5,penteken:5,pénteken:5,szombat:6,szombaton:6};
 
   if(/\bholnaputan\b|\bholnapután\b/.test(low)) d=addDays(d,2);
   else if(/\bholnap\b/.test(low)) d=addDays(d,1);
@@ -786,9 +786,11 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
       }
     }
     if(!matched){
+      const forceNextWeek=/\bjovo\b|\bjövő\b/.test(low);
       for(const [name,target] of Object.entries(weekdays)){
         if(new RegExp("\\b"+name+"\\b").test(low)){
           let delta=(target-d.getDay()+7)%7; if(delta===0)delta=7;
+          if(forceNextWeek&&delta<7)delta+=7;
           d=addDays(d,delta); matched=true; break;
         }
       }
@@ -796,8 +798,16 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
   }
 
   let startMins:number|undefined;
+  if(/\bdelben\b|\bdélben\b/.test(low))startMins=12*60;
+  const daypart=low.match(/\b(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+([01]?\d|2[0-3])(?::|\.([0-5]\d))?\b/);
+  if(startMins===undefined&&daypart){
+    let h=Number(daypart[2]),m=Number(daypart[3]||0);
+    const part=daypart[1];
+    if((part==="delutan"||part==="délután"||part==="este")&&h<12)h+=12;
+    startMins=h*60+m;
+  }
   const tm=low.match(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)(?:\s*-?\s*kor)?|([01]?\d|2[0-3])\s*-?\s*(?:ora|óra|kor))\b/);
-  if(tm){const h=Number(tm[1]??tm[3]),m=Number(tm[2]??0);startMins=h*60+m}
+  if(startMins===undefined&&tm){const h=Number(tm[1]??tm[3]),m=Number(tm[2]??0);startMins=h*60+m}
 
   let duration=60;
   const durM=low.match(/\b(\d{1,3})\s*(perc|p)\b/);
@@ -817,7 +827,10 @@ function parseSmartEvent(input:string,baseDate:Date):SmartParse{
     .replace(/\bholnaputan\b|\bholnapután\b|\bholnap\b|\bma\b/gi," ")
     .replace(/\b(\d{1,2})[.\/-](\d{1,2})(?:[.\/-](\d{2,4}))?\b/g," ")
     .replace(/\b(jan\w*|feb\w*|mar\w*|már\w*|apr\w*|ápr\w*|maj\w*|máj\w*|jun\w*|jún\w*|jul\w*|júl\w*|aug\w*|szept\w*|okt\w*|nov\w*|dec\w*)\s+\d{1,2}\b/gi," ")
-    .replace(/\b(vasarnap|vasárnap|hetfo|hétfő|kedd|szerda|csutortok|csütörtök|pentek|péntek|szombat)\b/gi," ")
+    .replace(/\b(jovo|jövő)\b/gi," ")
+    .replace(/\b(vasarnap(?:on)?|vasárnap(?:on)?|hetfo(?:n)?|hétfő(?:n)?|kedd(?:en)?|szerda(?:n|án)?|csutortok(?:on)?|csütörtök(?:ön)?|pentek(?:en)?|péntek(?:en)?|szombat(?:on)?)\b/gi," ")
+    .replace(/\bdelben\b|\bdélben\b/gi," ")
+    .replace(/\b(reggel|delelot(?:t)?|délelőtt|delutan|délután|este)\s+([01]?\d|2[0-3])(?::|\.([0-5]\d))?\b/gi," ")
     .replace(/\b(?:([01]?\d|2[0-3])[:.]([0-5]\d)(?:\s*-?\s*kor)?|([01]?\d|2[0-3])\s*-?\s*(?:ora|óra|kor))\b/gi," ")
     .replace(/\b\d{1,3}\s*(?:perc|p)\b/gi," ")
     .replace(/\b\d+(?:[.,]\d+)?\s*(?:ora|óra)\s*(?:hosszu|hosszú|idotartam|időtartam)?\b/gi," ")
@@ -875,7 +888,7 @@ function QuickAddWheel({baseDate,onClose,onCreate,onDetails}:{baseDate:Date;onCl
           <p>{parsed.allDay?"Egész nap":parsed.start+" – "+parsed.end}{parsed.duration!==60&&!parsed.allDay?" · "+parsed.duration+" perc":""}{parsed.location?" · @"+parsed.location:""}</p>
           {parsed.missing.length>0&&<em>Hiányzik: {parsed.missing.join(", ")}</em>}
         </div>
-        <div className="smartExamples">Példák: <span>holnap értekezlet 14.30</span> · <span>péntek fogorvos 8-kor 30 perc</span></div>
+        <div className="smartExamples">Példák: <span>holnap értekezlet 14.30</span> · <span>jövő kedden fodrász 16.10</span> · <span>pénteken reggel 8 fogorvos</span></div>
       </>}
 
       {manual&&<>
