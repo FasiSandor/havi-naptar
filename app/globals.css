@@ -1791,3 +1791,26 @@
     background:#E9FAFD;border-color:#91DCE6;color:#0C7182!important
   }
 }
+
+/* next-major: pending sync settings card */
+.pendingSyncSetting{
+  display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  padding:13px 14px;border-radius:16px;border:1px solid #F59E0B55;
+  background:linear-gradient(135deg,#2A210F,#171A20);box-shadow:0 0 16px #F59E0B12
+}
+.pendingSyncSetting b,.pendingSyncSetting span{display:block}
+.pendingSyncSetting b{font-size:12px;color:#F8D28A}
+.pendingSyncSetting span{margin-top:3px;font-size:9px;line-height:1.35;color:#A99168}
+.pendingSyncSetting button{
+  min-width:92px;height:38px;padding:0 11px;border-radius:999px;border:1px solid #F59E0B77;
+  background:#3B2B0D;color:#FBBF24;font-size:9px;font-weight:900
+}
+.pendingSyncSetting button:disabled{opacity:.45}
+.appShell[data-theme="light"] .pendingSyncSetting{
+  background:#FFF8E9;border-color:#F0CC83;box-shadow:0 0 14px #F59E0B10
+}
+.appShell[data-theme="light"] .pendingSyncSetting b{color:#8E5A00}
+.appShell[data-theme="light"] .pendingSyncSetting span{color:#7B6A4B}
+.appShell[data-theme="light"] .pendingSyncSetting button{
+  background:#FFF1C9;border-color:#E8B95D;color:#8B5900
+}
