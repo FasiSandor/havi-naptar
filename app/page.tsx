@@ -755,7 +755,7 @@ function MobileDayCards({date,events,onClose,onEdit,onDelete,onAdd}:{date:string
             <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span>{e.note==="Iskolai munkaterv 2026/2027"&&<small className="sourceBadge">MUNKATERV · CSAK OLVASHATÓ</small>}{e.pendingSync&&<small className="pendingBadge">SZINKRONRA VÁR</small>}</div>
           </button>
           {!e.id.startsWith("workplan-")&&<button className={"mobileEventDelete "+(deleteId===e.id?"armed":"")} aria-label="Esemény törlése" onClick={()=>{if(deleteId===e.id){onDelete(e);setDeleteId(null)}else{setDeleteId(e.id);setTimeout(()=>setDeleteId(id=>id===e.id?null:id),2200)}}}>{deleteId===e.id?"Törlés":"×"}</button>}
-        </div>)}:<div className="mobileNoEvents"><i>✦</i><b>Szabad nap</b><span>Nincs bejegyzett esemény.</span></div>}
+        </div>):<div className="mobileNoEvents"><i>✦</i><b>Szabad nap</b><span>Nincs bejegyzett esemény.</span></div>}
       </div>
       <button className="mobilePanelAdd" onClick={onAdd}>＋ Esemény hozzáadása</button>
     </section>
