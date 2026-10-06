@@ -313,6 +313,24 @@ export default function Home(){
       }catch{}
     })();
   },[monthFlow,hydrated,anchor.getFullYear(),anchor.getMonth()]);
+  useEffect(()=>{
+    if(!hydrated||!searchOpen)return;
+    const schoolStartYear=anchor.getMonth()>=8?anchor.getFullYear():anchor.getFullYear()-1;
+    const from=new Date(schoolStartYear,8,1,0,0,0,0);
+    const to=new Date(schoolStartYear+1,8,1,0,0,0,0);
+    (async()=>{
+      try{
+        const r=await fetch("/api/google/events?from="+encodeURIComponent(from.toISOString())+"&to="+encodeURIComponent(to.toISOString()));
+        if(!r.ok)return;
+        const j=await r.json();
+        if(!j.connected)return;
+        setConnected(true);
+        const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
+        const incoming=(j.items||[]).map(toGoogleEvent);
+        setEvents(prev=>mergeGoogleRange(prev,incoming,iso(from),iso(to)));
+      }catch{}
+    })();
+  },[searchOpen,hydrated,anchor.getFullYear(),anchor.getMonth()]);
 
   async function persist(next:Ev){
     let gId=next.googleId;
@@ -422,6 +440,7 @@ export default function Home(){
     <aside className="sidebar">
       <div className="brand"><div className="brandIcon">▦</div><span>HAVI <b>NAPTÁR</b></span></div>
       <div className="calList"><h4>Naptárak</h4>{(Object.keys(calMeta) as CalKey[]).map(k=><label key={k}><i style={{background:calMeta[k].color}}/><span>{calMeta[k].label}</span><input type="checkbox" checked={enabled[k]} onChange={e=>setEnabled({...enabled,[k]:e.target.checked})}/></label>)}</div>
+      <button className="nav" onClick={()=>setSearchOpen(true)}>⌕ <span>Keresés</span></button>
       <button className="nav" onClick={()=>setSettings(true)}>⚙ <span>Naptár kapcsolat</span></button>
     </aside>
 
@@ -472,6 +491,7 @@ export default function Home(){
           <div className="periodTitle"><div className="titleGlowDots" aria-hidden="true"><i/><i/><i/></div><h1>{mode==="custom"?fmtRange(start,end):monthLabel(anchor)}</h1><small>{fmtRange(start,end)}</small></div>
         </div>
         <div className="actions">
+          <button className="secondary" onClick={()=>setSearchOpen(true)}>⌕ Keresés</button>
           <button className="secondary" onClick={()=>window.print()}>⎙ PDF / Nyomtatás</button>
           <button className="syncBtn" onClick={()=>sync()} disabled={syncing}>{syncing?"Szinkron…":connected?"↻ Szinkron":"○ Offline"}</button>
           <button className="primary" onClick={()=>setQuickAdd(true)}>＋ Esemény</button>
