@@ -1015,7 +1015,7 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
         {pastedMode&&<div className="extractArea">
           <div className="extractHead">
             <div><small>KINYERÉS</small><b>{extracted.length?extracted.length+" egyértelmű eseményt találtam":"Még nincs biztos találat"}</b></div>
-            <span>Semmi nem kerül be automatikusan.</span>
+            <span>Semmi nem kerül be automatikusan. A bemásolt nyers szöveget nem tároljuk.</span>
           </div>
           {extracted.length?extracted.map((c,i)=>{const candidate={title:c.title,date:c.date,allDay:c.allDay,start:c.start,end:c.end,calendar:c.calendar,location:c.location};const dup=duplicateFor(candidate),conflict=dup?undefined:conflictFor(candidate);return <article key={i} className={"extractCard "+(savedCandidates[i]?"saved ":"")+(dup?"duplicate ":"")+(conflict?"conflict":"")}>
             <div className="extractDate"><b>{parseDate(c.date).getDate()}</b><span>{parseDate(c.date).toLocaleDateString("hu-HU",{month:"short"})}</span></div>
@@ -1055,7 +1055,7 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
         {onDetails&&<button className="quickDetails" disabled={!manual&&!parsed.title} onClick={()=>onDetails(payload)}>Részletek</button>}
         <button className="quickSave" disabled={manual?!title.trim():!canSmartSave} onClick={()=>saveSingle(payload)}>Rögzítés <span>→</span></button>
       </div>}
-      {pastedMode&&extracted.length>1&&Object.keys(savedCandidates).length===extracted.length&&<button className="extractDone" onClick={onClose}>Kész</button>}
+      {pastedMode&&extracted.length>1&&<button className="extractDone" onClick={onClose}>Kész</button>}
     </section>
   </div>
 }
