@@ -123,7 +123,7 @@ export default function Home(){
     const portrait=window.matchMedia("(orientation: portrait)");
     const apply=()=>{
       if(!mq.matches)return;
-      setMode(portrait.matches?"1w":"month");
+      setMode("month");
       if(!portrait.matches)setRotateHint(false);
     };
     apply();
@@ -168,6 +168,24 @@ export default function Home(){
     document.addEventListener("visibilitychange",refresh);
     return ()=>{clearInterval(timer);window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",refresh)};
   },[hydrated,start.getTime(),end.getTime()]);
+  useEffect(()=>{
+    if(!hydrated||!monthFlow)return;
+    const schoolStartYear=anchor.getMonth()>=8?anchor.getFullYear():anchor.getFullYear()-1;
+    const from=new Date(schoolStartYear,8,1,0,0,0,0);
+    const to=new Date(schoolStartYear+1,6,1,0,0,0,0);
+    (async()=>{
+      try{
+        const r=await fetch(`/api/google/events?from=${from.toISOString()}&to=${to.toISOString()}`);
+        if(!r.ok)return;
+        const j=await r.json();
+        if(!j.connected)return;
+        setEvents(prev=>{
+          const local=prev.filter(e=>!e.googleId);
+          return [...local,...(j.items||[]).map(toGoogleEvent)];
+        });
+      }catch{}
+    })();
+  },[monthFlow,hydrated,anchor.getFullYear(),anchor.getMonth()]);
 
   async function persist(next:Ev){
     let gId=next.googleId;
