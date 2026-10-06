@@ -6,6 +6,7 @@ type RangeMode="1w"|"2w"|"4w"|"month"|"custom"|"list";
 type ThemeMode="dark"|"light"|"system";
 type RepeatMode="none"|"daily"|"weekly"|"monthly"|"yearly"|"googleSeries";
 type Ev={id:string;googleId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string;repeat?:RepeatMode;reminder?:number;pendingSync?:boolean};
+type SyncOp={id:string;kind:"create"|"update"|"delete";event?:Ev;googleId?:string;createdAt:number};
 
 const calMeta:Record<CalKey,{label:string;color:string;icon:string}>={
   work:{label:"Suli / Munka",color:"#3B82F6",icon:"▦"},
@@ -145,6 +146,7 @@ export default function Home(){
   const [monthFlow,setMonthFlow]=useState(false);
   const [showWorkPlan,setShowWorkPlan]=useState(true);
   const [infoEvent,setInfoEvent]=useState<Ev|null>(null);
+  const [syncQueue,setSyncQueue]=useState<SyncOp[]>([]);
 
   useEffect(()=>{
     try{
@@ -152,6 +154,7 @@ export default function Home(){
       setEvents(stored.filter(e=>!e.id.startsWith("workplan-")));
       setShowWorkPlan(localStorage.getItem("havi-workplan-visible")!=="0");
       localStorage.removeItem("havi-schoolplan-2026-27");
+      try{setSyncQueue(JSON.parse(localStorage.getItem("havi-sync-queue")||"[]"))}catch{setSyncQueue([])}
       const savedTheme=localStorage.getItem("havi-theme");
       if(savedTheme==="dark"||savedTheme==="light"||savedTheme==="system") setThemeMode(savedTheme);
       const status=new URLSearchParams(window.location.search).get("google");
@@ -164,6 +167,7 @@ export default function Home(){
   },[]);
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-events",JSON.stringify(events.filter(e=>!e.googleId&&!e.id.startsWith("workplan-"))))},[events,hydrated]);
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-workplan-visible",showWorkPlan?"1":"0")},[showWorkPlan,hydrated]);
+  useEffect(()=>{if(hydrated)localStorage.setItem("havi-sync-queue",JSON.stringify(syncQueue))},[syncQueue,hydrated]);
   useEffect(()=>{
     if(!hydrated)return;
     localStorage.setItem("havi-theme",themeMode);
@@ -208,6 +212,43 @@ export default function Home(){
   const displayEvents=useMemo(()=>[...events,...(showWorkPlan?schoolPlanEvents:[])],[events,showWorkPlan]);
   const shown=displayEvents.filter(e=>enabled[e.calendar]&&days.some(d=>iso(d)===e.date)).sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
 
+  function queueSync(op:SyncOp){
+    setSyncQueue(prev=>{
+      const target=op.googleId||op.event?.id||op.id;
+      const filtered=prev.filter(x=>(x.googleId||x.event?.id||x.id)!==target);
+      return [...filtered,op];
+    });
+  }
+
+  async function flushSyncQueue(){
+    if(!connected||syncQueue.length===0)return;
+    const done=new Set<string>();
+    for(const op of syncQueue){
+      try{
+        if(op.kind==="delete"&&op.googleId){
+          const r=await fetch("/api/google/events?id="+encodeURIComponent(op.googleId),{method:"DELETE"});
+          if(r.ok||r.status===404)done.add(op.id);
+          continue;
+        }
+        if(!op.event)continue;
+        const ev=op.event,sd=parseDate(ev.date);
+        const payload:any={...ev};
+        payload.start=ev.allDay?ev.date:(ev.date+"T"+ev.start+":00");
+        payload.end=ev.allDay?iso(addDays(sd,1)):(ev.date+"T"+ev.end+":00");
+        payload.endDate=iso(addDays(sd,1));
+        const method=op.kind==="update"&&ev.googleId?"PATCH":"POST";
+        const r=await fetch("/api/google/events",{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+        if(!r.ok)continue;
+        const j=await r.json();
+        const gId=j.id||ev.googleId;
+        if(gId){
+          setEvents(prev=>dedupeEvents(prev.map(x=>x.id===ev.id?{...x,googleId:gId,pendingSync:false}:x)));
+          done.add(op.id);
+        }
+      }catch{}
+    }
+    if(done.size)setSyncQueue(prev=>prev.filter(x=>!done.has(x.id)));
+  }
   async function sync(){
     setSyncing(true);
     try{
@@ -222,6 +263,7 @@ export default function Home(){
     finally{setSyncing(false)}
   }
   useEffect(()=>{if(hydrated)sync().catch(()=>{})},[start.getTime(),end.getTime(),hydrated]);
+  useEffect(()=>{if(hydrated&&connected&&syncQueue.length)flushSyncQueue().catch(()=>{})},[hydrated,connected,syncQueue.length]);
   useEffect(()=>{
     if(!hydrated)return;
     const refresh=()=>{if(document.visibilityState==="visible")sync().catch(()=>{})};
