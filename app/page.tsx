@@ -160,6 +160,8 @@ export default function Home(){
   const [searchOpen,setSearchOpen]=useState(false);
   const [clock,setClock]=useState(()=>Date.now());
   const [backupPreview,setBackupPreview]=useState<{events:Ev[];total:number;duplicates:number;invalid:number;name:string}|null>(null);
+  const [wallPrintOpen,setWallPrintOpen]=useState(false);
+  const [wallPrintMode,setWallPrintMode]=useState<"month"|"4w">("month");
 
   useEffect(()=>{
     try{
@@ -581,7 +583,7 @@ export default function Home(){
         </div>
         <div className="actions">
           <button className="secondary" onClick={()=>setSearchOpen(true)}>⌕ Keresés</button>
-          <button className="secondary" onClick={()=>window.print()}>⎙ PDF / Nyomtatás</button>
+          <button className="secondary" onClick={()=>{setWallPrintMode(mode==="4w"?"4w":"month");setWallPrintOpen(true)}}>⎙ Falinaptár / PDF</button>
           <button className="syncBtn" onClick={()=>sync()} disabled={syncing}>{syncing?"Szinkron…":connected?"↻ Szinkron":"○ Offline"}</button>
           <button className="primary" onClick={()=>setQuickAdd(true)}>＋ Esemény</button>
         </div>
@@ -639,6 +641,14 @@ export default function Home(){
         </div>
       </div>
     </Modal>}
+
+    {wallPrintOpen&&<WallCalendarPrint
+      anchor={anchor}
+      events={enabledEvents}
+      mode={wallPrintMode}
+      onMode={setWallPrintMode}
+      onClose={()=>setWallPrintOpen(false)}
+    />}
 
     {searchOpen&&<EventSearchOverlay events={enabledEvents} onClose={()=>setSearchOpen(false)} onOpen={e=>{setSearchOpen(false);setAnchor(parseDate(e.date));setDayOpen(e.date)}}/>}
 
@@ -1305,6 +1315,83 @@ function DraggableEvent({e,onMove,onEdit,onDelete}:{e:Ev;onMove:(e:Ev,m:number,d
     <button className="eventMain" onClick={()=>onEdit(e)}><span>{calMeta[e.calendar].icon}</span><div><b>{e.title}</b><small>{e.start} – {e.end}{e.location?" • "+e.location:""}</small></div></button>
     <div className="eventQuick"><button onPointerDown={ev=>ev.stopPropagation()} onClick={()=>onMove(e,base-15)}>−15</button><button onPointerDown={ev=>ev.stopPropagation()} onClick={()=>onMove(e,base+15)}>+15</button><button onPointerDown={ev=>ev.stopPropagation()} onClick={()=>onMove(e,base,iso(addDays(parseDate(e.date),-1)))}>←nap</button><button onPointerDown={ev=>ev.stopPropagation()} onClick={()=>onMove(e,base,iso(addDays(parseDate(e.date),1)))}>nap→</button><button onPointerDown={ev=>ev.stopPropagation()} onClick={()=>onEdit(e)}>✎</button><button onPointerDown={ev=>ev.stopPropagation()} onClick={()=>onDelete(e)}>×</button></div>
   </article>
+}
+
+function WallCalendarPrint({anchor,events,mode,onMode,onClose}:{anchor:Date;events:Ev[];mode:"month"|"4w";onMode:(m:"month"|"4w")=>void;onClose:()=>void}){
+  const monthFirst=new Date(anchor.getFullYear(),anchor.getMonth(),1,12);
+  const monthStart=monday(monthFirst);
+  const monthLast=new Date(anchor.getFullYear(),anchor.getMonth()+1,0,12);
+  const monthEndMonday=monday(monthLast);
+  const monthWeeks=Math.round((monthEndMonday.getTime()-monthStart.getTime())/(7*86400000))+1;
+  const fourStart=monday(anchor);
+  const actualStart=mode==="month"?monthStart:fourStart;
+  const rowCount=mode==="month"?Math.max(5,monthWeeks):5;
+  const selectedDays=mode==="month"?Array.from({length:rowCount*7},(_,i)=>addDays(actualStart,i)):Array.from({length:28},(_,i)=>addDays(fourStart,i));
+  const cells=mode==="month"?selectedDays:[...selectedDays,...Array.from({length:7},()=>null as Date|null)];
+  const title=mode==="month"
+    ?monthLabel(anchor)
+    :fmtRange(fourStart,addDays(fourStart,27));
+  const subtitle=mode==="month"
+    ?"Havi falinaptár"
+    :"4 hetes falinaptár";
+  const weekdayHeaders=["Hétfő","Kedd","Szerda","Csütörtök","Péntek","Szombat","Vasárnap"];
+
+  return <div className="wallPrintOverlay">
+    <div className="wallPrintToolbar">
+      <div>
+        <small>FALINAPTÁR</small>
+        <b>A4 fekvő · nyomtatható nézet</b>
+      </div>
+      <div className="wallPrintMode">
+        <button className={mode==="month"?"on":""} onClick={()=>onMode("month")}>Hónap</button>
+        <button className={mode==="4w"?"on":""} onClick={()=>onMode("4w")}>4 hét</button>
+      </div>
+      <div className="wallPrintActions">
+        <button onClick={onClose}>Bezárás</button>
+        <button className="printPrimary" onClick={()=>window.print()}>⎙ Nyomtatás / PDF</button>
+      </div>
+    </div>
+
+    <section className={"wallPaper rows-"+rowCount}>
+      <header className="wallPaperHead">
+        <div><small>{subtitle}</small><h1>{title}</h1></div>
+        <span>HAVI NAPTÁR</span>
+      </header>
+      <div className="wallWeekdays">{weekdayHeaders.map(x=><div key={x}>{x}</div>)}</div>
+      <div className="wallGrid" style={{"--wall-rows":rowCount} as React.CSSProperties}>
+        {cells.map((d,i)=>{
+          if(!d)return <div className="wallCell blank" key={"blank-"+i}/>;
+          const dayIso=iso(d);
+          const isOutside=mode==="month"&&d.getMonth()!==anchor.getMonth();
+          const es=events.filter(e=>e.date===dayIso).sort((a,b)=>(a.allDay?"00:00":a.start||"").localeCompare(b.allDay?"00:00":b.start||""));
+          const holiday=holidayMap[dayIso];
+          return <div className={"wallCell "+(isOutside?"outside ":"")+(holiday?"holiday ":"")} key={dayIso}>
+            <div className="wallDayHead">
+              <b>{d.getDate()}</b>
+              <span>{d.toLocaleDateString("hu-HU",{weekday:"short"})}</span>
+            </div>
+            {holiday&&<div className="wallHoliday">✦ {holiday}</div>}
+            <div className="wallEvents">
+              {es.slice(0,4).map(e=>{
+                const source=e.id.startsWith("workplan-")?"plan":e.googleId?"google":"local";
+                return <div className={"wallEvent "+source} key={e.id+"-"+(e.start||"")}>
+                  <i style={{background:calMeta[e.calendar].color}}/>
+                  <span><b>{e.allDay?"":(e.start||"")+" "}</b>{e.title}</span>
+                </div>
+              })}
+              {es.length>4&&<div className="wallMore">+{es.length-4} további</div>}
+            </div>
+          </div>
+        })}
+      </div>
+      <footer className="wallLegend">
+        <span><i className="dot local"/>Saját</span>
+        <span><i className="dot google"/>Google</span>
+        <span><i className="dot plan"/>Iskolai munkaterv</span>
+        <span className="wallGenerated">{new Date().toLocaleDateString("hu-HU")}</span>
+      </footer>
+    </section>
+  </div>
 }
 
 function EventSearchOverlay({events,onClose,onOpen}:{events:Ev[];onClose:()=>void;onOpen:(e:Ev)=>void}){
