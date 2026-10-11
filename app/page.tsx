@@ -5,7 +5,7 @@ type CalKey="work"|"personal"|"family"|"sport";
 type RangeMode="1w"|"2w"|"4w"|"month"|"custom"|"list";
 type ThemeMode="dark"|"light"|"system";
 type RepeatMode="none"|"daily"|"weekly"|"monthly"|"yearly"|"googleSeries";
-type Ev={id:string;googleId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string;repeat?:RepeatMode;reminder?:number;pendingSync?:boolean};
+type Ev={id:string;googleId?:string;centralEventId?:string;sourceApp?:string;sourceRecordId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string;repeat?:RepeatMode;reminder?:number;pendingSync?:boolean};
 type SyncOp={id:string;kind:"create"|"update"|"delete";event?:Ev;googleId?:string;createdAt:number};
 
 const calMeta:Record<CalKey,{label:string;color:string;icon:string}>={
@@ -114,6 +114,9 @@ function toGoogleEvent(x:any):Ev{
   const start=x.start?.dateTime||x.start?.date;
   const category=x.extendedProperties?.private?.haviCategory;
   const haviUid=x.extendedProperties?.private?.haviUid as string|undefined;
+  const centralEventId=x.extendedProperties?.private?.calendarCoreId as string|undefined;
+  const sourceApp=x.extendedProperties?.private?.sourceApp as string|undefined;
+  const sourceRecordId=x.extendedProperties?.private?.sourceRecordId as string|undefined;
   const calendar=(category==="work"||category==="personal"||category==="family"||category==="sport")?category:"work";
   const recurrence=(x.recurrence?.[0]||"") as string;
   let repeat:RepeatMode=x.recurringEventId?"googleSeries":"none";
@@ -123,7 +126,7 @@ function toGoogleEvent(x:any):Ev{
   if(!x.recurringEventId&&recurrence.includes("FREQ=YEARLY"))repeat="yearly";
   const reminder=Number(x.reminders?.overrides?.[0]?.minutes||0);
   const localId=(!x.recurringEventId&&haviUid)?haviUid:"g-"+x.id;
-  return {id:localId,googleId:x.id,title:x.summary||"Esemény",date:(start||"").slice(0,10),start:x.start?.dateTime?.slice(11,16),end:x.end?.dateTime?.slice(11,16),allDay:!!x.start?.date,calendar,location:x.location||"",note:x.description||"",repeat,reminder,pendingSync:false}
+  return {id:localId,googleId:x.id,centralEventId,sourceApp:sourceApp||"google",sourceRecordId,title:x.summary||"Esemény",date:(start||"").slice(0,10),start:x.start?.dateTime?.slice(11,16),end:x.end?.dateTime?.slice(11,16),allDay:!!x.start?.date,calendar,location:x.location||"",note:x.description||"",repeat,reminder,pendingSync:false}
 }
 
 function mergeGoogleRange(prev:Ev[],incoming:Ev[],from:string,toExclusive:string){
@@ -407,7 +410,8 @@ export default function Home(){
     if(!x.allDay&&x.start&&x.end&&x.end<=x.start){setNotice("A befejezés legyen később a kezdésnél.");return false}
     if(!connected&&x.repeat&&x.repeat!=="none"&&x.repeat!=="googleSeries"){setNotice("Az ismétlődő eseményhez Google Naptár-kapcsolat kell.");return false}
     if(!connected&&Number(x.reminder||0)>0){setNotice("Az emlékeztetőhöz Google Naptár-kapcsolat kell.");return false}
-    const base:Ev={id:x.id||crypto.randomUUID(),googleId:x.googleId,title:(x.title||"Esemény").trim(),date:x.date,start:x.start||"09:00",end:x.end||"10:00",allDay:!!x.allDay,calendar:(x.calendar||"work") as CalKey,location:x.location||"",note:x.note||"",repeat:(x.repeat||"none") as RepeatMode,reminder:Number(x.reminder||0)};
+    const id=x.id||crypto.randomUUID();
+    const base:Ev={id,googleId:x.googleId,centralEventId:x.centralEventId,sourceApp:x.sourceApp||"havi",sourceRecordId:x.sourceRecordId||id,title:(x.title||"Esemény").trim(),date:x.date,start:x.start||"09:00",end:x.end||"10:00",allDay:!!x.allDay,calendar:(x.calendar||"work") as CalKey,location:x.location||"",note:x.note||"",repeat:(x.repeat||"none") as RepeatMode,reminder:Number(x.reminder||0)};
     const duplicate=displayEvents.find(e=>e.id!==base.id&&(!base.googleId||e.googleId!==base.googleId)&&nearDuplicate(e,base));
     if(duplicate){
       setNotice("Hasonló esemény már szerepel a naptárban: "+duplicate.title);
