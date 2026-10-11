@@ -1117,12 +1117,14 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
   const monthValue=year*12+month;
   const chooseMonth=(v:number)=>{const y=Math.floor(v/12),m=v%12;setYear(y);setMonth(m);setDay(d=>Math.min(d,new Date(y,m+1,0).getDate()))};
   const smartCalendar=calendarTouched?calendar:parsed.calendar;
-  const smartPayload:Partial<Ev>={title:parsed.title,date:parsed.date,allDay:parsed.allDay,start:parsed.start,end:parsed.end,calendar:smartCalendar,location:parsed.location};
+  const selectedDayTitleOnly=!manual&&!!parsed.title&&!parsed.explicitDate&&!parsed.explicitTime&&!parsed.allDay&&parsed.missing.every(x=>x==="idő");
+  const effectiveParsed=selectedDayTitleOnly?{...parsed,date:iso(baseDate),allDay:true,start:undefined,end:undefined,missing:[],confidence:"high" as const}:parsed;
+  const smartPayload:Partial<Ev>={title:effectiveParsed.title,date:effectiveParsed.date,allDay:effectiveParsed.allDay,start:effectiveParsed.start,end:effectiveParsed.end,calendar:smartCalendar,location:effectiveParsed.location};
   const manualPayload:Partial<Ev>={title,date,allDay,start:allDay?undefined:hhmm(time),end:allDay?undefined:hhmm(time+60),calendar};
   const payload=manual?manualPayload:smartPayload;
   const smartDuplicate=duplicateFor(smartPayload);
   const smartConflict=conflictFor(smartPayload);
-  const canSmartSave=!manual&&!!parsed.title&&parsed.missing.length===0&&!smartDuplicate;
+  const canSmartSave=!manual&&!!effectiveParsed.title&&effectiveParsed.missing.length===0&&!smartDuplicate;
 
   async function pasteClipboard(){
     try{
@@ -1161,11 +1163,11 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
           onPaste={()=>setSavedCandidates({})}
           onKeyDown={e=>{if(!pastedMode&&(e.metaKey||e.ctrlKey)&&e.key==="Enter"&&canSmartSave)saveSingle(smartPayload)}}/>
 
-        {!pastedMode&&<div className={"smartPreview "+parsed.confidence}>
-          <div className="smartPreviewHead"><span>{parsed.confidence==="high"?"Értettem ✓":parsed.confidence==="medium"?"Majdnem kész":"Írd le az eseményt"}</span><small>{parsed.date}</small></div>
-          {parsed.title?<b>{parsed.title}</b>:<b>Mi legyen az esemény?</b>}
-          <p>{parsed.allDay?"Egész nap":parsed.start+" – "+parsed.end}{parsed.duration!==60&&!parsed.allDay?" · "+parsed.duration+" perc":""}{parsed.location?" · @"+parsed.location:""}</p>
-          {parsed.missing.length>0&&<em>Hiányzik: {parsed.missing.join(", ")}</em>}
+        {!pastedMode&&<div className={"smartPreview "+effectiveParsed.confidence}>
+          <div className="smartPreviewHead"><span>{selectedDayTitleOnly?"Aktív napra kész ✓":effectiveParsed.confidence==="high"?"Értettem ✓":effectiveParsed.confidence==="medium"?"Majdnem kész":"Írd le az eseményt"}</span><small>{effectiveParsed.date}</small></div>
+          {effectiveParsed.title?<b>{effectiveParsed.title}</b>:<b>Mi legyen az esemény?</b>}
+          <p>{effectiveParsed.allDay?"Egész nap":effectiveParsed.start+" – "+effectiveParsed.end}{effectiveParsed.duration!==60&&!effectiveParsed.allDay?" · "+effectiveParsed.duration+" perc":""}{effectiveParsed.location?" · @"+effectiveParsed.location:""}</p>
+          {effectiveParsed.missing.length>0&&<em>Hiányzik: {effectiveParsed.missing.join(", ")}</em>}
           {smartDuplicate&&<em className="duplicateWarning">Már szerepel: {smartDuplicate.title} · {smartDuplicate.date}{smartDuplicate.start?" · "+smartDuplicate.start:""}</em>}
           {!smartDuplicate&&smartConflict&&<em className="conflictWarning">Időütközés: {smartConflict.title} · {smartConflict.start}–{smartConflict.end}</em>}
         </div>}
@@ -1192,7 +1194,7 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
           </div>}
         </div>}
 
-        {!pastedMode&&<div className="smartExamples">Példák: <span>holnap értekezlet 14.30</span> · <span>jövő kedden fodrász 16.10</span> · <span>emailből 1–5 mondatot is bemásolhatsz</span></div>}
+        {!pastedMode&&<div className="smartExamples"><b>Egyszerűen:</b> <span>fodrász</span> = aktív nap, egész nap · <span>fodrász 16.10</span> = aktív nap, időponttal · <span>okt 15 fodrász 16.10</span> = megadott nap</div>}
       </>}
 
       {manual&&<>
