@@ -547,6 +547,7 @@ export default function Home(){
       onLongDay={d=>{setAnchor(d);setMonthFlow(true)}}
       onQuickAdd={()=>setQuickAdd(true)}
       onSearch={()=>setSearchOpen(true)}
+      onPrint={()=>{setWallPrintMode("month");setWallPrintOpen(true)}}
       nextEvent={nextEvent}
       onNextEvent={e=>{setAnchor(parseDate(e.date));setDayOpen(e.date)}}
       onToday={()=>setAnchor(new Date())}
@@ -570,6 +571,7 @@ export default function Home(){
       onToday={()=>setAnchor(new Date())}
       onDay={d=>{setAnchor(d);setDayOpen(iso(d))}}
       onQuickAdd={()=>setQuickAdd(true)}
+      onPrint={()=>{setWallPrintMode("month");setWallPrintOpen(true)}}
       onSettings={()=>setSettings(true)}
     />
 
@@ -656,6 +658,9 @@ export default function Home(){
 
     {settings&&<Modal title="Beállítások" onClose={()=>setSettings(false)}>
       <div className="settingsBox">
+        <div className="settingsQuickActions">
+          <button onClick={()=>{setSettings(false);setWallPrintMode("month");setWallPrintOpen(true)}}>⎙ Falinaptár / PDF előnézet</button>
+        </div>
         <div className="themeSettings">
           <div className="settingsTitle"><b>Megjelenés</b><span>Válassz témát, vagy kövesse automatikusan a készüléket.</span></div>
           <div className="themeSwitch" role="group" aria-label="Megjelenés">
@@ -711,7 +716,7 @@ export default function Home(){
 }
 
 
-function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,onSync,onDay,onLongDay,onQuickAdd,onSearch,nextEvent,onNextEvent,onToday,onPrevMonth,onNextMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;pendingCount:number;lastSync:number|null;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onSearch:()=>void;nextEvent:Ev|null;onNextEvent:(e:Ev)=>void;onToday:()=>void;onPrevMonth:()=>void;onNextMonth:()=>void;onSettings:()=>void}){
+function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,onSync,onDay,onLongDay,onQuickAdd,onSearch,onPrint,nextEvent,onNextEvent,onToday,onPrevMonth,onNextMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;pendingCount:number;lastSync:number|null;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onSearch:()=>void;onPrint:()=>void;nextEvent:Ev|null;onNextEvent:(e:Ev)=>void;onToday:()=>void;onPrevMonth:()=>void;onNextMonth:()=>void;onSettings:()=>void}){
   const swipeX=useRef<number|null>(null);
   const swipeY=useRef<number|null>(null);
   const swipeMoved=useRef(false);
@@ -738,6 +743,7 @@ function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,o
       <div className="mockActions">
         <button className={"syncDot "+(connected?"online":"")} aria-label="Google Naptár szinkron" title={connected?"Google Naptár kapcsolódva":"Google Naptár offline"} onClick={onSync}>{syncing?"↻":connected?"●":"○"}</button>
         <button aria-label="Esemény keresése" onClick={onSearch}>⌕</button>
+        <button aria-label="Falinaptár előnézet" title="Falinaptár / PDF" onClick={onPrint}>⎙</button>
         <button onClick={onSettings}>⚙</button>
         <button className="mockPlus" onClick={onQuickAdd}>＋</button>
       </div>
@@ -864,14 +870,14 @@ function ContinuousMonthFlow({anchor,events,onClose,onDay,onToday,onQuickAdd}:{a
   </div>
 }
 
-function MobileLandscapeMonth({anchor,events,onPrev,onNext,onToday,onDay,onQuickAdd,onSettings}:{anchor:Date;events:Ev[];onPrev:()=>void;onNext:()=>void;onToday:()=>void;onDay:(d:Date)=>void;onQuickAdd:()=>void;onSettings:()=>void}){
+function MobileLandscapeMonth({anchor,events,onPrev,onNext,onToday,onDay,onQuickAdd,onPrint,onSettings}:{anchor:Date;events:Ev[];onPrev:()=>void;onNext:()=>void;onToday:()=>void;onDay:(d:Date)=>void;onQuickAdd:()=>void;onPrint:()=>void;onSettings:()=>void}){
   const first=monday(new Date(anchor.getFullYear(),anchor.getMonth(),1,12));
   const days=Array.from({length:42},(_,i)=>addDays(first,i));
   return <section className="mobileLandscapeMonth">
     <header className="landscapeHead">
       <div className="landscapeNav"><button onClick={onPrev}>‹</button><button onClick={onNext}>›</button><button onClick={onToday}>Ma</button></div>
       <div><small>{anchor.getFullYear()}</small><h1>{anchor.toLocaleDateString("hu-HU",{month:"long"})}</h1></div>
-      <div className="landscapeActions"><button onClick={onSettings}>⚙</button><button className="landscapeAdd" onClick={onQuickAdd}>＋</button></div>
+      <div className="landscapeActions"><button aria-label="Falinaptár előnézet" title="Falinaptár / PDF" onClick={onPrint}>⎙</button><button onClick={onSettings}>⚙</button><button className="landscapeAdd" onClick={onQuickAdd}>＋</button></div>
     </header>
     <div className="landscapeWeekdays">{["H","K","Sze","Cs","P","Szo","V"].map(x=><span key={x}>{x}</span>)}</div>
     <div className="landscapeGrid">{days.map(d=>{
