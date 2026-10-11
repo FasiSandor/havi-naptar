@@ -258,6 +258,11 @@ export default function Home(){
       return !((eventId&&opEventId===eventId)||(googleId&&opGoogleId===googleId));
     }));
   }
+  function filterPendingDeletes(incoming:Ev[]){
+    const blocked=new Set(syncQueue.filter(op=>op.kind==="delete").map(op=>op.googleId).filter(Boolean) as string[]);
+    return blocked.size?incoming.filter(e=>!e.googleId||!blocked.has(e.googleId)):incoming;
+  }
+
   function reconcileQueueWithIncoming(incoming:Ev[]){
     if(!incoming.length)return;
     const ids=new Set(incoming.map(e=>e.id));
@@ -280,7 +285,11 @@ export default function Home(){
       try{
         if(op.kind==="delete"&&op.googleId){
           const r=await fetch("/api/google/events?id="+encodeURIComponent(op.googleId),{method:"DELETE"});
-          if(r.ok||r.status===404)done.add(op.id);
+          if(r.ok||r.status===404){
+            const deletedGoogleId=op.googleId;
+            setEvents(prev=>prev.filter(e=>e.googleId!==deletedGoogleId));
+            done.add(op.id);
+          }
           continue;
         }
         if(!op.event)continue;
@@ -315,7 +324,7 @@ export default function Home(){
       if(!j.connected){setConnected(false);return}
       setConnected(true);
       const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
-      const incoming=(j.items||[]).map(toGoogleEvent);
+      const incoming=filterPendingDeletes((j.items||[]).map(toGoogleEvent));
       reconcileQueueWithIncoming(incoming);
       setEvents(prev=>mergeGoogleRange(prev,incoming,iso(start),iso(addDays(end,1))));
     }catch{setConnected(false)}
@@ -343,7 +352,7 @@ export default function Home(){
         const j=await r.json();
         if(!j.connected)return;
         const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
-        const incoming=(j.items||[]).map(toGoogleEvent);
+        const incoming=filterPendingDeletes((j.items||[]).map(toGoogleEvent));
         reconcileQueueWithIncoming(incoming);
         setEvents(prev=>mergeGoogleRange(prev,incoming,iso(from),iso(to)));
       }catch{}
@@ -362,7 +371,7 @@ export default function Home(){
         if(!j.connected)return;
         setConnected(true);
         const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
-        const incoming=(j.items||[]).map(toGoogleEvent);
+        const incoming=filterPendingDeletes((j.items||[]).map(toGoogleEvent));
         reconcileQueueWithIncoming(incoming);
         setEvents(prev=>mergeGoogleRange(prev,incoming,iso(from),iso(to)));
       }catch{}
