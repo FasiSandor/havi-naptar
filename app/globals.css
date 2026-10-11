@@ -2153,3 +2153,114 @@
 .appShell[data-theme="light"] .backupPreview p{color:#72869A}
 .appShell[data-theme="light"] .backupPreviewActions button{background:#F4F7FA;border-color:#D0DCE6;color:#607489}
 .appShell[data-theme="light"] .backupPreviewActions .primary{background:#2563EB;border-color:#2563EB;color:#fff}
+
+/* next-major: A4 landscape wall calendar */
+.wallPrintOverlay{
+  position:fixed;inset:0;z-index:1400;overflow:auto;
+  background:#081019f2;padding:18px;
+}
+.wallPrintToolbar{
+  width:min(1180px,100%);margin:0 auto 14px;display:grid;
+  grid-template-columns:1fr auto auto;gap:14px;align-items:center;
+  padding:12px 14px;border:1px solid #2C4054;border-radius:16px;
+  background:#0E1823;color:#EAF1F8
+}
+.wallPrintToolbar small,.wallPrintToolbar b{display:block}
+.wallPrintToolbar small{font-size:8px;letter-spacing:.12em;color:#688198;font-weight:900}
+.wallPrintToolbar b{margin-top:2px;font-size:12px}
+.wallPrintMode{display:flex;gap:6px;padding:4px;border-radius:12px;background:#0A131D;border:1px solid #26394D}
+.wallPrintMode button,.wallPrintActions button{
+  border:1px solid transparent;border-radius:9px;background:transparent;color:#7890A6;
+  font-size:9px;font-weight:900;height:34px;padding:0 11px
+}
+.wallPrintMode button.on{background:#183F68;border-color:#3779B8;color:#A9D4FF}
+.wallPrintActions{display:flex;gap:7px}
+.wallPrintActions button{border-color:#324A61;background:#111E2A;color:#92A6B9}
+.wallPrintActions .printPrimary{background:#1D4ED8;border-color:#3B82F6;color:#fff}
+
+.wallPaper{
+  --wall-rows:5;
+  width:min(1180px,100%);aspect-ratio:297/210;margin:0 auto;background:#fff;color:#111;
+  box-shadow:0 24px 70px #0008;border-radius:2px;padding:10mm 10mm 8mm;
+  display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:3mm;
+}
+.wallPaperHead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1.5px solid #111;padding-bottom:2.5mm}
+.wallPaperHead small{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;font-weight:800}
+.wallPaperHead h1{margin:1mm 0 0;font-size:22px;line-height:1;text-transform:capitalize}
+.wallPaperHead>span{font-size:9px;font-weight:900;letter-spacing:.12em;color:#555}
+.wallWeekdays{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid #777;border-bottom:0}
+.wallWeekdays>div{
+  min-width:0;padding:1.8mm 2mm;text-align:center;border-right:1px solid #999;
+  background:#F1F3F5;font-size:9px;font-weight:900
+}
+.wallWeekdays>div:last-child{border-right:0}
+.wallGrid{
+  display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+  grid-template-rows:repeat(var(--wall-rows),minmax(0,1fr));
+  border-left:1px solid #888;border-top:1px solid #888;min-height:0
+}
+.wallCell{
+  min-width:0;min-height:0;overflow:hidden;border-right:1px solid #888;border-bottom:1px solid #888;
+  padding:1.8mm 1.8mm 1.2mm;background:#fff;display:flex;flex-direction:column
+}
+.wallCell.outside{background:#F7F7F7;color:#929292}
+.wallCell.blank{background:#FBFBFB}
+.wallCell.holiday{background:#FFF8F8}
+.wallDayHead{display:flex;justify-content:space-between;align-items:baseline;gap:2mm;margin-bottom:1mm}
+.wallDayHead b{font-size:14px;line-height:1}
+.wallDayHead span{font-size:7px;color:#777;text-transform:capitalize}
+.wallHoliday{
+  margin-bottom:1mm;padding:1mm 1.2mm;border-left:2px solid #C62828;background:#FFF0F0;
+  color:#A82323;font-size:6.5px;line-height:1.15;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.wallEvents{display:grid;gap:.7mm;min-height:0}
+.wallEvent{
+  display:grid;grid-template-columns:2mm minmax(0,1fr);gap:1mm;align-items:start;
+  font-size:6.8px;line-height:1.18;min-width:0
+}
+.wallEvent i{width:1.5mm;height:1.5mm;border-radius:50%;margin-top:.6mm}
+.wallEvent span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wallEvent span b{font-weight:900}
+.wallEvent.plan span{font-weight:800}
+.wallEvent.google span{text-decoration-line:underline;text-decoration-style:dotted;text-underline-offset:1px}
+.wallMore{font-size:6.5px;font-weight:900;color:#555;padding-left:3mm}
+.wallLegend{display:flex;align-items:center;gap:5mm;border-top:1px solid #bbb;padding-top:2mm;font-size:7px;color:#555}
+.wallLegend>span{display:flex;align-items:center;gap:1.2mm}
+.wallLegend .dot{width:2mm;height:2mm;border-radius:50%;display:inline-block}
+.wallLegend .dot.local{background:#111}
+.wallLegend .dot.google{background:#3B82F6}
+.wallLegend .dot.plan{background:#F59E0B}
+.wallGenerated{margin-left:auto}
+
+@media(max-width:900px){
+  .wallPrintOverlay{padding:8px}
+  .wallPrintToolbar{
+    position:sticky;top:6px;z-index:2;grid-template-columns:1fr auto;gap:8px;padding:10px
+  }
+  .wallPrintToolbar>div:first-child{grid-column:1/-1}
+  .wallPrintMode{justify-self:start}
+  .wallPrintActions{justify-self:end}
+  .wallPaper{width:1120px;max-width:none}
+}
+@page{
+  size:A4 landscape;
+  margin:7mm;
+}
+@media print{
+  html,body{background:#fff!important}
+  body *{visibility:hidden!important}
+  .wallPrintOverlay,.wallPrintOverlay *{visibility:visible!important}
+  .wallPrintOverlay{
+    position:absolute!important;inset:0!important;overflow:visible!important;
+    background:#fff!important;padding:0!important
+  }
+  .wallPrintToolbar{display:none!important}
+  .wallPaper{
+    width:100%!important;height:100%!important;aspect-ratio:auto!important;
+    box-shadow:none!important;border-radius:0!important;margin:0!important;
+    padding:0!important;gap:2.2mm!important
+  }
+  .wallPaperHead h1{font-size:20pt!important}
+  .wallCell{break-inside:avoid!important}
+  .wallEvent,.wallHoliday,.wallDayHead{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+}
