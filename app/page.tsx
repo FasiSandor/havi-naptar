@@ -745,7 +745,6 @@ function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,o
         <button aria-label="Esemény keresése" onClick={onSearch}>⌕</button>
         <button aria-label="Falinaptár előnézet" title="Falinaptár / PDF" onClick={onPrint}>⎙</button>
         <button onClick={onSettings}>⚙</button>
-        <button className="mockPlus" onClick={onQuickAdd}>＋</button>
       </div>
     </header>
 
