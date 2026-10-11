@@ -2264,3 +2264,42 @@
   .wallCell{break-inside:avoid!important}
   .wallEvent,.wallHoliday,.wallDayHead{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 }
+
+/* next-major: always-accessible top controls + print preview on all devices */
+@media(min-width:901px){
+  .topbar{
+    position:sticky;top:0;z-index:60;
+    padding:10px 12px;
+    margin:-6px -6px 14px;
+    border:1px solid #25364A;
+    border-radius:14px;
+    background:color-mix(in srgb,#0B0F14 88%,transparent);
+    backdrop-filter:blur(16px) saturate(1.15);
+    box-shadow:0 10px 28px #0005;
+  }
+  .appShell[data-theme="light"] .topbar{
+    background:color-mix(in srgb,#FFFFFF 92%,transparent)!important;
+    border-color:#D4DFE8!important;
+  }
+}
+.settingsQuickActions{
+  display:grid;gap:8px
+}
+.settingsQuickActions button{
+  width:100%;height:42px;border-radius:12px;border:1px solid #315D86;
+  background:#102A45;color:#8EC8FF;font-size:9px;font-weight:900;text-align:left;padding:0 12px
+}
+.appShell[data-theme="light"] .settingsQuickActions button{
+  background:#EDF6FF;border-color:#BDD5EA;color:#2469AE
+}
+@media(max-width:900px){
+  .wallPrintOverlay{
+    touch-action:pan-x pan-y;
+    -webkit-overflow-scrolling:touch;
+  }
+  .wallPaper{
+    transform-origin:top left;
+  }
+  .mockActions{gap:5px}
+  .mockActions>button{min-width:36px}
+}
