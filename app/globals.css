@@ -2329,3 +2329,79 @@
     min-width:112px;
   }
 }
+
+
+/* next-major: central calendar range switch + rotating 7-day upcoming */
+@keyframes upcomingSlideNext{from{opacity:.15;transform:translateX(22px)}to{opacity:1;transform:none}}
+@keyframes upcomingSlidePrev{from{opacity:.15;transform:translateX(-22px)}to{opacity:1;transform:none}}
+
+@media(max-width:900px) and (orientation:portrait){
+  .mobileRangeSwitch{
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;
+    margin:0 0 8px;padding:4px;border:1px solid #27384B;border-radius:13px;background:#0A121C;
+  }
+  .mobileRangeSwitch button{
+    min-width:0;height:31px;border:1px solid transparent;border-radius:9px;background:transparent;
+    color:#71869B;font-size:9px;font-weight:900
+  }
+  .mobileRangeSwitch button.on{
+    background:linear-gradient(180deg,#1D4F83,#15375C);border-color:#3D76A9;color:#C6E2FF;
+    box-shadow:inset 0 1px 0 #ffffff12
+  }
+
+  .upcomingCarousel{
+    display:grid;grid-template-columns:28px minmax(0,1fr) 28px;align-items:stretch;gap:5px;
+    margin:0 0 8px
+  }
+  .upcomingArrow{
+    border:1px solid #293D52;border-radius:12px;background:#0D1722;color:#6F8AA5;
+    font-size:20px;font-weight:500
+  }
+  .upcomingSlide{
+    min-width:0;padding:8px 10px;display:grid;grid-template-columns:1fr auto;
+    grid-template-areas:"label arrow" "title arrow" "meta arrow";gap:2px 8px;
+    align-items:center;text-align:left;border:1px solid #34506B;border-radius:14px;
+    background:linear-gradient(135deg,#111D2A,#0B151F);color:#ECF4FA;
+    overflow:hidden;box-shadow:inset 0 1px 0 #ffffff08
+  }
+  .upcomingSlide.slideNext{animation:upcomingSlideNext .28s cubic-bezier(.2,.8,.2,1)}
+  .upcomingSlide.slidePrev{animation:upcomingSlidePrev .28s cubic-bezier(.2,.8,.2,1)}
+  .upcomingSlide .nextEventLabel{grid-area:label;font-size:7px;letter-spacing:.08em;font-weight:950;color:#65AFFF}
+  .upcomingSlide>b{grid-area:title;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .upcomingSlide>small{grid-area:meta;font-size:8px;color:#71879B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .upcomingSlide>em{grid-area:arrow;font-style:normal;font-size:20px;color:#66819B}
+  .upcomingEmptyStrip{
+    margin:0 0 8px;padding:8px 10px;border:1px solid #24364A;border-radius:14px;background:#0C151F
+  }
+  .upcomingEmptyStrip span,.upcomingEmptyStrip b{display:block}
+  .upcomingEmptyStrip span{font-size:7px;color:#627A91;font-weight:950;letter-spacing:.08em}
+  .upcomingEmptyStrip b{margin-top:2px;font-size:10px;color:#8297AA}
+
+  .mockMonthGrid.rows-2{grid-template-rows:repeat(2,minmax(72px,1fr))}
+  .mockMonthGrid.rows-3{grid-template-rows:repeat(3,minmax(68px,1fr))}
+  .mockMonthGrid.rows-4{grid-template-rows:repeat(4,minmax(62px,1fr))}
+  .mockMonthGrid.rows-5{grid-template-rows:repeat(5,minmax(54px,1fr))}
+  .mockMonthGrid.rows-6{grid-template-rows:repeat(6,minmax(48px,1fr))}
+  .mockMonthGrid.rows-5>button,.mockMonthGrid.rows-6>button{padding-top:7px}
+  .mockMonthGrid.rows-5>button>b,.mockMonthGrid.rows-6>button>b{font-size:17px;line-height:30px;width:30px;height:30px}
+  .mockMonthGrid.rows-6 .eventMarks{margin-top:0;height:13px}
+}
+
+.appShell[data-theme="light"] .mobileRangeSwitch{background:#EEF4F9;border-color:#CBD9E4}
+.appShell[data-theme="light"] .mobileRangeSwitch button{color:#62778A}
+.appShell[data-theme="light"] .mobileRangeSwitch button.on{background:#DDEEFF;border-color:#9FC9EE;color:#17568E}
+.appShell[data-theme="light"] .upcomingSlide{background:#F5F9FC;border-color:#C8DAE9;color:#14283A}
+.appShell[data-theme="light"] .upcomingSlide>small{color:#72889A}
+.appShell[data-theme="light"] .upcomingArrow{background:#F4F8FB;border-color:#CAD8E4;color:#53738F}
+.appShell[data-theme="light"] .upcomingEmptyStrip{background:#F5F9FC;border-color:#D0DCE6}
+.appShell[data-theme="light"] .upcomingEmptyStrip b{color:#556D80}
+
+.wallLegend .dot.core{background:#22C55E}
+.wallEvent.core span{font-weight:800;text-decoration-line:underline;text-decoration-style:dashed;text-decoration-color:#22C55E;text-underline-offset:1px}
+
+@media(max-width:720px){
+  .wallPrintToolbar{grid-template-columns:1fr!important}
+  .wallPrintMode,.wallPrintActions{justify-self:stretch!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))}
+  .wallPrintActions{grid-template-columns:auto auto minmax(0,1fr)!important}
+  .wallPrintMode button,.wallPrintActions button{padding:0 7px!important;white-space:nowrap}
+}
