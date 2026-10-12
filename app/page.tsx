@@ -1,7 +1,6 @@
 "use client";
 import {useEffect,useMemo,useRef,useState} from "react";
 import CoreGoogleSyncSettings from "./CoreGoogleSyncSettings";
-import LinkedOpenButton from "./LinkedOpenButton";
 
 type CalKey="work"|"personal"|"family"|"sport";
 type RangeMode="1w"|"2w"|"3w"|"4w"|"month"|"custom"|"list";
