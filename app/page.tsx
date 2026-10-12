@@ -1888,6 +1888,15 @@ function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:
   const close=()=>{if(closing)return;setClosing(true);setTimeout(onClose,180)};
   return <div className={"backdrop "+(closing?"closing":"")} onMouseDown={e=>{if(e.currentTarget===e.target)close()}}><div className="modal"><div className="modalHead"><b>{title}</b><button onClick={close}>×</button></div>{children}</div></div>
 }
+function LinkedOpenButton({url,label}:{url?:string;label?:string}){
+  const href=String(url||"").trim();
+  if(!/^https?:\/\//i.test(href))return null;
+  return <a className="linkedOpenButton" href={href}>
+    <span>↗</span>
+    <b>{label||"Megnyitás az eredeti helyen"}</b>
+  </a>
+}
+
 function EventForm({value,connected,onSave,onCancel}:{value:Partial<Ev>;connected:boolean;onSave:(x:Partial<Ev>)=>void;onCancel:()=>void}){
   const [x,setX]=useState(value);
   const titleNorm=normText(x.title||"");
