@@ -852,6 +852,7 @@ export default function Home(){
           <div className="settingsTitle"><b>Iskolai munkaterv</b><span>A 2026/2027-es Teleki munkaterv fontos dátumai külön rétegként.</span></div>
           <button className={"layerToggle "+(showWorkPlan?"on":"")} onClick={()=>setShowWorkPlan(v=>!v)}><i/><span>{showWorkPlan?"Látható":"Elrejtve"}</span></button>
         </div>
+        <WatchedSourcesSettings/>
         <div className="syncDiagnostics">
           <div className="settingsTitle"><b>Szinkron állapot</b><span>Gyors ellenőrzés a háttérszinkronról és a helyi cache-ről.</span></div>
           <div className="syncDiagGrid">
@@ -1680,6 +1681,136 @@ function EventSearchOverlay({events,onClose,onOpen}:{events:Ev[];onClose:()=>voi
         }):<div className="searchEmpty"><b>Nincs találat</b><span>Próbálj rövidebb kifejezést, helyszínt vagy dátumot.</span></div>}
       </div>
     </section>
+  </div>
+}
+
+function WatchedSourcesSettings(){
+  type WatchGroup={id:string;group_key:string;title:string;source_type:string;watch_type?:string|null;default_mode:"auto"|"review"|"watch";status:"active"|"paused"};
+  type WatchSource={id:string;group_id?:string|null;kind:string;label:string;match_value?:string|null;source_url?:string|null;mode:"auto"|"review"|"watch";status:"active"|"paused";origin:string};
+  const [groups,setGroups]=useState<WatchGroup[]>([]);
+  const [sources,setSources]=useState<WatchSource[]>([]);
+  const [q,setQ]=useState("");
+  const [expanded,setExpanded]=useState<string|null>(null);
+  const [adding,setAdding]=useState(false);
+  const [busy,setBusy]=useState(false);
+  const [draft,setDraft]=useState({kind:"email",label:"",value:"",mode:"review" as "auto"|"review"|"watch"});
+  const kindLabel:Record<string,string>={email:"E-mail cím",email_domain:"E-mail domain",person:"Személy",messenger_group:"Messenger csoport",facebook_group:"Facebook csoport",web:"Weboldal",institution:"Intézmény",other:"Egyéb"};
+  const modeLabel:Record<string,string>={auto:"Automatikus",review:"Jóváhagyás",watch:"Csak figyelés"};
+
+  async function load(){
+    try{
+      const r=await fetch("/api/core/watch-sources",{cache:"no-store"});
+      if(!r.ok)return;
+      const j=await r.json();
+      setGroups(Array.isArray(j.groups)?j.groups:[]);
+      setSources(Array.isArray(j.sources)?j.sources:[]);
+    }catch{}
+  }
+  useEffect(()=>{load()},[]);
+
+  async function updateSource(id:string,patch:any){
+    setBusy(true);
+    try{
+      const r=await fetch("/api/core/watch-sources?id="+encodeURIComponent(id),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(patch)});
+      if(r.ok)await load();
+    }finally{setBusy(false)}
+  }
+  async function removeSource(id:string){
+    setBusy(true);
+    try{
+      const r=await fetch("/api/core/watch-sources?id="+encodeURIComponent(id),{method:"DELETE"});
+      if(r.ok)await load();
+    }finally{setBusy(false)}
+  }
+  async function addSource(){
+    const value=draft.value.trim(),label=draft.label.trim()||value;
+    if(!label||!value)return;
+    setBusy(true);
+    try{
+      const isUrl=draft.kind==="web";
+      const r=await fetch("/api/core/watch-sources",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        kind:draft.kind,label,matchValue:isUrl?null:value,sourceUrl:isUrl?value:null,mode:draft.mode
+      })});
+      if(r.ok){
+        setDraft({kind:"email",label:"",value:"",mode:"review"});
+        setAdding(false);
+        await load();
+      }
+    }finally{setBusy(false)}
+  }
+
+  const query=normText(q);
+  const visibleGroups=groups.filter(g=>{
+    if(!query)return true;
+    const own=normText(g.title+" "+g.source_type+" "+(g.watch_type||""));
+    const child=sources.some(x=>x.group_id===g.id&&normText(x.label+" "+(x.match_value||"")+" "+(x.source_url||"")).includes(query));
+    return own.includes(query)||child;
+  });
+  const loose=sources.filter(x=>!x.group_id&&(!query||normText(x.label+" "+(x.match_value||"")+" "+(x.source_url||"")).includes(query)));
+  const activeCount=sources.filter(x=>x.status==="active").length;
+
+  function SourceRow({x}:{x:WatchSource}){
+    return <div className={"watchSourceRow "+(x.status==="paused"?"paused":"")}>
+      <div className="watchSourceMain">
+        <span className="watchKind">{kindLabel[x.kind]||x.kind}</span>
+        <b>{x.label}</b>
+        <small>{x.match_value||x.source_url||""}</small>
+      </div>
+      <select disabled={busy} value={x.mode} onChange={e=>updateSource(x.id,{mode:e.target.value})}>
+        <option value="auto">Automatikus</option>
+        <option value="review">Jóváhagyás</option>
+        <option value="watch">Csak figyelés</option>
+      </select>
+      <button className={x.status==="active"?"watchPause":"watchResume"} disabled={busy} onClick={()=>updateSource(x.id,{status:x.status==="active"?"paused":"active"})}>{x.status==="active"?"Szünet":"Vissza"}</button>
+      <button className="watchDelete" disabled={busy} onClick={()=>removeSource(x.id)}>×</button>
+    </div>
+  }
+
+  return <div className="watchedSourcesSetting">
+    <div className="settingsTitle"><b>Figyelt források</b><span>{activeCount} aktív forrás · e-mail, személy, csoport, weboldal és intézmény. A naptári viselkedés forrásonként állítható.</span></div>
+    <div className="watchSourceTools">
+      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Keresés: Teleki, EKKE, KRÉTA…"/>
+      <button onClick={()=>setAdding(v=>!v}>{adding?"Mégse":"＋ Forrás"}</button>
+    </div>
+    {adding&&<div className="watchAddCard">
+      <select value={draft.kind} onChange={e=>setDraft({...draft,kind:e.target.value})}>
+        <option value="email">E-mail cím</option>
+        <option value="email_domain">E-mail domain</option>
+        <option value="person">Személy</option>
+        <option value="messenger_group">Messenger csoport</option>
+        <option value="facebook_group">Facebook csoport</option>
+        <option value="web">Weboldal</option>
+        <option value="institution">Intézmény</option>
+        <option value="other">Egyéb</option>
+      </select>
+      <input value={draft.label} onChange={e=>setDraft({...draft,label:e.target.value})} placeholder="Név / megnevezés"/>
+      <input value={draft.value} onChange={e=>setDraft({...draft,value:e.target.value})} placeholder={draft.kind==="web"?"https://…":draft.kind==="email_domain"?"@pelda.hu":"Azonosító / cím / csoportnév"}/>
+      <select value={draft.mode} onChange={e=>setDraft({...draft,mode:e.target.value as any})}>
+        <option value="auto">Automatikus naptár</option>
+        <option value="review">Jóváhagyást kér</option>
+        <option value="watch">Csak figyelés</option>
+      </select>
+      <button className="watchAddSave" disabled={busy||!draft.value.trim()} onClick={addSource}>Hozzáadás</button>
+    </div>}
+    <div className="watchGroupList">
+      {visibleGroups.map(g=>{
+        const children=sources.filter(x=>x.group_id===g.id);
+        const active=children.filter(x=>x.status==="active").length;
+        const open=expanded===g.id||!!query;
+        return <div className="watchGroup" key={g.id}>
+          <button className="watchGroupHead" onClick={()=>setExpanded(open&&!query?null:g.id)}>
+            <span><b>{g.title}</b><small>{active}/{children.length} aktív · {g.source_type==="gmail"?"Gmail":"Web"} · {modeLabel[g.default_mode]||g.default_mode}</small></span>
+            <em>{open?"⌃":"⌄"}</em>
+          </button>
+          {open&&<div className="watchSourceRows">{children.length?children.map(x=><SourceRow key={x.id} x={x}/>):<div className="watchEmpty">Nincs külön forrás ebben a csoportban.</div>}</div>}
+        </div>
+      })}
+      {!!loose.length&&<div className="watchGroup">
+        <div className="watchGroupHead static"><span><b>Saját hozzáadott források</b><small>{loose.filter(x=>x.status==="active").length}/{loose.length} aktív</small></span></div>
+        <div className="watchSourceRows">{loose.map(x=><SourceRow key={x.id} x={x}/>)}</div>
+      </div>}
+    </div>
+    <small className="watchSourceHint">Automatikus: biztos eseménynél rögtön naptár. Jóváhagyás: Igen/Nem kártyát mutat. Csak figyelés: nem készít naptáreseményt.</small>
   </div>
 }
 
