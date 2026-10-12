@@ -1689,7 +1689,7 @@ function EventSearchOverlay({events,onClose,onOpen}:{events:Ev[];onClose:()=>voi
 }
 
 function GmailRealtimeSettings(){
-  type GmailCon={account_email:string;status:string;last_error?:string|null;last_event_at?:string|null;watch_expiration?:string|null;updated_at?:string|null;calendar_write?:boolean};
+  type GmailCon={account_email:string;status:string;last_error?:string|null;last_event_at?:string|null;watch_expiration?:string|null;updated_at?:string|null;calendar_write?:boolean;health?:"ok"|"error";health_error?:string|null};
   const [items,setItems]=useState<GmailCon[]>([]);
   const [busy,setBusy]=useState("");
   const [loaded,setLoaded]=useState(false);
@@ -1714,9 +1714,9 @@ function GmailRealtimeSettings(){
     <div className="settingsTitle"><b>Gmail valós idejű figyelés</b><span>A figyelt levelekből felismert biztos események automatikusan, a bizonytalanok jóváhagyással kerülnek a naptárba.</span></div>
     {!loaded?<div className="gmailLoading">Kapcsolatok ellenőrzése…</div>:items.length?<div className="gmailAccounts">
       {items.map(x=>{
-        const stale=!!x.last_error||x.status==="error";
+        const stale=x.health==="error"||!!x.last_error||x.status==="error";
         return <div className={"gmailAccount "+(stale?"warn":"")} key={x.account_email}>
-          <div><b>{x.account_email}</b><span>{stale?"Kapcsolathiba":x.status==="watching"?"Figyelés aktív":x.status}</span><small>{x.last_event_at?"Utolsó feldolgozott esemény: "+new Date(x.last_event_at).toLocaleString("hu-HU"):"Még nincs feldolgozott esemény."}</small></div>
+          <div><b>{x.account_email}</b><span>{stale?"Google hozzáférés frissítése szükséges":x.status==="watching"?"Figyelés aktív":x.status}</span><small>{stale?(x.health_error==="token_refresh_failed"?"A háttér-hozzáférés lejárt vagy vissza lett vonva.":(x.health_error||x.last_error||"Kapcsolathiba")):(x.last_event_at?"Utolsó feldolgozott esemény: "+new Date(x.last_event_at).toLocaleString("hu-HU"):"Még nincs feldolgozott esemény.")}</small></div>
           <button disabled={busy===x.account_email} onClick={()=>reconnect(x.account_email)}>{busy===x.account_email?"Nyitás…":"Újracsatlakozás"}</button>
         </div>
       })}
