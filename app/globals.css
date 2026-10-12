@@ -2405,3 +2405,75 @@
   .wallPrintActions{grid-template-columns:auto auto minmax(0,1fr)!important}
   .wallPrintMode button,.wallPrintActions button{padding:0 7px!important;white-space:nowrap}
 }
+
+
+/* next-major: iPhone-like event editor + linked app actions */
+.iosEventForm{display:grid;gap:12px;padding:2px 0 4px}
+.iosFormGroup{
+  overflow:hidden;border:1px solid #2B3A4A;border-radius:16px;
+  background:linear-gradient(180deg,#111A24,#0E1720);
+}
+.iosTitleGroup{display:grid}
+.iosTitleGroup input{
+  width:100%;height:52px;padding:0 15px;border:0;border-bottom:1px solid #273544;
+  background:transparent;color:#F4F7FA;font-size:16px;outline:0
+}
+.iosTitleGroup input:last-child{border-bottom:0;font-size:14px;color:#B4C1CC}
+.iosTitleInput{font-weight:800!important;font-size:18px!important}
+.iosRow{
+  min-height:50px;padding:0 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;
+  align-items:center;border-bottom:1px solid #263544
+}
+.iosRow:last-child{border-bottom:0}
+.iosRow>span{font-size:14px;font-weight:700;color:#E5EDF4}
+.iosRow input,.iosRow select{
+  min-width:0;max-width:190px;border:0;background:transparent;color:#76B9FF;text-align:right;
+  font-size:14px;font-weight:700;outline:0
+}
+.iosRow select{appearance:auto}
+.iosToggle{width:44px!important;height:24px!important;accent-color:#3B82F6}
+.iosNotes{
+  width:100%;min-height:92px;padding:13px 15px;border:0;background:transparent;color:#E9F0F6;
+  font-size:14px;line-height:1.4;resize:vertical;outline:0
+}
+.iosLinkField{display:grid;gap:7px;padding:11px 14px}
+.iosLinkField span{font-size:10px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#75899C}
+.iosLinkField input{
+  width:100%;height:38px;border:1px solid #314559;border-radius:11px;background:#0A131D;color:#DDE8F2;
+  padding:0 10px;font-size:13px;outline:0
+}
+.appSuggestion{
+  width:calc(100% - 20px);margin:10px;height:38px;border-radius:11px;border:1px solid #315F8C;
+  background:#102A43;color:#8CC8FF;font-size:11px;font-weight:900;text-align:left;padding:0 12px
+}
+.iosModalActions{display:grid;grid-template-columns:1fr 1.35fr;gap:8px}
+.iosModalActions button{
+  height:46px;border-radius:14px;font-size:13px;font-weight:900
+}
+.iosCancel{border:1px solid #334557;background:#111A23;color:#A9B7C4}
+.iosSave{border:1px solid #60A5FA;background:linear-gradient(135deg,#2563EB,#3B82F6 62%,#22D3EE);color:#fff}
+.linkedAppBadge{
+  display:inline-flex!important;width:max-content;margin-top:4px;padding:3px 7px;border-radius:8px;
+  border:1px solid #235A44;background:#0D2C22;color:#6EE7B7!important;font-size:8px!important;font-weight:900
+}
+.mobileLinkedOpen{
+  margin:0 8px 8px auto;padding:6px 10px;border-radius:9px;border:1px solid #315D86;
+  background:#102A45;color:#8EC8FF;text-decoration:none;font-size:9px;font-weight:900
+}
+
+.appShell[data-theme="light"] .iosFormGroup{background:#F8FBFD;border-color:#D4DEE7}
+.appShell[data-theme="light"] .iosTitleGroup input{color:#122536;border-color:#DCE5EC}
+.appShell[data-theme="light"] .iosRow{border-color:#DCE5EC}
+.appShell[data-theme="light"] .iosRow>span{color:#203548}
+.appShell[data-theme="light"] .iosRow input,.appShell[data-theme="light"] .iosRow select{color:#1E6DAF}
+.appShell[data-theme="light"] .iosNotes{color:#203548}
+.appShell[data-theme="light"] .iosLinkField input{background:#fff;border-color:#D0DCE6;color:#21384A}
+.appShell[data-theme="light"] .appSuggestion{background:#EDF6FF;border-color:#BDD5EA;color:#2469AE}
+.appShell[data-theme="light"] .iosCancel{background:#F0F4F7;border-color:#D1DCE5;color:#4C6172}
+
+@media(max-width:900px){
+  .modal{width:min(96vw,520px)!important;max-height:90dvh!important}
+  .iosEventForm{padding-bottom:calc(4px + env(safe-area-inset-bottom))}
+  .iosRow input,.iosRow select{font-size:16px}
+  .iosTitleGroup input,.iosLinkField input,.iosNotes{font-size:16px}
+}
