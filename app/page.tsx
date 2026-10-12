@@ -488,7 +488,8 @@ export default function Home(){
     payload.endDate=iso(addDays(sd,1));
 
     if(!connected){
-      const local={...next,pendingSync:true};
+      let local={...next,pendingSync:true};
+      local=await saveToCore(local);
       setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==local.id),local]));
       queueSync({id:crypto.randomUUID(),kind:isExistingGoogle?"update":"create",event:local,googleId:gId,createdAt:Date.now()});
       return local;
@@ -499,17 +500,19 @@ export default function Home(){
       if(r.ok){
         const j=await r.json();
         gId=j.id||gId;
-        const saved={...next,googleId:gId,pendingSync:false};
+        let saved={...next,googleId:gId,pendingSync:false};
+        saved=await saveToCore(saved);
         clearQueuedFor(saved.id,gId);
         setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==saved.id&&(!gId||e.googleId!==gId)),saved]));
         return saved;
       }
     }catch{}
 
-    const local={...next,pendingSync:true};
+    let local={...next,pendingSync:true};
+    local=await saveToCore(local);
     setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==local.id),local]));
     queueSync({id:crypto.randomUUID(),kind:isExistingGoogle?"update":"create",event:local,googleId:gId,createdAt:Date.now()});
-    setNotice("Kapcsolati hiba: az eseményt helyben mentettem, később szinkronizálom.");
+    setNotice("Google-kapcsolati hiba: az eseményt a központi naptárba mentettem, Google-ba később szinkronizálom.");
     return local;
   }
 
@@ -536,6 +539,9 @@ export default function Home(){
   }
 
   async function remove(e:Ev){
+    if(e.centralEventId){
+      try{await fetch("/api/core/events?id="+encodeURIComponent(e.centralEventId),{method:"DELETE"})}catch{}
+    }
     if(!e.googleId){
       clearQueuedFor(e.id);
     }
@@ -550,8 +556,8 @@ export default function Home(){
     }else if(e.googleId){
       queueSync({id:crypto.randomUUID(),kind:"delete",googleId:e.googleId,createdAt:Date.now()});
     }
-    setEvents(p=>p.filter(x=>x.id!==e.id&&(!e.googleId||x.googleId!==e.googleId)));
-    setNotice(e.googleId&&!connected?"Esemény törölve helyben, a Google-t később frissítem.":"Esemény törölve.");
+    setEvents(p=>p.filter(x=>x.id!==e.id&&(!e.googleId||x.googleId!==e.googleId)&&(!e.centralEventId||x.centralEventId!==e.centralEventId)));
+    setNotice(e.googleId&&!connected?"Esemény törölve a központi naptárból, a Google-t később frissítem.":"Esemény törölve.");
     setTimeout(()=>setNotice(""),1600);
   }
 
