@@ -1895,8 +1895,8 @@ function EventForm({value,connected,onSave,onCancel}:{value:Partial<Ev>;connecte
   const appPresets=[
     {name:"",label:"Nincs",url:""},
     {name:"HaviNyersanyag Rendelő",label:"HaviNyersanyag Rendelő",url:""},
-    {name:"Személyes Központ",label:"Személyes Központ",url:"https://szemelyes-kozpont.vercel.app/"},
-    {name:"Kerékcsere",label:"Kerékcsere",url:"https://kerekcsere-app.vercel.app/"},
+    {name:"Személyes Központ",label:"Személyes Központ",url:"https://szemelyes-kozpont.vercel.app/?screen=nav&tab=deadlines"},
+    {name:"Kerékcsere",label:"Kerékcsere",url:"https://kerekcsere-app.vercel.app/?tab=garage"},
     {name:"Egyedi",label:"Egyedi hivatkozás",url:""}
   ];
   function chooseApp(name:string){
