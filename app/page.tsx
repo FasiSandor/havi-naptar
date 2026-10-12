@@ -848,12 +848,41 @@ export default function Home(){
 }
 
 
-function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,onSync,onDay,onLongDay,onQuickAdd,onSearch,onPrint,nextEvent,onNextEvent,onToday,onPrevMonth,onNextMonth,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;pendingCount:number;lastSync:number|null;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onSearch:()=>void;onPrint:()=>void;nextEvent:Ev|null;onNextEvent:(e:Ev)=>void;onToday:()=>void;onPrevMonth:()=>void;onNextMonth:()=>void;onSettings:()=>void}){
+function UpcomingCarousel({events,onOpen}:{events:Ev[];onOpen:(e:Ev)=>void}){
+  const [index,setIndex]=useState(0);
+  const [dir,setDir]=useState<"next"|"prev">("next");
+  useEffect(()=>{if(index>=events.length)setIndex(0)},[events.length,index]);
+  useEffect(()=>{
+    if(events.length<=1)return;
+    const t=window.setInterval(()=>{setDir("next");setIndex(i=>(i+1)%events.length)},4800);
+    return ()=>window.clearInterval(t);
+  },[events.length]);
+  if(!events.length)return <div className="upcomingEmptyStrip"><span>KÖVETKEZŐ 7 NAP</span><b>Nincs közelgő esemény</b></div>;
+  const e=events[index]||events[0];
+  const when=parseDate(e.date).toLocaleDateString("hu-HU",{month:"short",day:"numeric",weekday:"short"});
+  return <div className="upcomingCarousel">
+    <button className="upcomingArrow" aria-label="Előző esemény" onClick={()=>{setDir("prev");setIndex(i=>(i-1+events.length)%events.length)}}>‹</button>
+    <button key={e.id+"-"+index} className={"upcomingSlide "+(dir==="next"?"slideNext":"slidePrev")} onClick={()=>onOpen(e)}>
+      <span className="nextEventLabel">KÖVETKEZŐ 7 NAP · {index+1}/{events.length}</span>
+      <b>{e.title}</b>
+      <small>{when}{e.allDay?" · egész nap":e.start?" · "+e.start:""}{e.location?" · "+e.location:""}</small>
+      <em>›</em>
+    </button>
+    <button className="upcomingArrow" aria-label="Következő esemény" onClick={()=>{setDir("next");setIndex(i=>(i+1)%events.length)}}>›</button>
+  </div>
+}
+
+function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,onSync,onDay,onLongDay,onQuickAdd,onSearch,onPrint,upcomingEvents,onUpcomingEvent,onToday,rangeMode,onRangeMode,onPrev,onNext,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;pendingCount:number;lastSync:number|null;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onSearch:()=>void;onPrint:()=>void;upcomingEvents:Ev[];onUpcomingEvent:(e:Ev)=>void;onToday:()=>void;rangeMode:"2w"|"3w"|"4w"|"month";onRangeMode:(m:"2w"|"3w"|"4w"|"month")=>void;onPrev:()=>void;onNext:()=>void;onSettings:()=>void}){
   const swipeX=useRef<number|null>(null);
   const swipeY=useRef<number|null>(null);
   const swipeMoved=useRef(false);
-  const first=monday(new Date(anchor.getFullYear(),anchor.getMonth(),1,12));
-  const days=Array.from({length:42},(_,i)=>addDays(first,i));
+  const monthFirst=new Date(anchor.getFullYear(),anchor.getMonth(),1,12);
+  const monthStart=monday(monthFirst);
+  const monthLast=new Date(anchor.getFullYear(),anchor.getMonth()+1,0,12);
+  const monthWeeks=Math.max(5,Math.ceil((Math.round((monthLast.getTime()-monthStart.getTime())/86400000)+1)/7));
+  const first=rangeMode==="month"?monthStart:monday(anchor);
+  const dayCount=rangeMode==="month"?Math.min(42,monthWeeks*7):rangeMode==="2w"?14:rangeMode==="3w"?21:28;
+  const days=Array.from({length:dayCount},(_,i)=>addDays(first,i));
   const longTimer=useRef<number|undefined>(undefined);
   const longFired=useRef(false);
   function pressStart(d:Date){
@@ -869,13 +898,13 @@ function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,o
   return <section className="mobilePortraitCalendar"
     onPointerDown={e=>{swipeX.current=e.clientX;swipeY.current=e.clientY;swipeMoved.current=false}}
     onPointerMove={e=>{if(swipeX.current===null||swipeY.current===null)return;const dx=e.clientX-swipeX.current,dy=e.clientY-swipeY.current;if(Math.abs(dx)>12||Math.abs(dy)>12){swipeMoved.current=true;if(longTimer.current)window.clearTimeout(longTimer.current)}}}
-    onPointerUp={e=>{if(swipeX.current===null||swipeY.current===null)return;const dx=e.clientX-swipeX.current,dy=e.clientY-swipeY.current;swipeX.current=null;swipeY.current=null;if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.25)dx<0?onNextMonth():onPrevMonth();setTimeout(()=>{swipeMoved.current=false},80)}}> 
+    onPointerUp={e=>{if(swipeX.current===null||swipeY.current===null)return;const dx=e.clientX-swipeX.current,dy=e.clientY-swipeY.current;swipeX.current=null;swipeY.current=null;if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.25)dx<0?onNext():onPrev();setTimeout(()=>{swipeMoved.current=false},80)}}> 
     <header className="mockHero">
-      <div className="monthNavCapsule"><button onClick={onPrevMonth}>‹</button><span>{anchor.getFullYear()}.</span><button onClick={onNextMonth}>›</button></div>
+      <div className="monthNavCapsule"><button onClick={onPrev}>‹</button><span>{anchor.getFullYear()}.</span><button onClick={onNext}>›</button></div>
       <div className="mockActions">
         <button className={"syncDot "+(connected?"online":"")} aria-label="Google Naptár szinkron" title={connected?"Google Naptár kapcsolódva":"Google Naptár offline"} onClick={onSync}>{syncing?"↻":connected?"●":"○"}</button>
         <button aria-label="Esemény keresése" onClick={onSearch}>⌕</button>
-        <button aria-label="Falinaptár előnézet" title="Falinaptár / PDF" onClick={onPrint}>⎙</button>
+        <button aria-label="PDF előnézet" title="Naptár / PDF" onClick={onPrint}>⎙</button>
         <button onClick={onSettings}>⚙</button>
       </div>
     </header>
@@ -887,17 +916,18 @@ function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,o
       <span><i className="legendHoliday"/>Ünnep</span>
       <span className={pendingCount?"syncState pending":connected?"syncState ok":"syncState"} title={lastSync?"Utolsó szinkron: "+new Date(lastSync).toLocaleString("hu-HU"):""}>{pendingCount?pendingCount+" vár szinkronra":connected?"Google ✓":lastSync?"Offline · cache":"Offline"}</span>
     </div>
-    {nextEvent&&<button className="nextEventStrip" onClick={()=>onNextEvent(nextEvent)}>
-      <span className="nextEventLabel">KÖVETKEZŐ</span>
-      <b>{nextEvent.title}</b>
-      <small>{parseDate(nextEvent.date).toLocaleDateString("hu-HU",{month:"short",day:"numeric"})}{nextEvent.allDay?" · egész nap":nextEvent.start?" · "+nextEvent.start:""}{nextEvent.location?" · "+nextEvent.location:""}</small>
-      <em>›</em>
-    </button>}
+
+    <div className="mobileRangeSwitch" role="group" aria-label="Naptárnézet">
+      {([["2w","2 hét"],["3w","3 hét"],["4w","4 hét"],["month","Hónap"]] as const).map(([k,label])=><button key={k} className={rangeMode===k?"on":""} onClick={()=>onRangeMode(k)}>{label}</button>)}
+    </div>
+
+    <UpcomingCarousel events={upcomingEvents} onOpen={onUpcomingEvent}/>
+
     <div className="mockWeekdays">{["H","K","Sze","Cs","P","Sz","V"].map(x=><span key={x}>{x}</span>)}</div>
 
-    <div className="mockMonthGrid">
+    <div className={"mockMonthGrid rows-"+Math.ceil(days.length/7)}>
       {days.map(d=>{
-        const current=d.getMonth()===anchor.getMonth();
+        const current=rangeMode==="month"?d.getMonth()===anchor.getMonth():true;
         const es=events.filter(e=>e.date===iso(d));
         const today=iso(d)===iso(new Date());
         const holiday=holidayMap[iso(d)];
@@ -917,14 +947,13 @@ function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,o
       })}
     </div>
 
-    <div className="portraitHint">Koppintás: napi események · Hosszan nyomva: havi folyam</div>
+    <div className="portraitHint">Koppintás: napi események · Hosszan nyomva: tanévi folyam</div>
     <div className="mockBottom">
       <button className="mockTodayBtn" onClick={onToday}>Ma</button>
       <button className="mockBottomPlus" onClick={onQuickAdd}>＋</button>
     </div>
   </section>
 }
-
 function MobileDayCards({date,events,onClose,onEdit,onDelete,onAdd}:{date:string;events:Ev[];onClose:()=>void;onEdit:(e:Ev)=>void;onDelete:(e:Ev)=>void;onAdd:()=>void}){
   const d=parseDate(date);
   const sorted=[...events].sort((a,b)=>(a.start||"").localeCompare(b.start||""));
