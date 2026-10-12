@@ -977,8 +977,9 @@ function MobileDayCards({date,events,onClose,onEdit,onDelete,onAdd}:{date:string
           <button className="mobileEventOpen" onClick={()=>onEdit(e)}>
             <div className="mobileEventTime"><b>{e.allDay?"Egész nap":e.start}</b><span>{e.allDay?"":e.end||""}</span></div>
             <div className="mobileEventIcon">{calMeta[e.calendar].icon}</div>
-            <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span>{e.note==="Iskolai munkaterv 2026/2027"&&<small className="sourceBadge">MUNKATERV · CSAK OLVASHATÓ</small>}{e.pendingSync&&<small className="pendingBadge">SZINKRONRA VÁR</small>}</div>
+            <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span>{e.linkedApp&&<small className="linkedAppBadge">↗ {e.linkedApp}</small>}{e.note==="Iskolai munkaterv 2026/2027"&&<small className="sourceBadge">MUNKATERV · CSAK OLVASHATÓ</small>}{e.pendingSync&&<small className="pendingBadge">SZINKRONRA VÁR</small>}</div>
           </button>
+          {e.linkedUrl&&<a className="mobileLinkedOpen" href={e.linkedUrl} target="_self">Megnyitás ›</a>}
           {!e.id.startsWith("workplan-")&&<button className={"mobileEventDelete "+(deleteId===e.id?"armed":"")} aria-label="Esemény törlése" onClick={()=>{if(deleteId===e.id){onDelete(e);setDeleteId(null)}else{setDeleteId(e.id);setTimeout(()=>setDeleteId(id=>id===e.id?null:id),2200)}}}>{deleteId===e.id?"Törlés":"×"}</button>}
         </div>):<div className="mobileNoEvents"><i>✦</i><b>Szabad nap</b><span>Nincs bejegyzett esemény.</span></div>}
       </div>
@@ -1622,23 +1623,62 @@ function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:
 }
 function EventForm({value,connected,onSave,onCancel}:{value:Partial<Ev>;connected:boolean;onSave:(x:Partial<Ev>)=>void;onCancel:()=>void}){
   const [x,setX]=useState(value);
-  return <div className="form">
-    <label><span>Cím</span><input value={x.title||""} onChange={e=>setX({...x,title:e.target.value})} placeholder="Esemény neve"/></label>
-    <div className="two"><label><span>Dátum</span><input type="date" value={x.date||""} onChange={e=>setX({...x,date:e.target.value})}/></label><label className="toggleLabel"><span>Egész napos</span><input type="checkbox" checked={!!x.allDay} onChange={e=>setX({...x,allDay:e.target.checked})}/></label></div>
-    {!x.allDay&&<div className="two"><label><span>Kezdés</span><input type="time" step="900" value={x.start||""} onChange={e=>setX({...x,start:e.target.value})}/></label><label><span>Vége</span><input type="time" step="900" value={x.end||""} onChange={e=>setX({...x,end:e.target.value})}/></label></div>}
-    <label><span>Naptár</span><select value={x.calendar||"work"} onChange={e=>setX({...x,calendar:e.target.value as CalKey})}>{(Object.keys(calMeta) as CalKey[]).map(k=><option key={k} value={k}>{calMeta[k].icon} {calMeta[k].label}</option>)}</select></label>
-    <div className="two advancedFields">
-      <label><span>Ismétlődés</span><select disabled={!connected||x.repeat==="googleSeries"} value={x.repeat||"none"} onChange={e=>setX({...x,repeat:e.target.value as RepeatMode})}>
+  const titleNorm=normText(x.title||"");
+  const suggestedApp=titleNorm.includes("leltar")||titleNorm.includes("rendeles")?"HaviNyersanyag Rendelő":titleNorm.includes("kerek")?"Kerékcsere":titleNorm.includes("szemelyes")?"Személyes Központ":"";
+  const appPresets=[
+    {name:"",label:"Nincs",url:""},
+    {name:"HaviNyersanyag Rendelő",label:"HaviNyersanyag Rendelő",url:""},
+    {name:"Személyes Központ",label:"Személyes Központ",url:"https://szemelyes-kozpont.vercel.app/"},
+    {name:"Kerékcsere",label:"Kerékcsere",url:"https://kerekcsere-app.vercel.app/"},
+    {name:"Egyedi",label:"Egyedi hivatkozás",url:""}
+  ];
+  function chooseApp(name:string){
+    const p=appPresets.find(a=>a.name===name);
+    setX({...x,linkedApp:name||undefined,linkedLabel:name||undefined,linkedUrl:p?.url||undefined});
+  }
+  function submit(){
+    const linkedLabel=x.linkedApp==="HaviNyersanyag Rendelő"&&titleNorm.includes("leltar")?"Leltár megnyitása":
+      x.linkedApp==="HaviNyersanyag Rendelő"&&titleNorm.includes("rendeles")?"Rendelés megnyitása":
+      x.linkedApp?((x.linkedApp||"")+" megnyitása"):undefined;
+    onSave({...x,linkedLabel});
+  }
+  return <div className="iosEventForm">
+    <section className="iosFormGroup iosTitleGroup">
+      <input className="iosTitleInput" value={x.title||""} onChange={e=>setX({...x,title:e.target.value})} placeholder="Cím"/>
+      <input value={x.location||""} onChange={e=>setX({...x,location:e.target.value})} placeholder="Helyszín"/>
+    </section>
+
+    <section className="iosFormGroup">
+      <label className="iosRow"><span>Egész napos</span><input className="iosToggle" type="checkbox" checked={!!x.allDay} onChange={e=>setX({...x,allDay:e.target.checked})}/></label>
+      <label className="iosRow"><span>Dátum</span><input type="date" value={x.date||""} onChange={e=>setX({...x,date:e.target.value})}/></label>
+      {!x.allDay&&<>
+        <label className="iosRow"><span>Kezdés</span><input type="time" step="900" value={x.start||""} onChange={e=>setX({...x,start:e.target.value})}/></label>
+        <label className="iosRow"><span>Vége</span><input type="time" step="900" value={x.end||""} onChange={e=>setX({...x,end:e.target.value})}/></label>
+      </>}
+    </section>
+
+    <section className="iosFormGroup">
+      <label className="iosRow"><span>Naptár</span><select value={x.calendar||"work"} onChange={e=>setX({...x,calendar:e.target.value as CalKey})}>{(Object.keys(calMeta) as CalKey[]).map(k=><option key={k} value={k}>{calMeta[k].label}</option>)}</select></label>
+      <label className="iosRow"><span>Ismétlődés</span><select disabled={!connected||x.repeat==="googleSeries"} value={x.repeat||"none"} onChange={e=>setX({...x,repeat:e.target.value as RepeatMode})}>
         {x.repeat==="googleSeries"&&<option value="googleSeries">Google-sorozat</option>}
         <option value="none">Nincs</option><option value="daily">Naponta</option><option value="weekly">Hetente</option><option value="monthly">Havonta</option><option value="yearly">Évente</option>
       </select></label>
-      <label><span>Emlékeztető</span><select disabled={!connected} value={Number(x.reminder||0)} onChange={e=>setX({...x,reminder:Number(e.target.value)})}>
+      <label className="iosRow"><span>Értesítés</span><select disabled={!connected} value={Number(x.reminder||0)} onChange={e=>setX({...x,reminder:Number(e.target.value)})}>
         <option value={0}>Nincs</option><option value={5}>5 perccel előtte</option><option value={10}>10 perccel előtte</option><option value={15}>15 perccel előtte</option><option value={30}>30 perccel előtte</option><option value={60}>1 órával előtte</option><option value={1440}>1 nappal előtte</option>
       </select></label>
-    </div>
-    {!connected&&<small className="googleOnlyHint">Az ismétlődés és az emlékeztető Google Naptár-kapcsolattal érhető el.</small>}
-    <label><span>Helyszín</span><input value={x.location||""} onChange={e=>setX({...x,location:e.target.value})} placeholder="Opcionális"/></label>
-    <label><span>Megjegyzés</span><textarea value={x.note||""} onChange={e=>setX({...x,note:e.target.value})} placeholder="Opcionális"/></label>
-    <div className="modalActions"><button className="secondary" onClick={onCancel}>Mégse</button><button className="primary" onClick={()=>onSave(x)}>Mentés</button></div>
+    </section>
+
+    <section className="iosFormGroup">
+      <label className="iosRow"><span>Kapcsolódó app</span><select value={x.linkedApp||""} onChange={e=>chooseApp(e.target.value)}>{appPresets.map(p=><option key={p.name||"none"} value={p.name}>{p.label}</option>)}</select></label>
+      {suggestedApp&&!x.linkedApp&&<button className="appSuggestion" type="button" onClick={()=>chooseApp(suggestedApp)}>Javaslat: {suggestedApp} hozzákapcsolása</button>}
+      {x.linkedApp&&<label className="iosLinkField"><span>Megnyitási hivatkozás</span><input value={x.linkedUrl||""} onChange={e=>setX({...x,linkedUrl:e.target.value})} placeholder={x.linkedApp==="HaviNyersanyag Rendelő"?"Az app pontos URL-je":"https://…"}/></label>}
+    </section>
+
+    <section className="iosFormGroup">
+      <textarea className="iosNotes" value={x.note||""} onChange={e=>setX({...x,note:e.target.value})} placeholder="Jegyzet"/>
+    </section>
+
+    {!connected&&<small className="googleOnlyHint">Az ismétlődés és az időzített Google-értesítés Google Naptár-kapcsolattal érhető el.</small>}
+    <div className="iosModalActions"><button className="iosCancel" onClick={onCancel}>Mégse</button><button className="iosSave" onClick={submit}>Hozzáadás / Mentés</button></div>
   </div>
 }
