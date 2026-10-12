@@ -488,7 +488,7 @@ export default function Home(){
     payload.endDate=iso(addDays(sd,1));
 
     if(!connected){
-      let local={...next,pendingSync:true};
+      let local:Ev={...next,pendingSync:true};
       local=await saveToCore(local);
       setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==local.id),local]));
       queueSync({id:crypto.randomUUID(),kind:isExistingGoogle?"update":"create",event:local,googleId:gId,createdAt:Date.now()});
@@ -500,7 +500,7 @@ export default function Home(){
       if(r.ok){
         const j=await r.json();
         gId=j.id||gId;
-        let saved={...next,googleId:gId,pendingSync:false};
+        let saved:Ev={...next,googleId:gId,pendingSync:false};
         saved=await saveToCore(saved);
         clearQueuedFor(saved.id,gId);
         setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==saved.id&&(!gId||e.googleId!==gId)),saved]));
@@ -508,7 +508,7 @@ export default function Home(){
       }
     }catch{}
 
-    let local={...next,pendingSync:true};
+    let local:Ev={...next,pendingSync:true};
     local=await saveToCore(local);
     setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==local.id),local]));
     queueSync({id:crypto.randomUUID(),kind:isExistingGoogle?"update":"create",event:local,googleId:gId,createdAt:Date.now()});
