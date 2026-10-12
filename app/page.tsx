@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useMemo,useRef,useState} from "react";
+import CoreGoogleSyncSettings from "./CoreGoogleSyncSettings";
 
 type CalKey="work"|"personal"|"family"|"sport";
 type RangeMode="1w"|"2w"|"3w"|"4w"|"month"|"custom"|"list";
@@ -856,6 +857,7 @@ export default function Home(){
           <div className="settingsTitle"><b>Iskolai munkaterv</b><span>A 2026/2027-es Teleki munkaterv 31 dátuma központi naptári eseményként, alapból bekapcsolva.</span></div>
           <button className={"layerToggle "+(showWorkPlan?"on":"")} onClick={()=>setShowWorkPlan(v=>!v)}><i/><span>{showWorkPlan?"Látható":"Elrejtve"}</span></button>
         </div>
+        <CoreGoogleSyncSettings/>
         <GmailRealtimeSettings/>
         <WatchedSourcesSettings/>
         <div className="syncDiagnostics">
