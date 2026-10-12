@@ -2668,3 +2668,16 @@
 @media(max-width:560px){
   .coreSyncStats{grid-template-columns:1fr 1fr}
 }
+
+.linkedOpenButton{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  min-height:42px;margin:10px;border:1px solid #315D86;border-radius:12px;
+  background:linear-gradient(180deg,#102A45,#0D2136);
+  color:#9DD2FF;text-decoration:none;font-size:11px;font-weight:900;
+  box-shadow:0 0 0 1px rgba(59,130,246,.08),0 8px 22px rgba(0,0,0,.18)
+}
+.linkedOpenButton span{font-size:15px}
+.linkedOpenButton:hover{border-color:#60A5FA;background:#143655}
+.appShell[data-theme="light"] .linkedOpenButton{
+  background:#EDF6FF;border-color:#BDD5EA;color:#2469AE;box-shadow:none
+}
