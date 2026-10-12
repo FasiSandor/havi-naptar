@@ -2601,3 +2601,36 @@
   .watchSourceRow select{font-size:8px}
   .watchGroupList{max-height:320px}
 }
+
+
+/* next-major: Gmail realtime connection status */
+.gmailRealtimeSetting{
+  display:grid;gap:10px;padding:12px;border:1px solid #2A3A4B;border-radius:16px;
+  background:linear-gradient(180deg,#101821,#0D151D)
+}
+.gmailAccounts{display:grid;gap:7px}
+.gmailAccount{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:10px;border:1px solid #27435B;border-radius:12px;background:#0B151F
+}
+.gmailAccount.warn{border-color:#76552A;background:linear-gradient(135deg,#21190F,#101821)}
+.gmailAccount>div{display:grid;gap:2px;min-width:0}
+.gmailAccount b{font-size:11px;color:#ECF4FA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gmailAccount span{font-size:9px;font-weight:900;color:#64C894}
+.gmailAccount.warn span{color:#F5B84B}
+.gmailAccount small{font-size:8px;color:#71879A;line-height:1.35}
+.gmailAccount button{
+  height:36px;padding:0 10px;border:1px solid #3B82F6;border-radius:10px;
+  background:#123659;color:#A9D5FF;font-size:9px;font-weight:900
+}
+.gmailAccount.warn button{border-color:#F59E0B;background:#3A2810;color:#FFD08A}
+.gmailLoading{padding:10px;border:1px dashed #30465A;border-radius:11px;color:#7890A4;font-size:9px}
+.gmailHint{color:#6D8295;font-size:8px;line-height:1.35}
+
+.appShell[data-theme="light"] .gmailRealtimeSetting{background:#F7FAFC;border-color:#D2DDE6}
+.appShell[data-theme="light"] .gmailAccount{background:#fff;border-color:#D7E2EA}
+.appShell[data-theme="light"] .gmailAccount.warn{background:#FFF8EA;border-color:#E6C98D}
+.appShell[data-theme="light"] .gmailAccount b{color:#253A4B}
+.appShell[data-theme="light"] .gmailAccount small{color:#6B8092}
+.appShell[data-theme="light"] .gmailAccount button{background:#EAF4FE;color:#2469AE;border-color:#BBD7EE}
+.appShell[data-theme="light"] .gmailAccount.warn button{background:#FFF1D5;color:#9B6715;border-color:#E4BF79}
