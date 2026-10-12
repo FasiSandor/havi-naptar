@@ -1770,7 +1770,7 @@ function WatchedSourcesSettings(){
     <div className="settingsTitle"><b>Figyelt források</b><span>{activeCount} aktív forrás · e-mail, személy, csoport, weboldal és intézmény. A naptári viselkedés forrásonként állítható.</span></div>
     <div className="watchSourceTools">
       <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Keresés: Teleki, EKKE, KRÉTA…"/>
-      <button onClick={()=>setAdding(v=>!v}>{adding?"Mégse":"＋ Forrás"}</button>
+      <button onClick={()=>setAdding(v=>!v)}>{adding?"Mégse":"＋ Forrás"}</button>
     </div>
     {adding&&<div className="watchAddCard">
       <select value={draft.kind} onChange={e=>setDraft({...draft,kind:e.target.value})}>
