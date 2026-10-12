@@ -84,6 +84,7 @@ function eventKey(e:Pick<Ev,"title"|"date"|"start"|"allDay"|"location">){
   const time=e.allDay?"allday":(e.start||"").slice(0,5);
   return [e.date,time,t,loc].join("|");
 }
+function isWorkPlanEvent(e:Pick<Ev,"id"|"sourceApp">){return e.id.startsWith("workplan-")||e.sourceApp==="teleki-workplan"}
 function nearDuplicate(a:Ev,b:Ev){
   if(a.date!==b.date)return false;
   if(normText(a.title)!==normText(b.title))return false;
@@ -343,7 +344,7 @@ export default function Home(){
 
   const days=useMemo(()=>Array.from({length:count},(_,i)=>addDays(start,i)),[start,count]);
   const end=days[days.length-1];
-  const displayEvents=useMemo(()=>dedupeEvents([...events,...(showWorkPlan?schoolPlanEvents:[])]),[events,showWorkPlan]);
+  const displayEvents=useMemo(()=>dedupeEvents([...(showWorkPlan?events:events.filter(e=>!isWorkPlanEvent(e))),...(showWorkPlan?schoolPlanEvents:[])]),[events,showWorkPlan]);
   const enabledEvents=useMemo(()=>displayEvents.filter(e=>enabled[e.calendar]),[displayEvents,enabled]);
   const shown=enabledEvents.filter(e=>days.some(d=>iso(d)===e.date)).sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
   const clockDate=new Date(clock);
@@ -810,8 +811,8 @@ export default function Home(){
     </div>}
     {notice&&<div className="toast">{notice}</div>}
 
-    {dayOpen&&<MobileDayCards date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>{if(e.id.startsWith("workplan-"))setInfoEvent(e);else setEditor(e)}} onDelete={e=>{if(!e.id.startsWith("workplan-"))remove(e)}} onAdd={()=>setQuickAdd(true)}/>}
-    {dayOpen&&<DayZoom date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>setEditor(e)} onAdd={()=>setQuickAdd(true)} onMove={moveEvent} onDelete={remove}/>} 
+    {dayOpen&&<MobileDayCards date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>{if(isWorkPlanEvent(e))setInfoEvent(e);else setEditor(e)}} onDelete={e=>{if(!isWorkPlanEvent(e))remove(e)}} onAdd={()=>setQuickAdd(true)}/>}
+    {dayOpen&&<DayZoom date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>{if(isWorkPlanEvent(e))setInfoEvent(e);else setEditor(e)}} onAdd={()=>setQuickAdd(true)} onMove={(e,d)=>{if(!isWorkPlanEvent(e))moveEvent(e,d)}} onDelete={e=>{if(!isWorkPlanEvent(e))remove(e)}}/>} 
 
     {infoEvent&&<Modal title="Munkaterv esemény" onClose={()=>setInfoEvent(null)}>
       <div className="readOnlyEvent">
@@ -852,7 +853,7 @@ export default function Home(){
           <small className="themeHint">Aktív: {resolvedTheme==="dark"?"sötét":"világos"} mód</small>
         </div>
         <div className="workPlanSetting">
-          <div className="settingsTitle"><b>Iskolai munkaterv</b><span>A 2026/2027-es Teleki munkaterv fontos dátumai külön rétegként.</span></div>
+          <div className="settingsTitle"><b>Iskolai munkaterv</b><span>A 2026/2027-es Teleki munkaterv 31 dátuma központi naptári eseményként, alapból bekapcsolva.</span></div>
           <button className={"layerToggle "+(showWorkPlan?"on":"")} onClick={()=>setShowWorkPlan(v=>!v)}><i/><span>{showWorkPlan?"Látható":"Elrejtve"}</span></button>
         </div>
         <GmailRealtimeSettings/>
@@ -862,7 +863,7 @@ export default function Home(){
           <div className="syncDiagGrid">
             <span><b>{connected?"ONLINE":"OFFLINE"}</b><small>Google</small></span>
             <span><b>{events.filter(e=>!!e.googleId).length}</b><small>Google cache</small></span>
-            <span><b>{events.filter(e=>!e.googleId&&!e.id.startsWith("workplan-")).length}</b><small>Saját</small></span>
+            <span><b>{events.filter(e=>!e.googleId&&!isWorkPlanEvent(e)).length}</b><small>Saját</small></span>
             <span className={syncQueue.length?"warn":""}><b>{syncQueue.length}</b><small>Függő művelet</small></span>
           </div>
           <div className="syncDiagFoot">
