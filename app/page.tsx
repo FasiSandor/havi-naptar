@@ -1483,83 +1483,82 @@ function DraggableEvent({e,onMove,onEdit,onDelete}:{e:Ev;onMove:(e:Ev,m:number,d
   </article>
 }
 
-function WallCalendarPrint({anchor,events,mode,onMode,onClose}:{anchor:Date;events:Ev[];mode:"month"|"4w";onMode:(m:"month"|"4w")=>void;onClose:()=>void}){
+function WallCalendarPrint({anchor,events,mode,onMode,onClose}:{anchor:Date;events:Ev[];mode:"2w"|"3w"|"4w"|"month";onMode:(m:"2w"|"3w"|"4w"|"month")=>void;onClose:()=>void}){
   const monthFirst=new Date(anchor.getFullYear(),anchor.getMonth(),1,12);
   const monthStart=monday(monthFirst);
   const monthLast=new Date(anchor.getFullYear(),anchor.getMonth()+1,0,12);
-  const monthEndMonday=monday(monthLast);
-  const monthWeeks=Math.round((monthEndMonday.getTime()-monthStart.getTime())/(7*86400000))+1;
-  const fourStart=monday(anchor);
-  const actualStart=mode==="month"?monthStart:fourStart;
-  const rowCount=mode==="month"?Math.max(5,monthWeeks):5;
-  const selectedDays=mode==="month"?Array.from({length:rowCount*7},(_,i)=>addDays(actualStart,i)):Array.from({length:28},(_,i)=>addDays(fourStart,i));
-  const cells=mode==="month"?selectedDays:[...selectedDays,...Array.from({length:7},()=>null as Date|null)];
-  const title=mode==="month"
-    ?monthLabel(anchor)
-    :fmtRange(fourStart,addDays(fourStart,27));
-  const subtitle=mode==="month"
-    ?"Havi falinaptár"
-    :"4 hetes falinaptár";
+  const monthWeeks=Math.max(5,Math.ceil((Math.round((monthLast.getTime()-monthStart.getTime())/86400000)+1)/7));
+  const rangeStart=mode==="month"?monthStart:monday(anchor);
+  const rangeWeeks=mode==="month"?Math.min(6,monthWeeks):mode==="2w"?2:mode==="3w"?3:4;
+  const cells=Array.from({length:rangeWeeks*7},(_,i)=>addDays(rangeStart,i));
+  const rangeEnd=cells[cells.length-1];
+  const title=mode==="month"?monthLabel(anchor):fmtRange(rangeStart,rangeEnd);
+  const subtitle=mode==="month"?"Havi naptár":mode==="2w"?"2 hetes naptár":mode==="3w"?"3 hetes naptár":"4 hetes naptár";
   const weekdayHeaders=["Hétfő","Kedd","Szerda","Csütörtök","Péntek","Szombat","Vasárnap"];
+  const visibleEvents=events.filter(e=>e.date>=iso(rangeStart)&&e.date<=iso(rangeEnd)).sort((a,b)=>(a.date+(a.allDay?"00:00":a.start||"")).localeCompare(b.date+(b.allDay?"00:00":b.start||"")));
+
+  async function sharePreview(){
+    const data={title:"Naptár – "+title,text:"Naptár előnézet: "+title};
+    try{
+      if(navigator.share)await navigator.share(data);
+      else window.print();
+    }catch{}
+  }
 
   return <div className="wallPrintOverlay">
     <div className="wallPrintToolbar">
       <div>
-        <small>FALINAPTÁR</small>
-        <b>A4 fekvő · nyomtatható nézet</b>
+        <small>PDF ELŐNÉZET</small>
+        <b>A4 fekvő · {subtitle}</b>
       </div>
       <div className="wallPrintMode">
-        <button className={mode==="month"?"on":""} onClick={()=>onMode("month")}>Hónap</button>
-        <button className={mode==="4w"?"on":""} onClick={()=>onMode("4w")}>4 hét</button>
+        {([["2w","2 hét"],["3w","3 hét"],["4w","4 hét"],["month","Hónap"]] as const).map(([k,label])=><button key={k} className={mode===k?"on":""} onClick={()=>onMode(k)}>{label}</button>)}
       </div>
       <div className="wallPrintActions">
         <button onClick={onClose}>Bezárás</button>
-        <button className="printPrimary" onClick={()=>window.print()}>⎙ Nyomtatás / PDF</button>
+        <button onClick={sharePreview}>↗ Küldés</button>
+        <button className="printPrimary" onClick={()=>window.print()}>⎙ Mentés / PDF / Nyomtatás</button>
       </div>
     </div>
 
-    <section className={"wallPaper rows-"+rowCount}>
+    <section className={"wallPaper rows-"+rangeWeeks}>
       <header className="wallPaperHead">
         <div><small>{subtitle}</small><h1>{title}</h1></div>
         <span>HAVI NAPTÁR</span>
       </header>
       <div className="wallWeekdays">{weekdayHeaders.map(x=><div key={x}>{x}</div>)}</div>
-      <div className="wallGrid" style={{"--wall-rows":rowCount} as React.CSSProperties}>
-        {cells.map((d,i)=>{
-          if(!d)return <div className="wallCell blank" key={"blank-"+i}/>;
+      <div className="wallGrid" style={{"--wall-rows":rangeWeeks} as React.CSSProperties}>
+        {cells.map(d=>{
           const dayIso=iso(d);
           const isOutside=mode==="month"&&d.getMonth()!==anchor.getMonth();
           const es=events.filter(e=>e.date===dayIso).sort((a,b)=>(a.allDay?"00:00":a.start||"").localeCompare(b.allDay?"00:00":b.start||""));
           const holiday=holidayMap[dayIso];
           return <div className={"wallCell "+(isOutside?"outside ":"")+(holiday?"holiday ":"")} key={dayIso}>
-            <div className="wallDayHead">
-              <b>{d.getDate()}</b>
-              <span>{d.toLocaleDateString("hu-HU",{weekday:"short"})}</span>
-            </div>
+            <div className="wallDayHead"><b>{d.getDate()}</b><span>{d.toLocaleDateString("hu-HU",{weekday:"short"})}</span></div>
             {holiday&&<div className="wallHoliday">✦ {holiday}</div>}
             <div className="wallEvents">
-              {es.slice(0,4).map(e=>{
-                const source=e.id.startsWith("workplan-")?"plan":e.googleId?"google":"local";
+              {es.slice(0,5).map(e=>{
+                const source=e.id.startsWith("workplan-")?"plan":e.centralEventId?"core":e.googleId?"google":"local";
                 return <div className={"wallEvent "+source} key={e.id+"-"+(e.start||"")}>
                   <i style={{background:calMeta[e.calendar].color}}/>
                   <span><b>{e.allDay?"":(e.start||"")+" "}</b>{e.title}</span>
                 </div>
               })}
-              {es.length>4&&<div className="wallMore">+{es.length-4} további</div>}
+              {es.length>5&&<div className="wallMore">+{es.length-5} további</div>}
             </div>
           </div>
         })}
       </div>
       <footer className="wallLegend">
         <span><i className="dot local"/>Saját</span>
+        <span><i className="dot core"/>Calendar Core</span>
         <span><i className="dot google"/>Google</span>
         <span><i className="dot plan"/>Iskolai munkaterv</span>
-        <span className="wallGenerated">{new Date().toLocaleDateString("hu-HU")}</span>
+        <span className="wallGenerated">{visibleEvents.length} esemény · {new Date().toLocaleDateString("hu-HU")}</span>
       </footer>
     </section>
   </div>
 }
-
 function EventSearchOverlay({events,onClose,onOpen}:{events:Ev[];onClose:()=>void;onOpen:(e:Ev)=>void}){
   const [q,setQ]=useState("");
   const query=normText(q);
