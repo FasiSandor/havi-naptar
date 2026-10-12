@@ -98,6 +98,29 @@ function timeOverlap(a:Ev,b:Ev){
   const as=mins(a.start),ae=mins(a.end),bs=mins(b.start),be=mins(b.end);
   return Math.max(as,bs)<Math.min(ae,be);
 }
+function supervisionKey(title:string){
+  const t=normText(title);
+  if(!/\b(?:vizsgafelugyelet|felugyelet|felugyeles)\b/.test(t))return "";
+  const language=t.match(/\b(angol|nemet|francia|olasz|spanyol|orosz)\b/)?.[1];
+  const level=t.includes("emelt")?"emelt":t.includes("kozepszint")?"kozep":"";
+  return language&&level?language+"|"+level+"|felugyelet":"";
+}
+function pendingDraftMatch(local:Ev,remote:Ev){
+  if(!local.pendingSync||local.googleId||local.centralEventId||!remote.centralEventId)return false;
+  if(local.allDay||remote.allDay||local.date!==remote.date||!local.start||local.start!==remote.start)return false;
+  if((local.repeat&&local.repeat!=="none")||local.reminder||local.linkedUrl||local.note?.trim())return false;
+  if(local.location&&normText(local.location)!==normText(remote.location))return false;
+  if(normText(local.title)===normText(remote.title)&&local.end===remote.end)return true;
+  // Only a bare, default-one-hour supervision draft can adopt an assignment
+  // with a different title/end. Other overlapping events remain independent.
+  const key=supervisionKey(local.title);
+  return remote.sourceApp==="gmail"&&!!remote.sourceRecordId?.startsWith("gmaildoc:")
+    &&!!key&&key===supervisionKey(remote.title)&&mins(local.end)-mins(local.start)===60;
+}
+function existingForDraft(local:Ev,incoming:Ev[]){
+  const matches=incoming.filter(remote=>pendingDraftMatch(local,remote));
+  return new Set(matches.map(e=>e.centralEventId)).size===1?matches[0]:undefined;
+}
 function dedupeEvents(list:Ev[]){
   const out:Ev[]=[];
   for(const e of list){
@@ -228,7 +251,7 @@ function mergeGoogleRange(prev:Ev[],incoming:Ev[],from:string,toExclusive:string
 }
 
 function mergeCoreRange(prev:Ev[],incoming:Ev[],from:string,toExclusive:string){
-  const keep=prev.filter(e=>!e.centralEventId||e.date<from||e.date>=toExclusive);
+  const keep=prev.filter(e=>(!e.centralEventId||e.date<from||e.date>=toExclusive)&&!existingForDraft(e,incoming));
   return dedupeEvents([...keep,...incoming]);
 }
 
@@ -420,6 +443,7 @@ export default function Home(){
       // a haviUid/Google ID már megjelent a szerveren. UPDATE/DELETE maradjon,
       // amíg a konkrét művelet sikeresen le nem fut.
       if(op.kind!=="create")return true;
+      if(op.event&&existingForDraft(op.event,incoming))return false;
       const opEventId=op.event?.id;
       const opGoogleId=op.googleId||op.event?.googleId;
       return !((opEventId&&ids.has(opEventId))||(opGoogleId&&gids.has(opGoogleId)));
@@ -428,6 +452,7 @@ export default function Home(){
 
   async function syncCoreRange(from:Date,to:Date){
     const incoming=await loadCoreRange(from,to);
+    reconcileQueueWithIncoming(incoming);
     setEvents(prev=>mergeCoreRange(prev,incoming,iso(from),iso(to)));
     return incoming;
   }
@@ -470,6 +495,15 @@ export default function Home(){
         }
         if(!op.event)continue;
         const ev=op.event,sd=parseDate(ev.date);
+        if(op.kind==="create"&&!ev.centralEventId&&!ev.googleId){
+          const from=new Date(sd);from.setHours(0,0,0,0);
+          const existing=existingForDraft(ev,await loadCoreRange(from,addDays(from,1)));
+          if(existing){
+            setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==ev.id),existing]));
+            done.add(op.id);
+            continue;
+          }
+        }
         const payload:any={...ev};
         payload.start=ev.allDay?ev.date:(ev.date+"T"+ev.start+":00");
         payload.end=ev.allDay?iso(addDays(sd,1)):(ev.date+"T"+ev.end+":00");
@@ -1959,3 +1993,4 @@ function EventForm({value,connected,onSave,onCancel}:{value:Partial<Ev>;connecte
     <div className="iosModalActions"><button className="iosCancel" onClick={onCancel}>Mégse</button><button className="iosSave" onClick={submit}>Hozzáadás / Mentés</button></div>
   </div>
 }
+
