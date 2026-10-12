@@ -228,18 +228,17 @@ async function saveToCore(e:Ev){
   const method=e.centralEventId?"PATCH":"POST";
   const url=e.centralEventId?"/api/core/events?id="+encodeURIComponent(e.centralEventId):"/api/core/events";
   const r=await fetch(url,{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(corePayload(e))});
-  if(!r.ok)return e;
+  if(!r.ok)throw new Error("core_save_failed");
   const j=await r.json();
+  if(!j.id)throw new Error("core_save_invalid_response");
   return {...e,centralEventId:String(j.id||e.centralEventId||""),sourceApp:String(j.source_app||e.sourceApp||"havi"),sourceRecordId:String(j.source_record_id||e.sourceRecordId||e.id),googleId:j.google_event_id?String(j.google_event_id):e.googleId};
 }
 
 async function loadCoreRange(from:Date,to:Date){
-  try{
     const r=await fetch("/api/core/events?from="+encodeURIComponent(from.toISOString())+"&to="+encodeURIComponent(to.toISOString()),{cache:"no-store"});
-    if(!r.ok)return [] as Ev[];
+    if(!r.ok)throw new Error("core_load_failed");
     const j=await r.json();
     return (j.items||[]).map(toCoreEvent).filter((e:Ev)=>!!e.date);
-  }catch{return [] as Ev[]}
 }
 
 function mergeGoogleRange(prev:Ev[],incoming:Ev[],from:string,toExclusive:string){
@@ -265,6 +264,7 @@ export default function Home(){
   const [editor,setEditor]=useState<Partial<Ev>|null>(null);
   const [enabled,setEnabled]=useState<Record<CalKey,boolean>>({work:true,personal:true,family:true,sport:true});
   const [connected,setConnected]=useState(false);
+  const [coreOnline,setCoreOnline]=useState<boolean|null>(null);
   const [settings,setSettings]=useState(false);
   const [notice,setNotice]=useState("");
   const [syncing,setSyncing]=useState(false);
@@ -277,6 +277,7 @@ export default function Home(){
   const [showWorkPlan,setShowWorkPlan]=useState(true);
   const [infoEvent,setInfoEvent]=useState<Ev|null>(null);
   const [syncQueue,setSyncQueue]=useState<SyncOp[]>([]);
+  const queueFlushRunning=useRef(false);
   const [lastSync,setLastSync]=useState<number|null>(null);
   const [searchOpen,setSearchOpen]=useState(false);
   const [clock,setClock]=useState(()=>Date.now());
@@ -451,10 +452,14 @@ export default function Home(){
   }
 
   async function syncCoreRange(from:Date,to:Date){
-    const incoming=await loadCoreRange(from,to);
-    reconcileQueueWithIncoming(incoming);
-    setEvents(prev=>mergeCoreRange(prev,incoming,iso(from),iso(to)));
-    return incoming;
+    try{
+      const incoming=await loadCoreRange(from,to);
+      setCoreOnline(true);
+      reconcileQueueWithIncoming(incoming);
+      setEvents(prev=>mergeCoreRange(prev,incoming,iso(from),iso(to)));
+      const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
+      return incoming;
+    }catch{setCoreOnline(false);return [] as Ev[]}
   }
 
   async function importGoogleToCore(incoming:Ev[]){
@@ -480,7 +485,9 @@ export default function Home(){
   }
 
   async function flushSyncQueue(){
-    if(!connected||syncQueue.length===0)return;
+    if(queueFlushRunning.current||(!connected&&!coreOnline)||syncQueue.length===0)return;
+    queueFlushRunning.current=true;
+    try{
     const done=new Set<string>();
     for(const op of syncQueue){
       try{
@@ -504,6 +511,13 @@ export default function Home(){
             continue;
           }
         }
+        if(coreOnline&&(!ev.repeat||ev.repeat==="none")&&!ev.reminder){
+          const synced=await saveToCore({...ev,pendingSync:false});
+          setEvents(prev=>dedupeEvents(prev.map(x=>x.id===ev.id?{...synced,pendingSync:false}:x)));
+          done.add(op.id);
+          continue;
+        }
+        if(!connected)continue;
         const payload:any={...ev};
         payload.start=ev.allDay?ev.date:(ev.date+"T"+ev.start+":00");
         payload.end=ev.allDay?iso(addDays(sd,1)):(ev.date+"T"+ev.end+":00");
@@ -525,6 +539,7 @@ export default function Home(){
       setNotice(done.size+" függő módosítás szinkronizálva.");
       setTimeout(()=>setNotice(""),1800);
     }
+    }finally{queueFlushRunning.current=false}
   }
   async function sync(){
     setSyncing(true);
@@ -545,7 +560,7 @@ export default function Home(){
     }finally{setSyncing(false)}
   }
   useEffect(()=>{if(hydrated)sync().catch(()=>{})},[start.getTime(),end.getTime(),hydrated]);
-  useEffect(()=>{if(hydrated&&connected&&syncQueue.length)flushSyncQueue().catch(()=>{})},[hydrated,connected,syncQueue.length]);
+  useEffect(()=>{if(hydrated&&(connected||coreOnline)&&syncQueue.length)flushSyncQueue().catch(()=>{})},[hydrated,connected,coreOnline,syncQueue.length]);
   useEffect(()=>{
     if(!hydrated)return;
     const refresh=()=>{if(document.visibilityState==="visible")sync().catch(()=>{})};
@@ -597,6 +612,16 @@ export default function Home(){
   },[searchOpen,hydrated,anchor.getFullYear(),anchor.getMonth()]);
 
   async function persist(next:Ev){
+    if(!next.repeat||next.repeat==="none"){
+      if(!next.reminder){
+        try{
+          const saved=await saveToCore({...next,pendingSync:false});
+          clearQueuedFor(next.id,next.googleId);
+          setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==saved.id),saved]));
+          return saved;
+        }catch{}
+      }
+    }
     let gId=next.googleId;
     const isExistingGoogle=!!gId;
     const sd=parseDate(next.date);
@@ -607,7 +632,7 @@ export default function Home(){
 
     if(!connected){
       let local:Ev={...next,pendingSync:true};
-      local=await saveToCore(local);
+      local=await saveToCore(local).catch(()=>local);
       setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==local.id),local]));
       queueSync({id:crypto.randomUUID(),kind:isExistingGoogle?"update":"create",event:local,googleId:gId,createdAt:Date.now()});
       return local;
@@ -627,7 +652,7 @@ export default function Home(){
     }catch{}
 
     let local:Ev={...next,pendingSync:true};
-    local=await saveToCore(local);
+    local=await saveToCore(local).catch(()=>local);
     setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==local.id),local]));
     queueSync({id:crypto.randomUUID(),kind:isExistingGoogle?"update":"create",event:local,googleId:gId,createdAt:Date.now()});
     setNotice("Google-kapcsolati hiba: az eseményt a központi naptárba mentettem, Google-ba később szinkronizálom.");
@@ -651,7 +676,7 @@ export default function Home(){
     const saved=await persist(base);
     if(!saved)return false;
     setEditor(null);
-    setNotice(saved.googleId?"Esemény mentve és szinkronizálva.":"Esemény helyben mentve.");
+    setNotice(saved.googleId?"Esemény mentve és szinkronizálva.":saved.centralEventId?"Esemény mentve. A Google-szinkron még folyamatban.":"Esemény helyben mentve.");
     setTimeout(()=>setNotice(""),1800);
     return true;
   }
@@ -776,7 +801,7 @@ export default function Home(){
     <MobilePortrait
       anchor={anchor}
       events={enabledEvents}
-      connected={connected}
+      connected={connected||coreOnline===true}
       syncing={syncing}
       pendingCount={syncQueue.length}
       lastSync={lastSync}
@@ -828,7 +853,7 @@ export default function Home(){
         <div className="actions">
           <button className="secondary" onClick={()=>setSearchOpen(true)}>⌕ Keresés</button>
           <button className="secondary" onClick={()=>{setWallPrintMode(mode==="2w"||mode==="3w"||mode==="4w"?mode:"month");setWallPrintOpen(true)}}>⎙ Falinaptár / PDF</button>
-          <button className="syncBtn" onClick={()=>sync()} disabled={syncing}>{syncing?"Szinkron…":connected?"↻ Szinkron":"○ Offline"}</button>
+          <button className="syncBtn" onClick={()=>sync()} disabled={syncing}>{syncing?"Szinkron…":connected||coreOnline===true?"↻ Szinkron":"○ Offline"}</button>
           <button className="primary" onClick={()=>setQuickAdd(true)}>＋ Esemény</button>
         </div>
       </header>
@@ -920,23 +945,23 @@ export default function Home(){
         <GmailRealtimeSettings/>
         <WatchedSourcesSettings/>
         <div className="syncDiagnostics">
-          <div className="settingsTitle"><b>Szinkron állapot</b><span>Gyors ellenőrzés a háttérszinkronról és a helyi cache-ről.</span></div>
+          <div className="settingsTitle"><b>Naptárkapcsolat</b><span>A naptár elérhetősége és a helyben várakozó módosítások.</span></div>
           <div className="syncDiagGrid">
-            <span><b>{connected?"ONLINE":"OFFLINE"}</b><small>Google</small></span>
+            <span><b>{coreOnline===null?"ELLENŐRZÉS":coreOnline||connected?"ONLINE":"OFFLINE"}</b><small>Naptár</small></span>
             <span><b>{events.filter(e=>!!e.googleId).length}</b><small>Google cache</small></span>
             <span><b>{events.filter(e=>!e.googleId&&!isWorkPlanEvent(e)).length}</b><small>Saját</small></span>
             <span className={syncQueue.length?"warn":""}><b>{syncQueue.length}</b><small>Függő művelet</small></span>
           </div>
           <div className="syncDiagFoot">
-            <span>{lastSync?"Utolsó sikeres sync: "+new Date(lastSync).toLocaleString("hu-HU"):"Még nem volt sikeres Google-szinkron."}</span>
+            <span>{lastSync?"Naptár utoljára frissítve: "+new Date(lastSync).toLocaleString("hu-HU"):"A naptárkapcsolat ellenőrzése folyamatban."}</span>
             <button disabled={syncing} onClick={()=>sync()}>{syncing?"Szinkron…":"Szinkron most"}</button>
           </div>
         </div>
         {syncQueue.length>0&&<div className="pendingSyncSetting">
-          <div><b>{syncQueue.length} módosítás vár szinkronra</b><span>Offline vagy sikertelen Google-műveletek. Kapcsolat esetén automatikusan újrapróbáljuk.</span></div>
-          <button disabled={!connected} onClick={()=>flushSyncQueue()}>{connected?"Újrapróbálás":"Offline"}</button>
+          <div><b>{syncQueue.length} módosítás vár szinkronra</b><span>A helyi módosításokat a naptárkapcsolat helyreállásakor automatikusan újrapróbáljuk.</span></div>
+          <button disabled={!connected&&!coreOnline} onClick={()=>flushSyncQueue()}>{connected||coreOnline?"Újrapróbálás":"Offline"}</button>
         </div>}
-        <div className={"status "+(connected?"ok":"")}><i/><div><b>{connected?"Google Naptár kapcsolódva":"Google Naptár nincs kapcsolva"}</b><span>{connected?"Az iPhone-on használt Google Naptár eseményei megjelennek itt.":"Kapcsold össze egyszer a kétirányú szinkronhoz."}{lastSync?<><br/>Utolsó sikeres szinkron: {new Date(lastSync).toLocaleString("hu-HU")}</>:""}</span></div></div>
+        {coreOnline===false&&!connected&&<div className="status"><i/><div><b>A naptár most nem érhető el</b><span>A helyi módosítások megmaradnak. Próbáld újra a szinkront.</span></div></div>}
         <div className="backupSetting">
           <div className="settingsTitle"><b>Helyi biztonsági mentés</b><span>Export vagy kézi visszaállítás. Importnál semmit nem küldünk automatikusan Google-ba.</span></div>
           <div className="backupActions">
@@ -954,7 +979,7 @@ export default function Home(){
           <p>A visszaállítás csak a helyi naptáradatokkal egyesít. Meglévő eseményt nem ír felül és régi sync queue-t nem indít újra.</p>
           <div className="backupPreviewActions"><button onClick={()=>setBackupPreview(null)}>Mégse</button><button className="primary" disabled={!backupPreview.events.length} onClick={mergeBackup}>Egyesítés</button></div>
         </div>}
-        <button className="primary wide" onClick={()=>location.href="/api/google/connect"}>{connected?"Újracsatlakozás":"Google Naptár csatlakoztatása"}</button>
+        <details><summary>Külön Google-kapcsolat ismétlődő eseményekhez és emlékeztetőkhöz</summary><button className="primary wide" onClick={()=>location.href="/api/google/connect"}>{connected?"Újracsatlakozás":"Google Naptár csatlakoztatása"}</button></details>
       </div>
     </Modal>}
   </main>

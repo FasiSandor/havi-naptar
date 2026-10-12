@@ -2543,7 +2543,7 @@
   padding:9px;border:1px solid #304356;border-radius:13px;background:#0A121A
 }
 .watchAddSave{background:linear-gradient(135deg,#1D4ED8,#3B82F6);color:#fff}
-.watchGroupList{display:grid;gap:7px;max-height:360px;overflow:auto;padding-right:2px}
+.watchGroupList{display:grid;grid-auto-rows:max-content;align-content:start;gap:7px;max-height:360px;overflow:auto;padding-right:2px}
 .watchGroup{
   overflow:hidden;border:1px solid #283949;border-radius:13px;background:#0B141D
 }
