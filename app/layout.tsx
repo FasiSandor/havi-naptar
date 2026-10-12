@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "HAVI NAPTÁR",
   description: "Mobil-first havi és tanévi naptár iskolai munkatervvel és Google Naptár szinkronnal",
   manifest: "/manifest.json",
-  icons: { icon: "/icon", apple: "/apple-icon" },
+  icons: { icon: "/icons/havi-v2-512.png", apple: "/icons/havi-v2-180.png" },
   appleWebApp: { capable: true, title: "HAVI NAPTÁR", statusBarStyle: "black-translucent" }
 };
 
