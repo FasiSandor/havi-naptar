@@ -2522,3 +2522,82 @@
 .appShell[data-theme="light"] .suggestionCopy>p{color:#637383}
 .appShell[data-theme="light"] .suggestionQuestion{color:#33485A;border-color:#E5D1AC}
 .appShell[data-theme="light"] .suggestionNo{background:#F4F6F8;border-color:#D5DEE6;color:#617383}
+
+
+/* next-major: watched sources settings */
+.watchedSourcesSetting{
+  display:grid;gap:10px;padding:12px;border:1px solid #2A3A4B;border-radius:16px;
+  background:linear-gradient(180deg,#101821,#0D151D)
+}
+.watchSourceTools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.watchSourceTools input,.watchAddCard input,.watchAddCard select{
+  min-width:0;height:40px;border:1px solid #314457;border-radius:11px;background:#0A131C;
+  color:#E8F0F6;padding:0 11px;font-size:13px;outline:0
+}
+.watchSourceTools button,.watchAddSave{
+  height:40px;border:1px solid #3B82F6;border-radius:11px;background:#153A61;color:#B9DDFF;
+  padding:0 12px;font-size:11px;font-weight:900
+}
+.watchAddCard{
+  display:grid;grid-template-columns:1fr 1.2fr 1.6fr 1fr auto;gap:7px;
+  padding:9px;border:1px solid #304356;border-radius:13px;background:#0A121A
+}
+.watchAddSave{background:linear-gradient(135deg,#1D4ED8,#3B82F6);color:#fff}
+.watchGroupList{display:grid;gap:7px;max-height:360px;overflow:auto;padding-right:2px}
+.watchGroup{
+  overflow:hidden;border:1px solid #283949;border-radius:13px;background:#0B141D
+}
+.watchGroupHead{
+  width:100%;min-height:48px;padding:9px 11px;display:grid;grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;gap:8px;border:0;background:transparent;text-align:left;color:#EAF2F8
+}
+.watchGroupHead.static{cursor:default}
+.watchGroupHead span{display:grid;gap:2px}
+.watchGroupHead b{font-size:11px;line-height:1.2}
+.watchGroupHead small{font-size:8px;color:#71879A}
+.watchGroupHead em{font-style:normal;color:#6D879E;font-size:14px}
+.watchSourceRows{display:grid;border-top:1px solid #223240}
+.watchSourceRow{
+  display:grid;grid-template-columns:minmax(0,1fr) 112px 56px 30px;gap:6px;align-items:center;
+  padding:8px 9px;border-bottom:1px solid #1D2B37
+}
+.watchSourceRow:last-child{border-bottom:0}
+.watchSourceRow.paused{opacity:.5}
+.watchSourceMain{display:grid;gap:2px;min-width:0}
+.watchKind{
+  width:max-content;padding:2px 6px;border-radius:7px;background:#102A43;border:1px solid #27527A;
+  color:#78BFFF;font-size:7px;font-weight:900;text-transform:uppercase;letter-spacing:.04em
+}
+.watchSourceMain b{font-size:10px;color:#E9F1F7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.watchSourceMain small{font-size:8px;color:#6D8294;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.watchSourceRow select{
+  min-width:0;height:31px;border:1px solid #30465B;border-radius:9px;background:#0B1620;color:#8CC8FF;
+  font-size:9px;font-weight:800
+}
+.watchSourceRow button{height:31px;border-radius:9px;font-size:8px;font-weight:900}
+.watchPause,.watchResume{border:1px solid #4B5C6B;background:#131D26;color:#A9B7C4}
+.watchResume{border-color:#2E6A4D;color:#70D8A4;background:#0D291D}
+.watchDelete{border:1px solid #5A3035;background:#251216;color:#F28E98;font-size:14px!important}
+.watchEmpty{padding:10px;color:#6E8394;font-size:9px}
+.watchSourceHint{color:#6D8295;font-size:8px;line-height:1.35}
+
+.appShell[data-theme="light"] .watchedSourcesSetting{background:#F7FAFC;border-color:#D2DDE6}
+.appShell[data-theme="light"] .watchSourceTools input,
+.appShell[data-theme="light"] .watchAddCard input,
+.appShell[data-theme="light"] .watchAddCard select{background:#fff;border-color:#D0DCE6;color:#22384A}
+.appShell[data-theme="light"] .watchAddCard{background:#F3F7FA;border-color:#D5E0E8}
+.appShell[data-theme="light"] .watchGroup{background:#fff;border-color:#D7E1E8}
+.appShell[data-theme="light"] .watchGroupHead{color:#24394B}
+.appShell[data-theme="light"] .watchSourceRows{border-color:#E1E8EE}
+.appShell[data-theme="light"] .watchSourceRow{border-color:#E6ECF1}
+.appShell[data-theme="light"] .watchSourceMain b{color:#263B4C}
+.appShell[data-theme="light"] .watchSourceRow select{background:#F8FBFD;border-color:#D3DFE8;color:#2469AE}
+
+@media(max-width:720px){
+  .watchAddCard{grid-template-columns:1fr 1fr}
+  .watchAddCard input:nth-of-type(2){grid-column:1/-1}
+  .watchAddSave{grid-column:1/-1}
+  .watchSourceRow{grid-template-columns:minmax(0,1fr) 96px 48px 28px;gap:4px;padding:7px}
+  .watchSourceRow select{font-size:8px}
+  .watchGroupList{max-height:320px}
+}
