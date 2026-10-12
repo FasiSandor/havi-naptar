@@ -7,6 +7,7 @@ type ThemeMode="dark"|"light"|"system";
 type RepeatMode="none"|"daily"|"weekly"|"monthly"|"yearly"|"googleSeries";
 type Ev={id:string;googleId?:string;centralEventId?:string;sourceApp?:string;sourceRecordId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string;repeat?:RepeatMode;reminder?:number;pendingSync?:boolean;linkedApp?:string;linkedLabel?:string;linkedUrl?:string};
 type SyncOp={id:string;kind:"create"|"update"|"delete";event?:Ev;googleId?:string;createdAt:number};
+type Suggestion={id:string;source_app:string;source_record_id:string;source_url?:string|null;title:string;summary?:string|null;event_date?:string|null;starts_at?:string|null;ends_at?:string|null;all_day:boolean;timezone:string;location?:string|null;confidence:"probable"|"uncertain";status:"pending"|"accepted"|"rejected";payload?:Record<string,any>;created_at:string};
 
 const calMeta:Record<CalKey,{label:string;color:string;icon:string}>={
   work:{label:"Suli / Munka",color:"#3B82F6",icon:"▦"},
@@ -257,6 +258,7 @@ export default function Home(){
   const [backupPreview,setBackupPreview]=useState<{events:Ev[];total:number;duplicates:number;invalid:number;name:string}|null>(null);
   const [wallPrintOpen,setWallPrintOpen]=useState(false);
   const [wallPrintMode,setWallPrintMode]=useState<"2w"|"3w"|"4w"|"month">("month");
+  const [suggestions,setSuggestions]=useState<Suggestion[]>([]);
 
   useEffect(()=>{
     try{
@@ -282,6 +284,12 @@ export default function Home(){
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-events",JSON.stringify(dedupeEvents(events.filter(e=>!e.id.startsWith("workplan-")))))},[events,hydrated]);
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-workplan-visible",showWorkPlan?"1":"0")},[showWorkPlan,hydrated]);
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-sync-queue",JSON.stringify(syncQueue))},[syncQueue,hydrated]);
+  useEffect(()=>{
+    if(!hydrated)return;
+    loadSuggestions();
+    const t=window.setInterval(()=>loadSuggestions(),60000);
+    return ()=>window.clearInterval(t);
+  },[hydrated]);
   useEffect(()=>{
     const t=setInterval(()=>setClock(Date.now()),60000);
     return ()=>clearInterval(t);
@@ -344,6 +352,39 @@ export default function Home(){
       .filter(e=>(e.date>todayIso||(e.date===todayIso&&(e.allDay||mins(e.end||e.start)>=nowMinutes)))&&e.date<=limitIso)
       .sort((a,b)=>(a.date+(a.allDay?"00:00":a.start||"")).localeCompare(b.date+(b.allDay?"00:00":b.start||"")));
   },[enabledEvents,todayIso,nowMinutes,clock]);
+
+  async function loadSuggestions(){
+    try{
+      const r=await fetch("/api/core/suggestions",{cache:"no-store"});
+      if(!r.ok)return;
+      const j=await r.json();
+      setSuggestions(Array.isArray(j.items)?j.items:[]);
+    }catch{}
+  }
+
+  async function decideSuggestion(id:string,action:"accept"|"reject"){
+    try{
+      const r=await fetch("/api/core/suggestions?id="+encodeURIComponent(id),{
+        method:"PATCH",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({action})
+      });
+      if(!r.ok)throw new Error("decision_failed");
+      const j=await r.json();
+      setSuggestions(prev=>prev.filter(x=>x.id!==id));
+      if(action==="accept"&&j.event){
+        const ev=toCoreEvent(j.event);
+        setEvents(prev=>dedupeEvents([...prev.filter(x=>x.centralEventId!==ev.centralEventId),ev]));
+        setNotice("Esemény bekerült a naptárba.");
+      }else{
+        setNotice("Javaslat elutasítva.");
+      }
+      setTimeout(()=>setNotice(""),1500);
+    }catch{
+      setNotice("A döntés mentése nem sikerült.");
+      setTimeout(()=>setNotice(""),1800);
+    }
+  }
 
   function queueSync(op:SyncOp){
     setSyncQueue(prev=>{
@@ -683,6 +724,8 @@ export default function Home(){
       onPrint={()=>{setWallPrintMode(mode==="2w"||mode==="3w"||mode==="4w"?mode:"month");setWallPrintOpen(true)}}
       upcomingEvents={upcomingEvents}
       onUpcomingEvent={e=>{setAnchor(parseDate(e.date));setDayOpen(e.date)}}
+      suggestions={suggestions}
+      onSuggestionDecision={(id,action)=>decideSuggestion(id,action)}
       onToday={()=>setAnchor(new Date())}
       rangeMode={mode==="2w"||mode==="3w"||mode==="4w"?mode:"month"}
       onRangeMode={m=>setMode(m)}
@@ -875,7 +918,30 @@ function UpcomingCarousel({events,onOpen}:{events:Ev[];onOpen:(e:Ev)=>void}){
   </div>
 }
 
-function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,onSync,onDay,onLongDay,onQuickAdd,onSearch,onPrint,upcomingEvents,onUpcomingEvent,onToday,rangeMode,onRangeMode,onPrev,onNext,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;pendingCount:number;lastSync:number|null;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onSearch:()=>void;onPrint:()=>void;upcomingEvents:Ev[];onUpcomingEvent:(e:Ev)=>void;onToday:()=>void;rangeMode:"2w"|"3w"|"4w"|"month";onRangeMode:(m:"2w"|"3w"|"4w"|"month")=>void;onPrev:()=>void;onNext:()=>void;onSettings:()=>void}){
+function SuggestionDecisionCard({items,onDecision}:{items:Suggestion[];onDecision:(id:string,action:"accept"|"reject")=>void}){
+  if(!items.length)return null;
+  const x=items[0];
+  const source=String(x.payload?.platform||x.source_app||"Forrás");
+  const sender=String(x.payload?.sender||"");
+  const when=x.all_day
+    ?(x.event_date?parseDate(String(x.event_date).slice(0,10)).toLocaleDateString("hu-HU",{month:"short",day:"numeric",weekday:"short"}):"")
+    :(x.starts_at?new Date(x.starts_at).toLocaleString("hu-HU",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"");
+  return <div className="suggestionDecision">
+    <div className="suggestionCopy">
+      <span>{x.confidence==="probable"?"VALÓSZÍNŰ ESEMÉNY":"ELLENŐRIZENDŐ"}{items.length>1?" · +"+(items.length-1):""}</span>
+      <b>{x.title}</b>
+      <small>{when}{source?" · "+source:""}{sender?" · "+sender:""}</small>
+      {x.summary&&<p>{x.summary}</p>}
+    </div>
+    <div className="suggestionQuestion">Naptárba kerüljön?</div>
+    <div className="suggestionActions">
+      <button className="suggestionNo" onClick={()=>onDecision(x.id,"reject")}>Nem</button>
+      <button className="suggestionYes" onClick={()=>onDecision(x.id,"accept")}>Igen</button>
+    </div>
+  </div>
+}
+
+function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,onSync,onDay,onLongDay,onQuickAdd,onSearch,onPrint,upcomingEvents,onUpcomingEvent,suggestions,onSuggestionDecision,onToday,rangeMode,onRangeMode,onPrev,onNext,onSettings}:{anchor:Date;events:Ev[];connected:boolean;syncing:boolean;pendingCount:number;lastSync:number|null;onSync:()=>void;onDay:(d:Date)=>void;onLongDay:(d:Date)=>void;onQuickAdd:()=>void;onSearch:()=>void;onPrint:()=>void;upcomingEvents:Ev[];onUpcomingEvent:(e:Ev)=>void;suggestions:Suggestion[];onSuggestionDecision:(id:string,action:"accept"|"reject")=>void;onToday:()=>void;rangeMode:"2w"|"3w"|"4w"|"month";onRangeMode:(m:"2w"|"3w"|"4w"|"month")=>void;onPrev:()=>void;onNext:()=>void;onSettings:()=>void}){
   const swipeX=useRef<number|null>(null);
   const swipeY=useRef<number|null>(null);
   const swipeMoved=useRef(false);
@@ -925,6 +991,7 @@ function MobilePortrait({anchor,events,connected,syncing,pendingCount,lastSync,o
     </div>
 
     <UpcomingCarousel events={upcomingEvents} onOpen={onUpcomingEvent}/>
+    <SuggestionDecisionCard items={suggestions} onDecision={onSuggestionDecision}/>
 
     <div className="mockWeekdays">{["H","K","Sze","Cs","P","Sz","V"].map(x=><span key={x}>{x}</span>)}</div>
 
