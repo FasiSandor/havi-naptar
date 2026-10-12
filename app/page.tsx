@@ -84,7 +84,7 @@ function eventKey(e:Pick<Ev,"title"|"date"|"start"|"allDay"|"location">){
   const time=e.allDay?"allday":(e.start||"").slice(0,5);
   return [e.date,time,t,loc].join("|");
 }
-function isWorkPlanEvent(e:Pick<Ev,"id"|"sourceApp">){return e.id.startsWith("workplan-")||e.sourceApp==="teleki-workplan"}
+function isWorkPlanEvent(e:Pick<Ev,"id"|"sourceApp">){return isWorkPlanEvent(e)||e.sourceApp==="teleki-workplan"}
 function nearDuplicate(a:Ev,b:Ev){
   if(a.date!==b.date)return false;
   if(normText(a.title)!==normText(b.title))return false;
@@ -264,7 +264,7 @@ export default function Home(){
   useEffect(()=>{
     try{
       const stored:Ev[]=JSON.parse(localStorage.getItem("havi-events")||"[]");
-      setEvents(dedupeEvents(stored.filter(e=>!e.id.startsWith("workplan-"))));
+      setEvents(dedupeEvents(stored.filter(e=>!isWorkPlanEvent(e))));
       const last=Number(localStorage.getItem("havi-last-sync")||0);
       if(last)setLastSync(last);
       setShowWorkPlan(localStorage.getItem("havi-workplan-visible")!=="0");
@@ -285,7 +285,7 @@ export default function Home(){
     }catch{}
     finally{setHydrated(true)}
   },[]);
-  useEffect(()=>{if(hydrated)localStorage.setItem("havi-events",JSON.stringify(dedupeEvents(events.filter(e=>!e.id.startsWith("workplan-")))))},[events,hydrated]);
+  useEffect(()=>{if(hydrated)localStorage.setItem("havi-events",JSON.stringify(dedupeEvents(events.filter(e=>!isWorkPlanEvent(e)))))},[events,hydrated]);
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-workplan-visible",showWorkPlan?"1":"0")},[showWorkPlan,hydrated]);
   useEffect(()=>{if(hydrated)localStorage.setItem("havi-sync-queue",JSON.stringify(syncQueue))},[syncQueue,hydrated]);
   useEffect(()=>{
@@ -639,7 +639,7 @@ export default function Home(){
       format:"havi-naptar-backup",
       version:1,
       exportedAt:new Date().toISOString(),
-      events:dedupeEvents(events.filter(e=>!e.id.startsWith("workplan-"))),
+      events:dedupeEvents(events.filter(e=>!isWorkPlanEvent(e))),
       syncQueue,
       settings:{themeMode,showWorkPlan,lastSync}
     };
@@ -812,7 +812,7 @@ export default function Home(){
     {notice&&<div className="toast">{notice}</div>}
 
     {dayOpen&&<MobileDayCards date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>{if(isWorkPlanEvent(e))setInfoEvent(e);else setEditor(e)}} onDelete={e=>{if(!isWorkPlanEvent(e))remove(e)}} onAdd={()=>setQuickAdd(true)}/>}
-    {dayOpen&&<DayZoom date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>{if(isWorkPlanEvent(e))setInfoEvent(e);else setEditor(e)}} onAdd={()=>setQuickAdd(true)} onMove={(e,d)=>{if(!isWorkPlanEvent(e))moveEvent(e,d)}} onDelete={e=>{if(!isWorkPlanEvent(e))remove(e)}}/>} 
+    {dayOpen&&<DayZoom date={dayOpen} events={displayEvents.filter(e=>enabled[e.calendar]&&e.date===dayOpen)} onClose={()=>setDayOpen(null)} onEdit={e=>{if(isWorkPlanEvent(e))setInfoEvent(e);else setEditor(e)}} onAdd={()=>setQuickAdd(true)} onMove={(e,m,d)=>{if(!isWorkPlanEvent(e))moveEvent(e,m,d)}} onDelete={e=>{if(!isWorkPlanEvent(e))remove(e)}}/>} 
 
     {infoEvent&&<Modal title="Munkaterv esemény" onClose={()=>setInfoEvent(null)}>
       <div className="readOnlyEvent">
@@ -1053,7 +1053,7 @@ function MobileDayCards({date,events,onClose,onEdit,onDelete,onAdd}:{date:string
             <div className="mobileEventText"><b>{e.title}</b><span>{calMeta[e.calendar].label}{e.location?" · "+e.location:""}</span>{e.linkedApp&&<small className="linkedAppBadge">↗ {e.linkedApp}</small>}{e.note==="Iskolai munkaterv 2026/2027"&&<small className="sourceBadge">MUNKATERV · CSAK OLVASHATÓ</small>}{e.pendingSync&&<small className="pendingBadge">SZINKRONRA VÁR</small>}</div>
           </button>
           {e.linkedUrl&&<a className="mobileLinkedOpen" href={e.linkedUrl} target="_self">Megnyitás ›</a>}
-          {!e.id.startsWith("workplan-")&&<button className={"mobileEventDelete "+(deleteId===e.id?"armed":"")} aria-label="Esemény törlése" onClick={()=>{if(deleteId===e.id){onDelete(e);setDeleteId(null)}else{setDeleteId(e.id);setTimeout(()=>setDeleteId(id=>id===e.id?null:id),2200)}}}>{deleteId===e.id?"Törlés":"×"}</button>}
+          {!isWorkPlanEvent(e)&&<button className={"mobileEventDelete "+(deleteId===e.id?"armed":"")} aria-label="Esemény törlése" onClick={()=>{if(deleteId===e.id){onDelete(e);setDeleteId(null)}else{setDeleteId(e.id);setTimeout(()=>setDeleteId(id=>id===e.id?null:id),2200)}}}>{deleteId===e.id?"Törlés":"×"}</button>}
         </div>):<div className="mobileNoEvents"><i>✦</i><b>Szabad nap</b><span>Nincs bejegyzett esemény.</span></div>}
       </div>
       <button className="mobilePanelAdd" onClick={onAdd}>＋ Esemény hozzáadása</button>
@@ -1615,7 +1615,7 @@ function WallCalendarPrint({anchor,events,mode,onMode,onClose}:{anchor:Date;even
             {holiday&&<div className="wallHoliday">✦ {holiday}</div>}
             <div className="wallEvents">
               {es.slice(0,5).map(e=>{
-                const source=e.id.startsWith("workplan-")?"plan":e.centralEventId?"core":e.googleId?"google":"local";
+                const source=isWorkPlanEvent(e)?"plan":e.centralEventId?"core":e.googleId?"google":"local";
                 return <div className={"wallEvent "+source} key={e.id+"-"+(e.start||"")}>
                   <i style={{background:calMeta[e.calendar].color}}/>
                   <span><b>{e.allDay?"":(e.start||"")+" "}</b>{e.title}</span>
@@ -1648,7 +1648,7 @@ function EventSearchOverlay({events,onClose,onOpen}:{events:Ev[];onClose:()=>voi
     const base=[...events].sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
     if(!query)return base.filter(e=>e.date>=iso(new Date())).slice(0,12);
     return base.filter(e=>{
-      const source=e.id.startsWith("workplan-")?"munkaterv":e.googleId?"google":e.pendingSync?"szinkronra vár saját":"saját";
+      const source=isWorkPlanEvent(e)?"munkaterv":e.googleId?"google":e.pendingSync?"szinkronra vár saját":"saját";
       const readableDate=parseDate(e.date).toLocaleDateString("hu-HU",{year:"numeric",month:"long",day:"numeric",weekday:"long"});
       const hay=normText([e.title,e.location,e.note,calMeta[e.calendar].label,e.date,readableDate,source].filter(Boolean).join(" "));
       return query.split(" ").every(part=>hay.includes(part));
@@ -1668,7 +1668,7 @@ function EventSearchOverlay({events,onClose,onOpen}:{events:Ev[];onClose:()=>voi
       <div className="searchMeta">{q?results.length+" találat":"Következő események"}</div>
       <div className="searchResults">
         {results.length?results.map(e=>{
-          const workplan=e.id.startsWith("workplan-");
+          const workplan=isWorkPlanEvent(e);
           return <button key={e.id+"-"+e.date+"-"+(e.start||"")} className="searchResult" onClick={()=>onOpen(e)}>
             <div className="searchDate">
               <b>{parseDate(e.date).getDate()}</b>
