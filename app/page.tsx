@@ -84,7 +84,7 @@ function eventKey(e:Pick<Ev,"title"|"date"|"start"|"allDay"|"location">){
   const time=e.allDay?"allday":(e.start||"").slice(0,5);
   return [e.date,time,t,loc].join("|");
 }
-function isWorkPlanEvent(e:Pick<Ev,"id"|"sourceApp">){return isWorkPlanEvent(e)||e.sourceApp==="teleki-workplan"}
+function isWorkPlanEvent(e:Pick<Ev,"id"|"sourceApp">){return e.id.startsWith("workplan-")||e.sourceApp==="teleki-workplan"}
 function nearDuplicate(a:Ev,b:Ev){
   if(a.date!==b.date)return false;
   if(normText(a.title)!==normText(b.title))return false;
