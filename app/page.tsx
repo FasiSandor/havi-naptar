@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useMemo,useRef,useState} from "react";
 import CoreGoogleSyncSettings from "./CoreGoogleSyncSettings";
+import LinkedOpenButton from "./LinkedOpenButton";
 
 type CalKey="work"|"personal"|"family"|"sport";
 type RangeMode="1w"|"2w"|"3w"|"4w"|"month"|"custom"|"list";
@@ -1939,6 +1940,7 @@ function EventForm({value,connected,onSave,onCancel}:{value:Partial<Ev>;connecte
       <label className="iosRow"><span>Kapcsolódó app</span><select value={x.linkedApp||""} onChange={e=>chooseApp(e.target.value)}>{appPresets.map(p=><option key={p.name||"none"} value={p.name}>{p.label}</option>)}</select></label>
       {suggestedApp&&!x.linkedApp&&<button className="appSuggestion" type="button" onClick={()=>chooseApp(suggestedApp)}>Javaslat: {suggestedApp} hozzákapcsolása</button>}
       {x.linkedApp&&<label className="iosLinkField"><span>Megnyitási hivatkozás</span><input value={x.linkedUrl||""} onChange={e=>setX({...x,linkedUrl:e.target.value})} placeholder={x.linkedApp==="HaviNyersanyag Rendelő"?"Az app pontos URL-je":"https://…"}/></label>}
+      <LinkedOpenButton url={x.linkedUrl} label={x.linkedLabel||x.linkedApp||"Megnyitás az eredeti helyen"}/>
     </section>
 
     <section className="iosFormGroup">
