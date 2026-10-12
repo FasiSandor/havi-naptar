@@ -2477,3 +2477,48 @@
   .iosRow input,.iosRow select{font-size:16px}
   .iosTitleGroup input,.iosLinkField input,.iosNotes{font-size:16px}
 }
+
+
+/* next-major: uncertain event decision card */
+@media(max-width:900px) and (orientation:portrait){
+  .suggestionDecision{
+    margin:0 0 9px;padding:10px;border:1px solid #5B4930;border-radius:14px;
+    background:linear-gradient(135deg,#211A10,#161A20);box-shadow:inset 0 1px 0 #ffffff08
+  }
+  .suggestionCopy>span{
+    display:block;font-size:7px;font-weight:950;letter-spacing:.09em;color:#F6B94B
+  }
+  .suggestionCopy>b{
+    display:block;margin-top:3px;font-size:11px;color:#F7FAFC;line-height:1.2
+  }
+  .suggestionCopy>small{
+    display:block;margin-top:3px;font-size:8px;color:#A98E66
+  }
+  .suggestionCopy>p{
+    margin:5px 0 0;font-size:9px;line-height:1.35;color:#B9C3CC
+  }
+  .suggestionQuestion{
+    margin-top:9px;padding-top:8px;border-top:1px solid #4A3A27;
+    font-size:9px;font-weight:900;color:#E9EEF3
+  }
+  .suggestionActions{
+    display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px
+  }
+  .suggestionActions button{
+    height:34px;border-radius:10px;font-size:10px;font-weight:950
+  }
+  .suggestionNo{
+    border:1px solid #4A5562;background:#151B22;color:#AAB6C2
+  }
+  .suggestionYes{
+    border:1px solid #3B82F6;background:linear-gradient(135deg,#1D4ED8,#3B82F6);color:#fff
+  }
+}
+.appShell[data-theme="light"] .suggestionDecision{
+  background:#FFF8EA;border-color:#E7CA92
+}
+.appShell[data-theme="light"] .suggestionCopy>b{color:#263746}
+.appShell[data-theme="light"] .suggestionCopy>small{color:#8A6A36}
+.appShell[data-theme="light"] .suggestionCopy>p{color:#637383}
+.appShell[data-theme="light"] .suggestionQuestion{color:#33485A;border-color:#E5D1AC}
+.appShell[data-theme="light"] .suggestionNo{background:#F4F6F8;border-color:#D5DEE6;color:#617383}
