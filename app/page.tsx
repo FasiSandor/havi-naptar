@@ -100,13 +100,22 @@ function dedupeEvents(list:Ev[]){
   for(const e of list){
     const sameId=out.findIndex(x=>x.id===e.id);
     const sameGoogle=e.googleId?out.findIndex(x=>x.googleId===e.googleId):-1;
-    const exact=sameId>=0?sameId:(sameGoogle>=0?sameGoogle:out.findIndex(x=>eventKey(x)===eventKey(e)));
+    const sameCore=e.centralEventId?out.findIndex(x=>x.centralEventId===e.centralEventId):-1;
+    const exact=sameId>=0?sameId:(sameGoogle>=0?sameGoogle:(sameCore>=0?sameCore:out.findIndex(x=>eventKey(x)===eventKey(e))));
     const near=exact<0?out.findIndex(x=>nearDuplicate(x,e)):-1;
     const i=exact>=0?exact:near;
     if(i<0){out.push(e);continue}
     const old=out[i];
-    if(e.googleId&&!old.googleId)out[i]={...old,...e,pendingSync:false};
-    else if(!old.googleId&&!e.googleId)out[i]={...old,...e};
+    out[i]={
+      ...old,
+      ...e,
+      id:old.id.startsWith("g-")&&e.sourceApp==="havi"?e.id:old.id,
+      googleId:e.googleId||old.googleId,
+      centralEventId:e.centralEventId||old.centralEventId,
+      sourceApp:e.sourceApp||old.sourceApp,
+      sourceRecordId:e.sourceRecordId||old.sourceRecordId,
+      pendingSync:(e.googleId||old.googleId)?false:(e.pendingSync??old.pendingSync)
+    };
   }
   return out;
 }
@@ -127,6 +136,81 @@ function toGoogleEvent(x:any):Ev{
   const reminder=Number(x.reminders?.overrides?.[0]?.minutes||0);
   const localId=(!x.recurringEventId&&haviUid)?haviUid:"g-"+x.id;
   return {id:localId,googleId:x.id,centralEventId,sourceApp:sourceApp||"google",sourceRecordId,title:x.summary||"Esemény",date:(start||"").slice(0,10),start:x.start?.dateTime?.slice(11,16),end:x.end?.dateTime?.slice(11,16),allDay:!!x.start?.date,calendar,location:x.location||"",note:x.description||"",repeat,reminder,pendingSync:false}
+}
+
+function toCoreEvent(x:any):Ev{
+  const calendar=(x.category==="work"||x.category==="personal"||x.category==="family"||x.category==="sport")?x.category:"work";
+  const allDay=!!x.all_day;
+  let date="";
+  let start: string|undefined;
+  let end: string|undefined;
+  if(allDay){
+    date=String(x.event_date||"").slice(0,10);
+  }else{
+    const sd=new Date(x.starts_at);
+    const ed=new Date(x.ends_at);
+    date=iso(sd);
+    start=hhmm(sd.getHours()*60+sd.getMinutes());
+    end=hhmm(ed.getHours()*60+ed.getMinutes());
+  }
+  const sourceApp=String(x.source_app||"core");
+  const sourceRecordId=x.source_record_id?String(x.source_record_id):undefined;
+  const localId=sourceApp==="havi"&&sourceRecordId?sourceRecordId:"core-"+String(x.id);
+  return {
+    id:localId,
+    googleId:x.google_event_id?String(x.google_event_id):undefined,
+    centralEventId:String(x.id),
+    sourceApp,
+    sourceRecordId,
+    title:String(x.title||"Esemény"),
+    date,
+    start,
+    end,
+    allDay,
+    calendar,
+    location:String(x.location||""),
+    note:String(x.note||""),
+    repeat:"none",
+    reminder:0,
+    pendingSync:false
+  };
+}
+
+function corePayload(e:Ev){
+  const localIso=(date:string,time:string)=>new Date(date+"T"+time+":00").toISOString();
+  return {
+    title:e.title,
+    date:e.allDay?e.date:null,
+    startsAt:e.allDay?null:localIso(e.date,e.start||"09:00"),
+    endsAt:e.allDay?null:localIso(e.date,e.end||"10:00"),
+    allDay:!!e.allDay,
+    timezone:"Europe/Budapest",
+    category:e.calendar,
+    location:e.location||"",
+    note:e.note||"",
+    sourceApp:e.sourceApp||"havi",
+    sourceRecordId:e.sourceRecordId||e.id,
+    googleEventId:e.googleId||null,
+    metadata:{repeat:e.repeat||"none",reminder:Number(e.reminder||0)}
+  };
+}
+
+async function saveToCore(e:Ev){
+  const method=e.centralEventId?"PATCH":"POST";
+  const url=e.centralEventId?"/api/core/events?id="+encodeURIComponent(e.centralEventId):"/api/core/events";
+  const r=await fetch(url,{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(corePayload(e))});
+  if(!r.ok)return e;
+  const j=await r.json();
+  return {...e,centralEventId:String(j.id||e.centralEventId||""),sourceApp:String(j.source_app||e.sourceApp||"havi"),sourceRecordId:String(j.source_record_id||e.sourceRecordId||e.id),googleId:j.google_event_id?String(j.google_event_id):e.googleId};
+}
+
+async function loadCoreRange(from:Date,to:Date){
+  try{
+    const r=await fetch("/api/core/events?from="+encodeURIComponent(from.toISOString())+"&to="+encodeURIComponent(to.toISOString()),{cache:"no-store"});
+    if(!r.ok)return [] as Ev[];
+    const j=await r.json();
+    return (j.items||[]).map(toCoreEvent).filter((e:Ev)=>!!e.date);
+  }catch{return [] as Ev[]}
 }
 
 function mergeGoogleRange(prev:Ev[],incoming:Ev[],from:string,toExclusive:string){
