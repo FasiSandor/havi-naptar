@@ -432,6 +432,28 @@ export default function Home(){
     return incoming;
   }
 
+  async function importGoogleToCore(incoming:Ev[]){
+    const out:Ev[]=[];
+    for(const e of incoming){
+      if(!e.googleId||e.centralEventId){
+        out.push(e);
+        continue;
+      }
+      try{
+        const saved=await saveToCore({
+          ...e,
+          sourceApp:"google",
+          sourceRecordId:e.googleId,
+          pendingSync:false
+        });
+        out.push({...e,...saved,sourceApp:"google",sourceRecordId:e.googleId,pendingSync:false});
+      }catch{
+        out.push(e);
+      }
+    }
+    return out;
+  }
+
   async function flushSyncQueue(){
     if(!connected||syncQueue.length===0)return;
     const done=new Set<string>();
@@ -481,7 +503,8 @@ export default function Home(){
         if(!j.connected){setConnected(false);return}
         setConnected(true);
         const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
-        const incoming=filterPendingDeletes((j.items||[]).map(toGoogleEvent));
+        const rawIncoming=filterPendingDeletes((j.items||[]).map(toGoogleEvent));
+        const incoming=await importGoogleToCore(rawIncoming);
         reconcileQueueWithIncoming(incoming);
         setEvents(prev=>mergeGoogleRange(prev,incoming,iso(start),iso(addDays(end,1))));
       }catch{setConnected(false)}
@@ -510,7 +533,8 @@ export default function Home(){
         const j=await r.json();
         if(!j.connected)return;
         const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
-        const incoming=filterPendingDeletes((j.items||[]).map(toGoogleEvent));
+        const rawIncoming=filterPendingDeletes((j.items||[]).map(toGoogleEvent));
+        const incoming=await importGoogleToCore(rawIncoming);
         reconcileQueueWithIncoming(incoming);
         setEvents(prev=>mergeGoogleRange(prev,incoming,iso(from),iso(to)));
       }catch{}
