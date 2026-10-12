@@ -2681,3 +2681,18 @@
 .appShell[data-theme="light"] .linkedOpenButton{
   background:#EDF6FF;border-color:#BDD5EA;color:#2469AE;box-shadow:none
 }
+
+
+/* linked source/app open action */
+.linkedOpenButton{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  min-height:42px;margin:8px 12px 10px;padding:0 14px;
+  border:1px solid rgba(59,130,246,.55);border-radius:12px;
+  background:rgba(59,130,246,.12);color:#8CC8FF;
+  text-decoration:none;font-size:12px;font-weight:800;
+}
+.linkedOpenButton span{font-size:16px;line-height:1}
+.linkedOpenButton:active{transform:scale(.985)}
+.appShell[data-theme="light"] .linkedOpenButton{
+  background:#EEF6FF;border-color:#B7D5F2;color:#2168A9;
+}
