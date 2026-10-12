@@ -554,7 +554,8 @@ export default function Home(){
         if(!j.connected)return;
         setConnected(true);
         const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
-        const incoming=filterPendingDeletes((j.items||[]).map(toGoogleEvent));
+        const rawIncoming=filterPendingDeletes((j.items||[]).map(toGoogleEvent));
+        const incoming=await importGoogleToCore(rawIncoming);
         reconcileQueueWithIncoming(incoming);
         setEvents(prev=>mergeGoogleRange(prev,incoming,iso(from),iso(to)));
       }catch{}
