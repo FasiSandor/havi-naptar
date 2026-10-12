@@ -2,7 +2,7 @@
 import {useEffect,useMemo,useRef,useState} from "react";
 
 type CalKey="work"|"personal"|"family"|"sport";
-type RangeMode="1w"|"2w"|"4w"|"month"|"custom"|"list";
+type RangeMode="1w"|"2w"|"3w"|"4w"|"month"|"custom"|"list";
 type ThemeMode="dark"|"light"|"system";
 type RepeatMode="none"|"daily"|"weekly"|"monthly"|"yearly"|"googleSeries";
 type Ev={id:string;googleId?:string;centralEventId?:string;sourceApp?:string;sourceRecordId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string;repeat?:RepeatMode;reminder?:number;pendingSync?:boolean};
@@ -253,7 +253,7 @@ export default function Home(){
   const [clock,setClock]=useState(()=>Date.now());
   const [backupPreview,setBackupPreview]=useState<{events:Ev[];total:number;duplicates:number;invalid:number;name:string}|null>(null);
   const [wallPrintOpen,setWallPrintOpen]=useState(false);
-  const [wallPrintMode,setWallPrintMode]=useState<"month"|"4w">("month");
+  const [wallPrintMode,setWallPrintMode]=useState<"2w"|"3w"|"4w"|"month">("month");
 
   useEffect(()=>{
     try{
@@ -266,6 +266,8 @@ export default function Home(){
       try{setSyncQueue(JSON.parse(localStorage.getItem("havi-sync-queue")||"[]"))}catch{setSyncQueue([])}
       const savedTheme=localStorage.getItem("havi-theme");
       if(savedTheme==="dark"||savedTheme==="light"||savedTheme==="system") setThemeMode(savedTheme);
+      const savedView=localStorage.getItem("havi-range-mode");
+      if(savedView==="2w"||savedView==="3w"||savedView==="4w"||savedView==="month") setMode(savedView);
       const status=new URLSearchParams(window.location.search).get("google");
       if(status==="connected") setNotice("Google Naptár kapcsolódva.");
       if(status==="error") setNotice("A Google Naptár csatlakoztatása nem sikerült.");
@@ -296,17 +298,15 @@ export default function Home(){
   },[themeMode,hydrated]);
   useEffect(()=>{
     if(!hydrated)return;
-    const mq=window.matchMedia("(max-width: 900px)");
+    if(mode==="2w"||mode==="3w"||mode==="4w"||mode==="month") localStorage.setItem("havi-range-mode",mode);
+  },[mode,hydrated]);
+  useEffect(()=>{
+    if(!hydrated)return;
     const portrait=window.matchMedia("(orientation: portrait)");
-    const apply=()=>{
-      if(!mq.matches)return;
-      setMode("month");
-      if(!portrait.matches)setRotateHint(false);
-    };
+    const apply=()=>{if(!portrait.matches)setRotateHint(false)};
     apply();
-    mq.addEventListener?.("change",apply);
     portrait.addEventListener?.("change",apply);
-    return ()=>{mq.removeEventListener?.("change",apply);portrait.removeEventListener?.("change",apply)};
+    return ()=>portrait.removeEventListener?.("change",apply);
   },[hydrated]);
 
   const {start,count}=useMemo(()=>{
@@ -314,9 +314,16 @@ export default function Home(){
       const a=parseDate(customStart),b=parseDate(customEnd);
       return {start:a,count:Math.max(1,Math.min(62,daysBetween(a,b)))};
     }
-    if(mode==="month"){const first=new Date(anchor.getFullYear(),anchor.getMonth(),1,12);return {start:monday(first),count:42}}
+    if(mode==="month"){
+      const first=new Date(anchor.getFullYear(),anchor.getMonth(),1,12);
+      const start=monday(first);
+      const last=new Date(anchor.getFullYear(),anchor.getMonth()+1,0,12);
+      const weeks=Math.ceil((Math.round((last.getTime()-start.getTime())/86400000)+1)/7);
+      return {start,count:Math.max(35,Math.min(42,weeks*7))};
+    }
     if(mode==="1w")return {start:monday(anchor),count:7};
     if(mode==="2w")return {start:monday(anchor),count:14};
+    if(mode==="3w")return {start:monday(anchor),count:21};
     return {start:monday(anchor),count:28};
   },[anchor,mode,customStart,customEnd]);
 
@@ -328,9 +335,12 @@ export default function Home(){
   const clockDate=new Date(clock);
   const todayIso=iso(clockDate);
   const nowMinutes=clockDate.getHours()*60+clockDate.getMinutes();
-  const nextEvent=useMemo(()=>enabledEvents
-    .filter(e=>e.date>todayIso||(e.date===todayIso&&(e.allDay||mins(e.end||e.start)>=nowMinutes)))
-    .sort((a,b)=>(a.date+(a.allDay?"00:00":a.start||"")).localeCompare(b.date+(b.allDay?"00:00":b.start||"")))[0]||null,[enabledEvents,todayIso,nowMinutes]);
+  const upcomingEvents=useMemo(()=>{
+    const limitIso=iso(addDays(clockDate,7));
+    return enabledEvents
+      .filter(e=>(e.date>todayIso||(e.date===todayIso&&(e.allDay||mins(e.end||e.start)>=nowMinutes)))&&e.date<=limitIso)
+      .sort((a,b)=>(a.date+(a.allDay?"00:00":a.start||"")).localeCompare(b.date+(b.allDay?"00:00":b.start||"")));
+  },[enabledEvents,todayIso,nowMinutes,clock]);
 
   function queueSync(op:SyncOp){
     setSyncQueue(prev=>{
@@ -642,6 +652,7 @@ export default function Home(){
     if(mode==="month")d.setMonth(d.getMonth()+n);
     else if(mode==="1w")d.setDate(d.getDate()+7*n);
     else if(mode==="2w")d.setDate(d.getDate()+14*n);
+    else if(mode==="3w")d.setDate(d.getDate()+21*n);
     else d.setDate(d.getDate()+28*n);
     setAnchor(d);
   }
@@ -666,12 +677,14 @@ export default function Home(){
       onLongDay={d=>{setAnchor(d);setMonthFlow(true)}}
       onQuickAdd={()=>setQuickAdd(true)}
       onSearch={()=>setSearchOpen(true)}
-      onPrint={()=>{setWallPrintMode("month");setWallPrintOpen(true)}}
-      nextEvent={nextEvent}
-      onNextEvent={e=>{setAnchor(parseDate(e.date));setDayOpen(e.date)}}
+      onPrint={()=>{setWallPrintMode(mode==="2w"||mode==="3w"||mode==="4w"?mode:"month");setWallPrintOpen(true)}}
+      upcomingEvents={upcomingEvents}
+      onUpcomingEvent={e=>{setAnchor(parseDate(e.date));setDayOpen(e.date)}}
       onToday={()=>setAnchor(new Date())}
-      onPrevMonth={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()-1);setAnchor(d)}}
-      onNextMonth={()=>{const d=new Date(anchor);d.setMonth(d.getMonth()+1);setAnchor(d)}}
+      rangeMode={mode==="2w"||mode==="3w"||mode==="4w"?mode:"month"}
+      onRangeMode={m=>setMode(m)}
+      onPrev={()=>shift(-1)}
+      onNext={()=>shift(1)}
       onSettings={()=>setSettings(true)}
     />
     {monthFlow&&<ContinuousMonthFlow
@@ -704,14 +717,14 @@ export default function Home(){
         </div>
         <div className="actions">
           <button className="secondary" onClick={()=>setSearchOpen(true)}>⌕ Keresés</button>
-          <button className="secondary" onClick={()=>{setWallPrintMode(mode==="4w"?"4w":"month");setWallPrintOpen(true)}}>⎙ Falinaptár / PDF</button>
+          <button className="secondary" onClick={()=>{setWallPrintMode(mode==="2w"||mode==="3w"||mode==="4w"?mode:"month");setWallPrintOpen(true)}}>⎙ Falinaptár / PDF</button>
           <button className="syncBtn" onClick={()=>sync()} disabled={syncing}>{syncing?"Szinkron…":connected?"↻ Szinkron":"○ Offline"}</button>
           <button className="primary" onClick={()=>setQuickAdd(true)}>＋ Esemény</button>
         </div>
       </header>
 
       <div className="rangeBar">
-        {([["1w","1 hét"],["2w","2 hét"],["4w","4 hét"],["month","Hónap"],["custom","Egyedi"],["list","Lista"]] as [RangeMode,string][]).map(([k,label])=><button key={k} className={mode===k?"on":""} onClick={()=>setMode(k)}>{label}</button>)}
+        {([["1w","1 hét"],["2w","2 hét"],["3w","3 hét"],["4w","4 hét"],["month","Hónap"],["custom","Egyedi"],["list","Lista"]] as [RangeMode,string][]).map(([k,label])=><button key={k} className={mode===k?"on":""} onClick={()=>setMode(k)}>{label}</button>)}
       </div>
 
       {mode==="custom"&&<div className="customRange">
@@ -778,7 +791,7 @@ export default function Home(){
     {settings&&<Modal title="Beállítások" onClose={()=>setSettings(false)}>
       <div className="settingsBox">
         <div className="settingsQuickActions">
-          <button onClick={()=>{setSettings(false);setWallPrintMode("month");setWallPrintOpen(true)}}>⎙ Falinaptár / PDF előnézet</button>
+          <button onClick={()=>{setSettings(false);setWallPrintMode(mode==="2w"||mode==="3w"||mode==="4w"?mode:"month");setWallPrintOpen(true)}}>⎙ Naptár / PDF előnézet</button>
         </div>
         <div className="themeSettings">
           <div className="settingsTitle"><b>Megjelenés</b><span>Válassz témát, vagy kövesse automatikusan a készüléket.</span></div>
