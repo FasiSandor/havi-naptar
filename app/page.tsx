@@ -273,11 +273,14 @@ export default function Home(){
       if(savedTheme==="dark"||savedTheme==="light"||savedTheme==="system") setThemeMode(savedTheme);
       const savedView=localStorage.getItem("havi-range-mode");
       if(savedView==="2w"||savedView==="3w"||savedView==="4w"||savedView==="month") setMode(savedView);
-      const status=new URLSearchParams(window.location.search).get("google");
+      const params=new URLSearchParams(window.location.search);
+      const status=params.get("google");
+      const gmailStatus=params.get("gmail_realtime"),gmailAccount=params.get("account");
       if(status==="connected") setNotice("Google Naptár kapcsolódva.");
       if(status==="error") setNotice("A Google Naptár csatlakoztatása nem sikerült.");
       if(status==="config") setNotice("A Google OAuth beállítása még hiányzik.");
-      if(status) window.history.replaceState({}, "", window.location.pathname);
+      if(gmailStatus==="connected") setNotice("Gmail kapcsolat frissítve"+(gmailAccount?": "+gmailAccount:"")+".");
+      if(status||gmailStatus) window.history.replaceState({}, "", window.location.pathname);
     }catch{}
     finally{setHydrated(true)}
   },[]);
@@ -852,6 +855,7 @@ export default function Home(){
           <div className="settingsTitle"><b>Iskolai munkaterv</b><span>A 2026/2027-es Teleki munkaterv fontos dátumai külön rétegként.</span></div>
           <button className={"layerToggle "+(showWorkPlan?"on":"")} onClick={()=>setShowWorkPlan(v=>!v)}><i/><span>{showWorkPlan?"Látható":"Elrejtve"}</span></button>
         </div>
+        <GmailRealtimeSettings/>
         <WatchedSourcesSettings/>
         <div className="syncDiagnostics">
           <div className="settingsTitle"><b>Szinkron állapot</b><span>Gyors ellenőrzés a háttérszinkronról és a helyi cache-ről.</span></div>
@@ -1681,6 +1685,43 @@ function EventSearchOverlay({events,onClose,onOpen}:{events:Ev[];onClose:()=>voi
         }):<div className="searchEmpty"><b>Nincs találat</b><span>Próbálj rövidebb kifejezést, helyszínt vagy dátumot.</span></div>}
       </div>
     </section>
+  </div>
+}
+
+function GmailRealtimeSettings(){
+  type GmailCon={account_email:string;status:string;last_error?:string|null;last_event_at?:string|null;watch_expiration?:string|null;updated_at?:string|null;calendar_write?:boolean};
+  const [items,setItems]=useState<GmailCon[]>([]);
+  const [busy,setBusy]=useState("");
+  const [loaded,setLoaded]=useState(false);
+  async function load(){
+    try{
+      const r=await fetch("/api/gmail/realtime",{cache:"no-store"});
+      const j=await r.json();
+      if(r.ok&&j.ok)setItems(Array.isArray(j.connections)?j.connections:[]);
+    }catch{}
+    finally{setLoaded(true)}
+  }
+  useEffect(()=>{load()},[]);
+  async function reconnect(email:string){
+    setBusy(email);
+    try{
+      const r=await fetch("/api/gmail/realtime",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({account_email:email})});
+      const j=await r.json();
+      if(r.ok&&j.url)location.href=j.url;
+    }finally{setBusy("")}
+  }
+  return <div className="gmailRealtimeSetting">
+    <div className="settingsTitle"><b>Gmail valós idejű figyelés</b><span>A figyelt levelekből felismert biztos események automatikusan, a bizonytalanok jóváhagyással kerülnek a naptárba.</span></div>
+    {!loaded?<div className="gmailLoading">Kapcsolatok ellenőrzése…</div>:items.length?<div className="gmailAccounts">
+      {items.map(x=>{
+        const stale=!!x.last_error||x.status==="error";
+        return <div className={"gmailAccount "+(stale?"warn":"")} key={x.account_email}>
+          <div><b>{x.account_email}</b><span>{stale?"Kapcsolathiba":x.status==="watching"?"Figyelés aktív":x.status}</span><small>{x.last_event_at?"Utolsó feldolgozott esemény: "+new Date(x.last_event_at).toLocaleString("hu-HU"):"Még nincs feldolgozott esemény."}</small></div>
+          <button disabled={busy===x.account_email} onClick={()=>reconnect(x.account_email)}>{busy===x.account_email?"Nyitás…":"Újracsatlakozás"}</button>
+        </div>
+      })}
+    </div>:<div className="gmailLoading">Nincs bekötött Gmail-fiók.</div>}
+    <small className="gmailHint">Ha a Google visszavonja a háttér-hozzáférést, itt egy érintéssel újraengedélyezhető.</small>
   </div>
 }
 
