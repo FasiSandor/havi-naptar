@@ -5,7 +5,7 @@ type CalKey="work"|"personal"|"family"|"sport";
 type RangeMode="1w"|"2w"|"3w"|"4w"|"month"|"custom"|"list";
 type ThemeMode="dark"|"light"|"system";
 type RepeatMode="none"|"daily"|"weekly"|"monthly"|"yearly"|"googleSeries";
-type Ev={id:string;googleId?:string;centralEventId?:string;sourceApp?:string;sourceRecordId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string;repeat?:RepeatMode;reminder?:number;pendingSync?:boolean};
+type Ev={id:string;googleId?:string;centralEventId?:string;sourceApp?:string;sourceRecordId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string;repeat?:RepeatMode;reminder?:number;pendingSync?:boolean;linkedApp?:string;linkedLabel?:string;linkedUrl?:string};
 type SyncOp={id:string;kind:"create"|"update"|"delete";event?:Ev;googleId?:string;createdAt:number};
 
 const calMeta:Record<CalKey,{label:string;color:string;icon:string}>={
@@ -170,9 +170,12 @@ function toCoreEvent(x:any):Ev{
     calendar,
     location:String(x.location||""),
     note:String(x.note||""),
-    repeat:"none",
-    reminder:0,
-    pendingSync:false
+    repeat:String(x.metadata?.repeat||"none") as RepeatMode,
+    reminder:Number(x.metadata?.reminder||0),
+    pendingSync:false,
+    linkedApp:x.metadata?.linkedApp?String(x.metadata.linkedApp):undefined,
+    linkedLabel:x.metadata?.linkedLabel?String(x.metadata.linkedLabel):undefined,
+    linkedUrl:x.metadata?.linkedUrl?String(x.metadata.linkedUrl):undefined
   };
 }
 
@@ -191,7 +194,7 @@ function corePayload(e:Ev){
     sourceApp:e.sourceApp||"havi",
     sourceRecordId:e.sourceRecordId||e.id,
     googleEventId:e.googleId||null,
-    metadata:{repeat:e.repeat||"none",reminder:Number(e.reminder||0)}
+    metadata:{repeat:e.repeat||"none",reminder:Number(e.reminder||0),linkedApp:e.linkedApp||null,linkedLabel:e.linkedLabel||null,linkedUrl:e.linkedUrl||null}
   };
 }
 
@@ -533,7 +536,7 @@ export default function Home(){
     if(!connected&&x.repeat&&x.repeat!=="none"&&x.repeat!=="googleSeries"){setNotice("Az ismétlődő eseményhez Google Naptár-kapcsolat kell.");return false}
     if(!connected&&Number(x.reminder||0)>0){setNotice("Az emlékeztetőhöz Google Naptár-kapcsolat kell.");return false}
     const id=x.id||crypto.randomUUID();
-    const base:Ev={id,googleId:x.googleId,centralEventId:x.centralEventId,sourceApp:x.sourceApp||"havi",sourceRecordId:x.sourceRecordId||id,title:(x.title||"Esemény").trim(),date:x.date,start:x.start||"09:00",end:x.end||"10:00",allDay:!!x.allDay,calendar:(x.calendar||"work") as CalKey,location:x.location||"",note:x.note||"",repeat:(x.repeat||"none") as RepeatMode,reminder:Number(x.reminder||0)};
+    const base:Ev={id,googleId:x.googleId,centralEventId:x.centralEventId,sourceApp:x.sourceApp||"havi",sourceRecordId:x.sourceRecordId||id,title:(x.title||"Esemény").trim(),date:x.date,start:x.start||"09:00",end:x.end||"10:00",allDay:!!x.allDay,calendar:(x.calendar||"work") as CalKey,location:x.location||"",note:x.note||"",repeat:(x.repeat||"none") as RepeatMode,reminder:Number(x.reminder||0),linkedApp:x.linkedApp,linkedLabel:x.linkedLabel,linkedUrl:x.linkedUrl};
     const duplicate=displayEvents.find(e=>e.id!==base.id&&(!base.googleId||e.googleId!==base.googleId)&&nearDuplicate(e,base));
     if(duplicate){
       setNotice("Hasonló esemény már szerepel a naptárban: "+duplicate.title);
