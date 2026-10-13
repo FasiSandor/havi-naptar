@@ -77,15 +77,43 @@ export async function GET(req:NextRequest){
   if(!token) return NextResponse.json({connected:false},{status:401});
   const from=req.nextUrl.searchParams.get("from")||new Date().toISOString();
   const to=req.nextUrl.searchParams.get("to")||new Date(Date.now()+35*86400000).toISOString();
-  const u=new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
-  u.searchParams.set("timeMin",from);
-  u.searchParams.set("timeMax",to);
-  u.searchParams.set("singleEvents","true");
-  u.searchParams.set("orderBy","startTime");
-  const r=await fetch(u,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
-  const j=await r.json();
-  if(!r.ok) return NextResponse.json({connected:false,error:j?.error?.message||"google_error"},{status:r.status});
-  return NextResponse.json({connected:true,items:j.items||[]});
+  const min=new Date(from),max=new Date(to);
+  if(!Number.isFinite(min.getTime())||!Number.isFinite(max.getTime())||min>=max){
+    return NextResponse.json({connected:true,error:"invalid_range"},{status:400});
+  }
+  const base=new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
+  base.searchParams.set("timeMin",min.toISOString());
+  base.searchParams.set("timeMax",max.toISOString());
+  base.searchParams.set("singleEvents","true");
+  base.searchParams.set("orderBy","startTime");
+  base.searchParams.set("maxResults","2500");
+  const items:any[]=[];
+  const seen=new Set<string>();
+  let pageToken:string|undefined;
+  for(let page=0;page<20;page++){
+    const url=new URL(base);
+    if(pageToken)url.searchParams.set("pageToken",pageToken);
+    let r:Response;
+    try{
+      r=await fetch(url,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
+    }catch{
+      return NextResponse.json({connected:true,error:"google_unreachable"},{status:502});
+    }
+    let j:any;
+    try{j=await r.json()}catch{
+      return NextResponse.json({connected:true,error:"google_invalid_response"},{status:502});
+    }
+    if(!r.ok)return NextResponse.json({connected:true,error:j?.error?.message||"google_error"},{status:r.status});
+    for(const item of Array.isArray(j.items)?j.items:[]){
+      if(typeof item.id==="string"&&seen.has(item.id))continue;
+      if(typeof item.id==="string")seen.add(item.id);
+      items.push(item);
+    }
+    pageToken=j.nextPageToken;
+    if(!pageToken)return NextResponse.json({connected:true,items});
+  }
+  // Never display a silently truncated calendar as a complete result.
+  return NextResponse.json({connected:true,error:"google_too_many_pages"},{status:502});
 }
 
 export async function POST(req:NextRequest){
