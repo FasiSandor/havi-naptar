@@ -34,7 +34,7 @@ export async function POST(req:NextRequest){
   eventsUrl.searchParams.set("timeMin",from.toISOString());
   eventsUrl.searchParams.set("timeMax",to.toISOString());
   eventsUrl.searchParams.set("singleEvents","true");
-  eventsUrl.searchParams.set("showDeleted","false");
+  eventsUrl.searchParams.set("showDeleted","true");
   eventsUrl.searchParams.set("maxResults","2500");
   let pageToken="",page=0,updated=0,ignored=0,failed=0,seen=0;
   do{
@@ -48,12 +48,12 @@ export async function POST(req:NextRequest){
       if(!item?.id)continue;
       seen++;
       const row=linked.get(String(item.id));
-      if(!row||item.status==="cancelled")continue;
+      if(!row)continue;
       const privateId=item.extendedProperties?.private?.calendarCoreId;
       if(privateId&&String(privateId)!==String(row.id)){failed++;continue}
       if(!item.updated){failed++;continue}
       const payload={
-        googleEventId:String(item.id),calendarCoreId:String(row.id),status:"confirmed",
+        googleEventId:String(item.id),calendarCoreId:String(row.id),status:item.status==="cancelled"?"cancelled":"confirmed",
         title:item.summary||"Esemény",start:item.start,end:item.end,
         location:item.location||"",description:item.description||"",updated:item.updated
       };
