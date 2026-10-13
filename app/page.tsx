@@ -498,25 +498,16 @@ export default function Home(){
   }
 
   async function importGoogleToCore(incoming:Ev[]){
-    const out:Ev[]=[];
-    for(const e of incoming){
-      if(!e.googleId||e.centralEventId){
-        out.push(e);
-        continue;
-      }
-      try{
-        const saved=await saveToCore({
-          ...e,
-          sourceApp:"google",
-          sourceRecordId:e.googleId,
-          pendingSync:false
-        });
-        out.push({...e,...saved,sourceApp:"google",sourceRecordId:e.googleId,pendingSync:false});
-      }catch{
-        out.push(e);
-      }
-    }
-    return out;
+    // Background sync is the canonical Google importer. Reuse linked Core events
+    // instead of POSTing the same Google occurrence again under a different source ID.
+    const known=await loadCoreRange(start,addDays(end,1)).catch(()=>[] as Ev[]);
+    const byGoogleId=new Map(known.filter(e=>e.googleId).map(e=>[e.googleId!,e]));
+    return incoming.map(e=>{
+      const existing=e.googleId?byGoogleId.get(e.googleId):undefined;
+      return existing?{...e,centralEventId:existing.centralEventId,
+        sourceApp:existing.sourceApp,sourceRecordId:existing.sourceRecordId,
+        pendingSync:false}:e;
+    });
   }
 
   async function flushSyncQueue(){
