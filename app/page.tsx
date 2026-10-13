@@ -237,6 +237,9 @@ async function saveToCore(e:Ev){
   if(!r.ok)throw new Error("core_save_failed");
   const j=await r.json();
   if(!j.id)throw new Error("core_save_invalid_response");
+  // A central save is not a completed Google sync until a Google event ID is returned.
+  // Keep the pending operation so a failed bridge delivery can be retried.
+  if(!j.google_event_id && e.sourceApp!=="google")throw new Error("google_sync_pending");
   return {...e,centralEventId:String(j.id||e.centralEventId||""),sourceApp:String(j.source_app||e.sourceApp||"havi"),sourceRecordId:String(j.source_record_id||e.sourceRecordId||e.id),googleId:j.google_event_id?String(j.google_event_id):e.googleId};
 }
 
