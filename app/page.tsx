@@ -497,26 +497,10 @@ export default function Home(){
     }catch{setCoreOnline(false);return [] as Ev[]}
   }
 
-  async function importGoogleToCore(incoming:Ev[]){
-    const out:Ev[]=[];
-    for(const e of incoming){
-      if(!e.googleId||e.centralEventId){
-        out.push(e);
-        continue;
-      }
-      try{
-        const saved=await saveToCore({
-          ...e,
-          sourceApp:"google",
-          sourceRecordId:e.googleId,
-          pendingSync:false
-        });
-        out.push({...e,...saved,sourceApp:"google",sourceRecordId:e.googleId,pendingSync:false});
-      }catch{
-        out.push(e);
-      }
-    }
-    return out;
+  async function importGoogleToCore(incoming:Ev[]):Promise<Ev[]>{
+    // Background Google pull owns canonical Core ingestion.
+    // The browser displays Google items but must not independently POST them again.
+    return incoming;
   }
 
   async function flushSyncQueue(){
