@@ -1263,6 +1263,32 @@ function MobileLandscapeMonth({anchor,events,onPrev,onNext,onToday,onDay,onQuick
   </section>
 }
 
+function IOSPickerSheet({mode,date,time,onDate,onTime,onClose}:{mode:"date"|"time";date:string;time:string;onDate:(v:string)=>void;onTime:(v:string)=>void;onClose:()=>void}){
+  const d=parseDate(date),y=d.getFullYear(),m=d.getMonth(),day=d.getDate();
+  const [h,minute]=time.split(":").map(Number);
+  const setDatePart=(yy:number,mm:number,dd:number)=>onDate(iso(new Date(yy,mm,Math.min(dd,new Date(yy,mm+1,0).getDate()),12)));
+  const years=Array.from({length:101},(_,i)=>({value:1950+i,label:String(1950+i)+ "."}));
+  const months=Array.from({length:12},(_,i)=>({value:i,label:new Date(2026,i,1).toLocaleDateString("hu-HU",{month:"long"})}));
+  const days=Array.from({length:new Date(y,m+1,0).getDate()},(_,i)=>({value:i+1,label:String(i+1)}));
+  const setTimePart=(hh:number,mm:number)=>onTime(String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0"));
+  return <div className="iosPickerBackdrop" onClick={onClose}>
+    <div className="iosPickerSheet" role="dialog" aria-modal="true" aria-label={mode==="date"?"Dátum kiválasztása":"Időpont kiválasztása"} onClick={e=>e.stopPropagation()}>
+      <div className="iosPickerHandle"/>
+      <div className="iosPickerHeader"><strong>{mode==="date"?"Dátum":"Időpont"}</strong><button type="button" onClick={onClose}>Kész</button></div>
+      <div className={"iosPickerWheels "+(mode==="date"?"iosPickerThree":"iosPickerTwo")}>
+        {mode==="date"?<>
+          <WheelScroller label="ÉV" items={years} value={y} onChange={v=>setDatePart(v,m,day)}/>
+          <WheelScroller label="HÓNAP" items={months} value={m} onChange={v=>setDatePart(y,v,day)}/>
+          <WheelScroller label="NAP" items={days} value={day} onChange={v=>setDatePart(y,m,v)}/>
+        </>:<>
+          <WheelScroller label="ÓRA" items={Array.from({length:24},(_,i)=>({value:i,label:i+" óra"}))} value={h||0} onChange={v=>setTimePart(v,minute||0)}/>
+          <WheelScroller label="PERC" items={Array.from({length:60},(_,i)=>({value:i,label:i+" perc"}))} value={minute||0} onChange={v=>setTimePart(h||0,v)}/>
+        </>}
+      </div>
+    </div>
+  </div>;
+}
+
 function WheelScroller({label,items,value,onChange}:{label:string;items:{value:number;label:string}[];value:number;onChange:(v:number)=>void}){
   const ref=useRef<HTMLDivElement>(null);
   const row=42;
@@ -1479,6 +1505,7 @@ function extractEventCandidates(text:string,baseDate:Date){
 function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{baseDate:Date;existingEvents:Ev[];onClose:()=>void;onCreate:(x:Partial<Ev>)=>Promise<boolean>;onDetails?:(x:Partial<Ev>)=>void}){
   const [smartText,setSmartText]=useState("");
   const [manual,setManual]=useState(true);
+  const [picker,setPicker]=useState<"date"|"time"|null>(null);
   const [title,setTitle]=useState("");
   const [year,setYear]=useState(baseDate.getFullYear());
   const [month,setMonth]=useState(baseDate.getMonth());
@@ -1585,15 +1612,9 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
 
       {manual&&<>
         <input className="quickTitle" placeholder="Mi legyen?" value={title} onChange={e=>setTitle(e.target.value)}/>
-        <div className="wheelPicker iphoneDateWheel" aria-label="Dátum kiválasztása">
-          <WheelScroller label="ÉV" items={yearItems} value={year} onChange={chooseYear}/>
-          <WheelScroller label="HÓNAP" items={monthItems} value={month} onChange={chooseMonth}/>
-          <WheelScroller label="NAP" items={Array.from({length:maxDay},(_,i)=>({value:i+1,label:String(i+1)}))} value={safeDay} onChange={setDay}/>
-        </div>
-        {!allDay&&<div className="wheelPicker iphoneTimeWheel" aria-label="Időpont kiválasztása">
-          <WheelScroller label="ÓRA" items={Array.from({length:24},(_,i)=>({value:i,label:String(i).padStart(2,"0")}))} value={Math.floor(time/60)} onChange={h=>setTime(h*60+time%60)}/>
-          <WheelScroller label="PERC" items={Array.from({length:60},(_,i)=>({value:i,label:String(i).padStart(2,"0")}))} value={time%60} onChange={m=>setTime(Math.floor(time/60)*60+m)}/>
-        </div>}
+        <button type="button" className="iosPickerLaunch" onClick={()=>setPicker("date")}><span>Dátum</span><b>{new Date(year,month,safeDay,12).toLocaleDateString("hu-HU",{year:"numeric",month:"long",day:"numeric"})}</b></button>
+        {!allDay&&<button type="button" className="iosPickerLaunch" onClick={()=>setPicker("time")}><span>Időpont</span><b>{hhmm(time)}</b></button>}
+        {picker&&<IOSPickerSheet mode={picker} date={date} time={hhmm(time)} onDate={v=>{const d=parseDate(v);setYear(d.getFullYear());setMonth(d.getMonth());setDay(d.getDate())}} onTime={v=>setTime(Number(v.slice(0,2))*60+Number(v.slice(3,5)))} onClose={()=>setPicker(null)}/>}
         <div className="quickOptions"><button type="button" className={allDay?"on":""} onClick={()=>setAllDay(v=>!v)}><i/> Egész napos</button><span>{date}</span></div>
       </>}
 
