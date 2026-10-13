@@ -85,7 +85,7 @@ function eventKey(e:Pick<Ev,"title"|"date"|"start"|"allDay"|"location">){
   const time=e.allDay?"allday":(e.start||"").slice(0,5);
   return [e.date,time,t,loc].join("|");
 }
-function isWorkPlanEvent(e:Pick<Ev,"id"|"sourceApp">){return e.id.startsWith("workplan-")||e.sourceApp==="teleki-workplan"}
+function isWorkPlanEvent(e:Pick<Ev,"id"|"sourceApp">){return e.id.startsWith("workplan-")||e.sourceApp==="teleki-workplan"||e.sourceApp==="yearly-occurrence"}
 function birthdayPerson(title:string){
   const name=normText(title);
   if(!/(sz[uü]letesnap|szulinap|birthday)/.test(name))return "";
@@ -375,7 +375,25 @@ export default function Home(){
 
   const days=useMemo(()=>Array.from({length:count},(_,i)=>addDays(start,i)),[start,count]);
   const end=days[days.length-1];
-  const displayEvents=useMemo(()=>dedupeEvents([...(showWorkPlan?events:events.filter(e=>!isWorkPlanEvent(e))),...(showWorkPlan?schoolPlanEvents:[])]),[events,showWorkPlan]);
+  // Recurring Core birthdays are one canonical row; render bounded occurrences, never persist them.
+  // Prefer actual Google exceptions/instances when present to preserve their identities.
+  const displayEvents=useMemo(()=>{
+    const base=showWorkPlan?events:events.filter(e=>!isWorkPlanEvent(e));
+    const firstYear=start.getFullYear(),lastYear=end.getFullYear();
+    const occurrences:Ev[]=[];
+    for(const event of base){
+      if(event.repeat!=="yearly"||!event.allDay||!event.date||!event.centralEventId)continue;
+      const originYear=Number(event.date.slice(0,4));
+      for(let year=Math.max(firstYear,originYear+1);year<=Math.min(lastYear,originYear+20);year++){
+        const date=String(year)+event.date.slice(4);
+        const parsed=new Date(date+"T12:00:00");
+        if(Number.isNaN(parsed.getTime())||iso(parsed)!==date||date<iso(start)||date>iso(end))continue;
+        if(base.some(e=>e.date===date&&e.allDay&&nearDuplicate(e,{...event,date})))continue;
+        occurrences.push({...event,id:"yearly-"+event.centralEventId+"-"+year,date,sourceApp:"yearly-occurrence",googleId:undefined,centralEventId:undefined,repeat:"none"});
+      }
+    }
+    return dedupeEvents([...base,...occurrences,...(showWorkPlan?schoolPlanEvents:[])]);
+  },[events,showWorkPlan,schoolPlanEvents,start,end]);
   const enabledEvents=useMemo(()=>displayEvents.filter(e=>enabled[e.calendar]),[displayEvents,enabled]);
   const shown=enabledEvents.filter(e=>days.some(d=>iso(d)===e.date)).sort((a,b)=>(a.date+(a.start||"")).localeCompare(b.date+(b.start||"")));
   const clockDate=new Date(clock);
