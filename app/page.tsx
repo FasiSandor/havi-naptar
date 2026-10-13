@@ -559,6 +559,15 @@ export default function Home(){
   async function sync(){
     setSyncing(true);
     try{
+      const reconcileLast=Number(localStorage.getItem("havi-core-reconcile-at")||0);
+      if(Date.now()-reconcileLast>300000){
+        const query="?from="+encodeURIComponent(start.toISOString())+"&to="+encodeURIComponent(addDays(end,1).toISOString());
+        try{
+          const response=await fetch("/api/google/reconcile"+query,{method:"POST"});
+          const result=await response.json();
+          if(response.ok&&result.ok)localStorage.setItem("havi-core-reconcile-at",String(Date.now()));
+        }catch{}
+      }
       await syncCoreRange(start,addDays(end,1));
       try{
         const r=await fetch(`/api/google/events?from=${start.toISOString()}&to=${addDays(end,1).toISOString()}`);
