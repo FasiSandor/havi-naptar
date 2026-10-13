@@ -1584,7 +1584,7 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
       </>}
 
       {manual&&<>
-        <input className="quickTitle" autoFocus placeholder="Mi legyen?" value={title} onChange={e=>setTitle(e.target.value)}/>
+        <input className="quickTitle" placeholder="Mi legyen?" value={title} onChange={e=>setTitle(e.target.value)}/>
         <div className="wheelPicker iphoneDateWheel" aria-label="Dátum kiválasztása">
           <WheelScroller label="ÉV" items={yearItems} value={year} onChange={chooseYear}/>
           <WheelScroller label="HÓNAP" items={monthItems} value={month} onChange={chooseMonth}/>
