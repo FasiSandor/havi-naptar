@@ -14,6 +14,19 @@ async function access(req:NextRequest){
   return r.ok?j.access_token:null;
 }
 
+const mainCalendar="fsanyi73@gmail.com";
+async function verifiedAccess(req:NextRequest){
+  const token=await access(req);
+  if(!token)return {token:null,error:"not_connected"};
+  try{
+    const r=await fetch("https://www.googleapis.com/calendar/v3/calendars/primary",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
+    if(!r.ok)return {token:null,error:"calendar_account_unverified"};
+    const info=await r.json();
+    if(String(info.id||"").toLowerCase()!==mainCalendar)return {token:null,error:"wrong_google_account_connect_fsanyi73"};
+    return {token,error:null};
+  }catch{return {token:null,error:"calendar_account_unverified"}}
+}
+
 function validDate(v:any){return typeof v==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(v)}
 function plusOneDay(date:string){
   const [y,m,d]=date.split("-").map(Number);
@@ -73,8 +86,8 @@ async function googleJson(url:string,token:string,init?:RequestInit){
 }
 
 export async function GET(req:NextRequest){
-  const token=await access(req);
-  if(!token) return NextResponse.json({connected:false},{status:401});
+  const {token,error}=await verifiedAccess(req);
+  if(!token) return NextResponse.json({connected:false,error},{status:401});
   const from=req.nextUrl.searchParams.get("from")||new Date().toISOString();
   const to=req.nextUrl.searchParams.get("to")||new Date(Date.now()+35*86400000).toISOString();
   const min=new Date(from),max=new Date(to);
@@ -117,8 +130,8 @@ export async function GET(req:NextRequest){
 }
 
 export async function POST(req:NextRequest){
-  const token=await access(req);
-  if(!token) return NextResponse.json({error:"not_connected"},{status:401});
+  const {token,error}=await verifiedAccess(req);
+  if(!token) return NextResponse.json({error},{status:401});
   const x=await req.json();
   const body=eventBody(x);
   if(!body) return NextResponse.json({error:"invalid_event_time"},{status:400});
@@ -152,8 +165,8 @@ export async function POST(req:NextRequest){
 }
 
 export async function PATCH(req:NextRequest){
-  const token=await access(req);
-  if(!token) return NextResponse.json({error:"not_connected"},{status:401});
+  const {token,error}=await verifiedAccess(req);
+  if(!token) return NextResponse.json({error},{status:401});
   const x=await req.json();
   if(!x.googleId) return NextResponse.json({error:"missing_id"},{status:400});
   const body=eventBody(x);
@@ -167,8 +180,8 @@ export async function PATCH(req:NextRequest){
 }
 
 export async function DELETE(req:NextRequest){
-  const token=await access(req);
-  if(!token) return NextResponse.json({error:"not_connected"},{status:401});
+  const {token,error}=await verifiedAccess(req);
+  if(!token) return NextResponse.json({error},{status:401});
   const id=req.nextUrl.searchParams.get("id");
   if(!id) return NextResponse.json({error:"missing_id"},{status:400});
   const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(id)}`,{method:"DELETE",headers:{Authorization:`Bearer ${token}`}});
