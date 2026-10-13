@@ -86,9 +86,15 @@ function eventKey(e:Pick<Ev,"title"|"date"|"start"|"allDay"|"location">){
   return [e.date,time,t,loc].join("|");
 }
 function isWorkPlanEvent(e:Pick<Ev,"id"|"sourceApp">){return e.id.startsWith("workplan-")||e.sourceApp==="teleki-workplan"}
+function birthdayPerson(title:string){
+  const name=normText(title);
+  if(!/(sz[uü]letesnap|szulinap|birthday)/.test(name))return "";
+  return name.replace(/szuletesnapja|szuletesnap|szulinap|birthday/g,"").trim();
+}
 function nearDuplicate(a:Ev,b:Ev){
   if(a.date!==b.date)return false;
-  if(normText(a.title)!==normText(b.title))return false;
+  const pa=birthdayPerson(a.title),pb=birthdayPerson(b.title);
+  if(normText(a.title)!==normText(b.title)&&!(pa&&pb&&pa===pb))return false;
   if(normText(a.location)&&normText(b.location)&&normText(a.location)!==normText(b.location))return false;
   if(a.allDay||b.allDay)return !!a.allDay===!!b.allDay;
   return Math.abs(mins(a.start)-mins(b.start))<=15;
