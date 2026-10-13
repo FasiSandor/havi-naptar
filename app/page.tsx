@@ -1478,7 +1478,7 @@ function extractEventCandidates(text:string,baseDate:Date){
 
 function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{baseDate:Date;existingEvents:Ev[];onClose:()=>void;onCreate:(x:Partial<Ev>)=>Promise<boolean>;onDetails?:(x:Partial<Ev>)=>void}){
   const [smartText,setSmartText]=useState("");
-  const [manual,setManual]=useState(false);
+  const [manual,setManual]=useState(true);
   const [title,setTitle]=useState("");
   const [year,setYear]=useState(baseDate.getFullYear());
   const [month,setMonth]=useState(baseDate.getMonth());
@@ -1498,9 +1498,10 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
   const maxDay=new Date(year,month+1,0).getDate();
   const safeDay=Math.min(day,maxDay);
   const date=iso(new Date(year,month,safeDay,12));
-  const monthItems=Array.from({length:14},(_,i)=>{const d=new Date(baseDate.getFullYear(),baseDate.getMonth()-2+i,1,12);return {value:d.getFullYear()*12+d.getMonth(),label:d.toLocaleDateString("hu-HU",{month:"short"})+" "+String(d.getFullYear()).slice(2)}});
-  const monthValue=year*12+month;
-  const chooseMonth=(v:number)=>{const y=Math.floor(v/12),m=v%12;setYear(y);setMonth(m);setDay(d=>Math.min(d,new Date(y,m+1,0).getDate()))};
+  const yearItems=Array.from({length:21},(_,i)=>({value:baseDate.getFullYear()-5+i,label:String(baseDate.getFullYear()-5+i)}));
+  const monthItems=Array.from({length:12},(_,i)=>({value:i,label:new Date(2026,i,1).toLocaleDateString("hu-HU",{month:"long"})}));
+  const chooseYear=(y:number)=>{setYear(y);setDay(d=>Math.min(d,new Date(y,month+1,0).getDate()))};
+  const chooseMonth=(m:number)=>{setMonth(m);setDay(d=>Math.min(d,new Date(year,m+1,0).getDate()))};
   const smartCalendar=calendarTouched?calendar:parsed.calendar;
   const selectedDayTitleOnly=!manual&&!!parsed.title&&!parsed.explicitDate&&!parsed.explicitTime&&!parsed.allDay&&parsed.missing.every(x=>x==="idő");
   const effectiveParsed=selectedDayTitleOnly?{...parsed,date:iso(baseDate),allDay:true,start:undefined,end:undefined,missing:[],confidence:"high" as const}:parsed;
@@ -1541,7 +1542,7 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
         <div className="activeDateHint"><span>Aktív nap</span><b>{baseDate.toLocaleDateString("hu-HU",{month:"short",day:"numeric",weekday:"short"})}</b><em>Ha nem írsz dátumot, erre a napra kerül.</em></div>
         <div className="pasteRow"><button type="button" onClick={pasteClipboard}>⌘ Beillesztés vágólapról</button><span>Emailből vagy üzenetből</span></div>
         {clipboardError&&<div className="clipboardError">{clipboardError}</div>}
-        <textarea className={"smartInput "+(pastedMode?"pasteInput":"")} autoFocus rows={pastedMode?5:2}
+        <textarea className={"smartInput "+(pastedMode?"pasteInput":"")} rows={pastedMode?5:2}
           placeholder={"Írj röviden vagy másolj be szöveget…\npl. okt 15 fodrász 16.10"}
           value={smartText}
           onChange={e=>{setSmartText(e.target.value);setSavedCandidates({})}}
@@ -1584,10 +1585,14 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
 
       {manual&&<>
         <input className="quickTitle" autoFocus placeholder="Mi legyen?" value={title} onChange={e=>setTitle(e.target.value)}/>
-        <div className="wheelPicker">
-          <WheelScroller label="HÓNAP" items={monthItems} value={monthValue} onChange={chooseMonth}/>
+        <div className="wheelPicker iphoneDateWheel" aria-label="Dátum kiválasztása">
+          <WheelScroller label="ÉV" items={yearItems} value={year} onChange={chooseYear}/>
+          <WheelScroller label="HÓNAP" items={monthItems} value={month} onChange={chooseMonth}/>
           <WheelScroller label="NAP" items={Array.from({length:maxDay},(_,i)=>({value:i+1,label:String(i+1)}))} value={safeDay} onChange={setDay}/>
-          <WheelScroller label={allDay?"EGÉSZ NAP":"IDŐ"} items={allDay?[{value:0,label:"—"}]:Array.from({length:96},(_,i)=>({value:i*15,label:hhmm(i*15)}))} value={allDay?0:time} onChange={setTime}/>
+        </div>
+        {!allDay&&<div className="wheelPicker iphoneTimeWheel" aria-label="Időpont kiválasztása">
+          <WheelScroller label="ÓRA" items={Array.from({length:24},(_,i)=>({value:i,label:String(i).padStart(2,"0")}))} value={Math.floor(time/60)} onChange={h=>setTime(h*60+time%60)}/>
+          <WheelScroller label="PERC" items={Array.from({length:60},(_,i)=>({value:i,label:String(i).padStart(2,"0")}))} value={time%60} onChange={m=>setTime(Math.floor(time/60)*60+m)}/>
         </div>
         <div className="quickOptions"><button type="button" className={allDay?"on":""} onClick={()=>setAllDay(v=>!v)}><i/> Egész napos</button><span>{date}</span></div>
       </>}
