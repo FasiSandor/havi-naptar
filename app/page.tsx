@@ -540,7 +540,7 @@ export default function Home(){
         if(op.kind==="create"&&!ev.centralEventId&&!ev.googleId){
           const from=new Date(sd);from.setHours(0,0,0,0);
           const existing=existingForDraft(ev,await loadCoreRange(from,addDays(from,1)));
-          if(existing){
+          if(existing?.googleId){
             setEvents(prev=>dedupeEvents([...prev.filter(e=>e.id!==ev.id),existing]));
             done.add(op.id);
             continue;
