@@ -7,7 +7,7 @@ type RangeMode="1w"|"2w"|"3w"|"4w"|"month"|"custom"|"list";
 type ThemeMode="dark"|"light"|"system";
 type RepeatMode="none"|"daily"|"weekly"|"monthly"|"yearly"|"googleSeries";
 type Ev={id:string;googleId?:string;centralEventId?:string;sourceApp?:string;sourceRecordId?:string;title:string;date:string;start?:string;end?:string;allDay?:boolean;calendar:CalKey;location?:string;note?:string;repeat?:RepeatMode;reminder?:number;pendingSync?:boolean;linkedApp?:string;linkedLabel?:string;linkedUrl?:string};
-type SyncOp={id:string;kind:"create"|"update"|"delete";event?:Ev;googleId?:string;createdAt:number};
+type SyncOp={id:string;kind:"create"|"update"|"delete";event?:Ev;googleId?:string;centralEventId?:string;createdAt:number};
 type Suggestion={id:string;source_app:string;source_record_id:string;source_url?:string|null;title:string;summary?:string|null;event_date?:string|null;starts_at?:string|null;ends_at?:string|null;all_day:boolean;timezone:string;location?:string|null;confidence:"probable"|"uncertain";status:"pending"|"accepted"|"rejected";payload?:Record<string,any>;created_at:string};
 
 const calMeta:Record<CalKey,{label:string;color:string;icon:string}>={
@@ -432,7 +432,9 @@ export default function Home(){
   }
   function filterPendingDeletes(incoming:Ev[]){
     const blocked=new Set(syncQueue.filter(op=>op.kind==="delete").map(op=>op.googleId).filter(Boolean) as string[]);
-    return blocked.size?incoming.filter(e=>!e.googleId||!blocked.has(e.googleId)):incoming;
+    const coreBlocked=new Set(syncQueue.filter(op=>op.kind==="delete").map(op=>op.centralEventId||op.event?.centralEventId).filter(Boolean) as string[]);
+    const localBlocked=new Set(syncQueue.filter(op=>op.kind==="delete").map(op=>op.event?.id).filter(Boolean) as string[]);
+    return incoming.filter(e=>!(e.googleId&&blocked.has(e.googleId))&&!(e.centralEventId&&coreBlocked.has(e.centralEventId))&&!localBlocked.has(e.id));
   }
 
   function reconcileQueueWithIncoming(incoming:Ev[]){
@@ -456,7 +458,7 @@ export default function Home(){
       const incoming=await loadCoreRange(from,to);
       setCoreOnline(true);
       reconcileQueueWithIncoming(incoming);
-      setEvents(prev=>mergeCoreRange(prev,incoming,iso(from),iso(to)));
+      setEvents(prev=>mergeCoreRange(prev,filterPendingDeletes(incoming),iso(from),iso(to)));
       const stamp=Date.now();setLastSync(stamp);localStorage.setItem("havi-last-sync",String(stamp));
       return incoming;
     }catch{setCoreOnline(false);return [] as Ev[]}
@@ -491,11 +493,24 @@ export default function Home(){
     const done=new Set<string>();
     for(const op of syncQueue){
       try{
-        if(op.kind==="delete"&&op.googleId){
-          const r=await fetch("/api/google/events?id="+encodeURIComponent(op.googleId),{method:"DELETE"});
+        if(op.kind==="delete"){
+          let coreId=op.centralEventId||op.event?.centralEventId;
+          if(coreOnline&&!coreId){
+            const r=await fetch("/api/core/events",{cache:"no-store"});
+            if(!r.ok)continue;
+            const j=await r.json();
+            const found=(j.items||[]).find((x:any)=>(op.googleId&&x.google_event_id===op.googleId)||
+              (op.event&&x.source_app===(op.event.sourceApp||"havi")&&x.source_record_id===(op.event.sourceRecordId||op.event.id)));
+            coreId=found?.id;
+            if(!coreId&&!op.googleId){done.add(op.id);continue}
+          }
+          const url=coreId?"/api/core/events?id="+encodeURIComponent(coreId):
+            connected&&op.googleId?"/api/google/events?id="+encodeURIComponent(op.googleId):null;
+          if(!url)continue;
+          const r=await fetch(url,{method:"DELETE"});
           if(r.ok||r.status===404){
-            const deletedGoogleId=op.googleId;
-            setEvents(prev=>prev.filter(e=>e.googleId!==deletedGoogleId));
+            setEvents(prev=>prev.filter(e=>!(op.googleId&&e.googleId===op.googleId)&&
+              !(coreId&&e.centralEventId===coreId)&&!(op.event&&e.id===op.event.id)));
             done.add(op.id);
           }
           continue;
@@ -560,7 +575,7 @@ export default function Home(){
     }finally{setSyncing(false)}
   }
   useEffect(()=>{if(hydrated)sync().catch(()=>{})},[start.getTime(),end.getTime(),hydrated]);
-  useEffect(()=>{if(hydrated&&(connected||coreOnline)&&syncQueue.length)flushSyncQueue().catch(()=>{})},[hydrated,connected,coreOnline,syncQueue.length]);
+  useEffect(()=>{if(hydrated&&(connected||coreOnline)&&syncQueue.length)flushSyncQueue().catch(()=>{})},[hydrated,connected,coreOnline,syncQueue]);
   useEffect(()=>{
     if(!hydrated)return;
     const refresh=()=>{if(document.visibilityState==="visible")sync().catch(()=>{})};
@@ -682,25 +697,26 @@ export default function Home(){
   }
 
   async function remove(e:Ev){
+    let pending=false;
     if(e.centralEventId){
-      try{await fetch("/api/core/events?id="+encodeURIComponent(e.centralEventId),{method:"DELETE"})}catch{}
-    }
-    if(!e.googleId){
-      clearQueuedFor(e.id);
-    }
-    if(e.googleId&&connected){
+      try{
+        const r=await fetch("/api/core/events?id="+encodeURIComponent(e.centralEventId),{method:"DELETE"});
+        if(r.ok||r.status===404)clearQueuedFor(e.id,e.googleId);
+        else pending=true;
+      }catch{pending=true}
+    }else if(e.googleId&&connected){
       try{
         const r=await fetch("/api/google/events?id="+encodeURIComponent(e.googleId),{method:"DELETE"});
-        if(r.ok||r.status===404)clearQueuedFor(e.id,e.googleId);
-        else queueSync({id:crypto.randomUUID(),kind:"delete",googleId:e.googleId,createdAt:Date.now()});
-      }catch{
-        queueSync({id:crypto.randomUUID(),kind:"delete",googleId:e.googleId,createdAt:Date.now()});
-      }
-    }else if(e.googleId){
-      queueSync({id:crypto.randomUUID(),kind:"delete",googleId:e.googleId,createdAt:Date.now()});
+        if(r.ok||r.status===404)clearQueuedFor(e.id,e.googleId);else pending=true;
+      }catch{pending=true}
+    }else if(e.googleId||syncQueue.some(op=>op.event?.id===e.id)){
+      pending=true;
+    }else{
+      clearQueuedFor(e.id);
     }
+    if(pending)queueSync({id:crypto.randomUUID(),kind:"delete",event:e,centralEventId:e.centralEventId,googleId:e.googleId,createdAt:Date.now()});
     setEvents(p=>p.filter(x=>x.id!==e.id&&(!e.googleId||x.googleId!==e.googleId)&&(!e.centralEventId||x.centralEventId!==e.centralEventId)));
-    setNotice(e.googleId&&!connected?"Esemény törölve a központi naptárból, a Google-t később frissítem.":"Esemény törölve.");
+    setNotice(pending?"Törlés rögzítve. Kapcsolat esetén szinkronizáljuk.":"Esemény törölve.");
     setTimeout(()=>setNotice(""),1600);
   }
 
@@ -2018,4 +2034,5 @@ function EventForm({value,connected,onSave,onCancel}:{value:Partial<Ev>;connecte
     <div className="iosModalActions"><button className="iosCancel" onClick={onCancel}>Mégse</button><button className="iosSave" onClick={submit}>Hozzáadás / Mentés</button></div>
   </div>
 }
+
 

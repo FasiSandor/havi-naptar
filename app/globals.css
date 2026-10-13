@@ -1283,8 +1283,16 @@
   .appShell[data-theme="light"] .mockMonthGrid>button,.appShell[data-theme="light"] .flowGrid>button{color:#20354A;border-color:#D6E0E9}
   .appShell[data-theme="light"] .mockMonthGrid>button.outside,.appShell[data-theme="light"] .flowGrid>button.outside{color:#A5B1BD}
   .appShell[data-theme="light"] .mobileDayPanel{background:linear-gradient(180deg,#FFFFFF,#EEF5FB);border-color:#B9CEE0;color:#172A3D}
-  .appShell[data-theme="light"] .mobileEventCard{color:#14283C}
+  .appShell[data-theme="light"] .mobileEventCard{
+    color:#14283C;border-color:color-mix(in srgb,var(--event) 45%,#AFC4D8);
+    background:linear-gradient(135deg,color-mix(in srgb,var(--event) 10%,#FFFFFF),#F5FAFF);
+    box-shadow:0 8px 22px #31517318,inset 0 1px 0 #FFFFFF;
+  }
+  .appShell[data-theme="light"] .mobileEventTime b{color:#20364B}
+  .appShell[data-theme="light"] .mobileEventTime span{color:#526B82}
+  .appShell[data-theme="light"] .mobileEventIcon{background:color-mix(in srgb,var(--event) 10%,#FFFFFF)}
   .appShell[data-theme="light"] .mobileEventText span{color:#587188}
+  .mobileEventText b{white-space:normal;line-height:1.3;overflow:visible;text-overflow:clip}
   .appShell[data-theme="light"] .monthFlowHead{background:#F8FBFFE8;border-color:#D5E0E9}
   .appShell[data-theme="light"] .monthFlowHead button{background:#F2F6FA;border-color:#C9D7E4;color:#26415D}
 }
@@ -2696,3 +2704,4 @@
 .appShell[data-theme="light"] .linkedOpenButton{
   background:#EEF6FF;border-color:#B7D5F2;color:#2168A9;
 }
+
