@@ -2706,3 +2706,8 @@
   background:#EEF6FF;border-color:#B7D5F2;color:#2168A9;
 }
 
+
+/* iPhone-style quick event picker: date and time are distinct wheels. */
+.iphoneDateWheel{grid-template-columns:.9fr 1.3fr .7fr}
+.iphoneTimeWheel{grid-template-columns:1fr 1fr;margin-top:10px}
+.iphoneDateWheel .wheelColumn button,.iphoneTimeWheel .wheelColumn button{touch-action:pan-y}
