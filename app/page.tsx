@@ -1584,10 +1584,14 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
 
       {manual&&<>
         <input className="quickTitle" autoFocus placeholder="Mi legyen?" value={title} onChange={e=>setTitle(e.target.value)}/>
-        <div className="wheelPicker">
-          <WheelScroller label="HÓNAP" items={monthItems} value={monthValue} onChange={chooseMonth}/>
+        <div className="wheelPicker iphoneDateWheel">
+          <WheelScroller label="ÉV" items={Array.from({length:21},(_,i)=>({value:baseDate.getFullYear()-5+i,label:String(baseDate.getFullYear()-5+i)}))} value={year} onChange={setYear}/>
+          <WheelScroller label="HÓNAP" items={Array.from({length:12},(_,i)=>({value:i,label:String(i+1).padStart(2,"0")}))} value={month} onChange={setMonth}/>
           <WheelScroller label="NAP" items={Array.from({length:maxDay},(_,i)=>({value:i+1,label:String(i+1)}))} value={safeDay} onChange={setDay}/>
-          <WheelScroller label={allDay?"EGÉSZ NAP":"IDŐ"} items={allDay?[{value:0,label:"—"}]:Array.from({length:96},(_,i)=>({value:i*15,label:hhmm(i*15)}))} value={allDay?0:time} onChange={setTime}/>
+        </div>
+        {!allDay&&<div className="wheelPicker iphoneTimeWheel">
+          <WheelScroller label="ÓRA" items={Array.from({length:24},(_,i)=>({value:i,label:String(i).padStart(2,"0")}))} value={Math.floor(time/60)} onChange={h=>setTime(h*60+time%60)}/>
+          <WheelScroller label="PERC" items={Array.from({length:60},(_,i)=>({value:i,label:String(i).padStart(2,"0")}))} value={time%60} onChange={m=>setTime(Math.floor(time/60)*60+m)}/>
         </div>
         <div className="quickOptions"><button type="button" className={allDay?"on":""} onClick={()=>setAllDay(v=>!v)}><i/> Egész napos</button><span>{date}</span></div>
       </>}
