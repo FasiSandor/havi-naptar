@@ -1593,7 +1593,7 @@ function QuickAddWheel({baseDate,existingEvents,onClose,onCreate,onDetails}:{bas
         {!allDay&&<div className="wheelPicker iphoneTimeWheel" aria-label="Időpont kiválasztása">
           <WheelScroller label="ÓRA" items={Array.from({length:24},(_,i)=>({value:i,label:String(i).padStart(2,"0")}))} value={Math.floor(time/60)} onChange={h=>setTime(h*60+time%60)}/>
           <WheelScroller label="PERC" items={Array.from({length:60},(_,i)=>({value:i,label:String(i).padStart(2,"0")}))} value={time%60} onChange={m=>setTime(Math.floor(time/60)*60+m)}/>
-        </div>
+        </div>}
         <div className="quickOptions"><button type="button" className={allDay?"on":""} onClick={()=>setAllDay(v=>!v)}><i/> Egész napos</button><span>{date}</span></div>
       </>}
 
