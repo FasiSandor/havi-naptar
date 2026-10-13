@@ -497,17 +497,10 @@ export default function Home(){
     }catch{setCoreOnline(false);return [] as Ev[]}
   }
 
-  async function importGoogleToCore(incoming:Ev[]){
-    // Background sync is the canonical Google importer. Reuse linked Core events
-    // instead of POSTing the same Google occurrence again under a different source ID.
-    const known=await loadCoreRange(start,addDays(end,1)).catch(()=>[] as Ev[]);
-    const byGoogleId=new Map<string,Ev>(known.filter(e=>!!e.googleId).map((e):[string,Ev]=>[e.googleId!,e]));
-    return incoming.map(e=>{
-      const existing=e.googleId?byGoogleId.get(e.googleId):undefined;
-      return existing?{...e,centralEventId:existing.centralEventId,
-        sourceApp:existing.sourceApp,sourceRecordId:existing.sourceRecordId,
-        pendingSync:false}:e;
-    });
+  async function importGoogleToCore(incoming:Ev[]):Promise<Ev[]>{
+    // Background Google pull owns canonical Core ingestion.
+    // The browser displays Google items but must not independently POST them again.
+    return incoming;
   }
 
   async function flushSyncQueue(){
