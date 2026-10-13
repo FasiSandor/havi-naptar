@@ -2009,6 +2009,14 @@ function LinkedOpenButton({url,label}:{url?:string;label?:string}){
 
 function EventForm({value,connected,onSave,onCancel}:{value:Partial<Ev>;connected:boolean;onSave:(x:Partial<Ev>)=>void;onCancel:()=>void}){
   const [x,setX]=useState(value);
+  const selectedDate=parseDate(x.date||iso(new Date()));
+  const dateYear=selectedDate.getFullYear(),dateMonth=selectedDate.getMonth(),dateDay=selectedDate.getDate();
+  const changeDate=(y:number,m:number,d:number)=>{
+    const safe=Math.min(d,new Date(y,m+1,0).getDate());
+    setX(prev=>({...prev,date:iso(new Date(y,m,safe,12))}));
+  };
+  const setClock=(field:"start"|"end",hour:number,minute:number)=>setX(prev=>({...prev,[field]:String(hour).padStart(2,"0")+":"+String(minute).padStart(2,"0")}));
+  const clock=(field:"start"|"end")=>{const [h,m]=String(x[field]|| (field==="start"?"09:00":"10:00")).split(":").map(Number);return {hour:h||0,minute:m||0}};
   const titleNorm=normText(x.title||"");
   const suggestedApp=titleNorm.includes("leltar")||titleNorm.includes("rendeles")?"HaviNyersanyag Rendelő":titleNorm.includes("kerek")?"Kerékcsere":titleNorm.includes("szemelyes")?"Személyes Központ":"";
   const appPresets=[
@@ -2036,11 +2044,19 @@ function EventForm({value,connected,onSave,onCancel}:{value:Partial<Ev>;connecte
 
     <section className="iosFormGroup">
       <label className="iosRow"><span>Egész napos</span><input className="iosToggle" type="checkbox" checked={!!x.allDay} onChange={e=>setX({...x,allDay:e.target.checked})}/></label>
-      <label className="iosRow"><span>Dátum</span><input type="date" value={x.date||""} onChange={e=>setX({...x,date:e.target.value})}/></label>
-      {!x.allDay&&<>
-        <label className="iosRow"><span>Kezdés</span><input type="time" step="900" value={x.start||""} onChange={e=>setX({...x,start:e.target.value})}/></label>
-        <label className="iosRow"><span>Vége</span><input type="time" step="900" value={x.end||""} onChange={e=>setX({...x,end:e.target.value})}/></label>
-      </>}
+      <div className="iosPickerLabel">Dátum · év / hónap / nap</div>
+      <div className="wheelPicker iphoneDateWheel">
+        <WheelScroller label="ÉV" items={Array.from({length:21},(_,i)=>({value:new Date().getFullYear()-5+i,label:String(new Date().getFullYear()-5+i)}))} value={dateYear} onChange={y=>changeDate(y,dateMonth,dateDay)}/>
+        <WheelScroller label="HÓNAP" items={Array.from({length:12},(_,i)=>({value:i,label:new Date(2026,i,1).toLocaleDateString("hu-HU",{month:"long"})}))} value={dateMonth} onChange={m=>changeDate(dateYear,m,dateDay)}/>
+        <WheelScroller label="NAP" items={Array.from({length:new Date(dateYear,dateMonth+1,0).getDate()},(_,i)=>({value:i+1,label:String(i+1)}))} value={dateDay} onChange={d=>changeDate(dateYear,dateMonth,d)}/>
+      </div>
+      {!x.allDay&&(["start","end"] as const).map(field=><div key={field} className="iosClockPicker">
+        <div className="iosPickerLabel">{field==="start"?"Kezdés":"Befejezés"} · {String(x[field]|| (field==="start"?"09:00":"10:00"))}</div>
+        <div className="wheelPicker iphoneTimeWheel">
+          <WheelScroller label="ÓRA" items={Array.from({length:24},(_,i)=>({value:i,label:String(i).padStart(2,"0")}))} value={clock(field).hour} onChange={h=>setClock(field,h,clock(field).minute)}/>
+          <WheelScroller label="PERC" items={Array.from({length:60},(_,i)=>({value:i,label:String(i).padStart(2,"0")}))} value={clock(field).minute} onChange={m=>setClock(field,clock(field).hour,m)}/>
+        </div>
+      </div>)}
     </section>
 
     <section className="iosFormGroup">
