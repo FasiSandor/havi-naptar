@@ -2711,3 +2711,7 @@
 .iphoneDateWheel{grid-template-columns:.9fr 1.3fr .7fr}
 .iphoneTimeWheel{grid-template-columns:1fr 1fr;margin-top:10px}
 .iphoneDateWheel .wheelColumn button,.iphoneTimeWheel .wheelColumn button{touch-action:pan-y}
+
+.iosPickerLabel{padding:12px 4px 6px;font-weight:750;font-size:13px;color:#b9cce5}
+.iosEventForm .wheelPicker{margin:0 4px 10px}
+.iosClockPicker{padding-top:8px}
