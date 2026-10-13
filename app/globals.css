@@ -2706,3 +2706,7 @@
   background:#EEF6FF;border-color:#B7D5F2;color:#2168A9;
 }
 
+
+/* Independent, iPhone-style date and time wheels for quick add. */
+.iphoneDateWheel{grid-template-columns:.85fr 1fr .75fr}
+.iphoneTimeWheel{grid-template-columns:1fr 1fr;margin-top:9px}
