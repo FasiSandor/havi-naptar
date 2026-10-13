@@ -501,7 +501,7 @@ export default function Home(){
     // Background sync is the canonical Google importer. Reuse linked Core events
     // instead of POSTing the same Google occurrence again under a different source ID.
     const known=await loadCoreRange(start,addDays(end,1)).catch(()=>[] as Ev[]);
-    const byGoogleId=new Map(known.filter(e=>e.googleId).map(e=>[e.googleId!,e]));
+    const byGoogleId=new Map<string,Ev>(known.filter(e=>!!e.googleId).map((e):[string,Ev]=>[e.googleId!,e]));
     return incoming.map(e=>{
       const existing=e.googleId?byGoogleId.get(e.googleId):undefined;
       return existing?{...e,centralEventId:existing.centralEventId,
