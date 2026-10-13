@@ -285,6 +285,7 @@ export default function Home(){
   const [syncQueue,setSyncQueue]=useState<SyncOp[]>([]);
   const queueFlushRunning=useRef(false);
   const [lastSync,setLastSync]=useState<number|null>(null);
+  const [backgroundHealth,setBackgroundHealth]=useState<{at:string|null;ok:boolean;failed:number;intervalMinutes:number}|null>(null);
   const [searchOpen,setSearchOpen]=useState(false);
   const [clock,setClock]=useState(()=>Date.now());
   const [backupPreview,setBackupPreview]=useState<{events:Ev[];total:number;duplicates:number;invalid:number;name:string}|null>(null);
@@ -292,6 +293,14 @@ export default function Home(){
   const [wallPrintMode,setWallPrintMode]=useState<"2w"|"3w"|"4w"|"month">("month");
   const [suggestions,setSuggestions]=useState<Suggestion[]>([]);
 
+  useEffect(()=>{
+    let cancelled=false;
+    fetch("https://syzpkrypgcwiyzzzlzzi.supabase.co/functions/v1/calendar-core-google-pull",{cache:"no-store"})
+      .then(r=>r.ok?r.json():null)
+      .then(j=>{if(!cancelled&&j&&typeof j.ok==="boolean")setBackgroundHealth(j)})
+      .catch(()=>{});
+    return ()=>{cancelled=true};
+  },[lastSync]);
   useEffect(()=>{
     try{
       const stored:Ev[]=JSON.parse(localStorage.getItem("havi-events")||"[]");
@@ -1003,6 +1012,7 @@ export default function Home(){
           </div>
           <div className="syncDiagFoot">
             <span>{lastSync?"Naptár utoljára frissítve: "+new Date(lastSync).toLocaleString("hu-HU"):"A naptárkapcsolat ellenőrzése folyamatban."}</span>
+            <span title="A zárt alkalmazás mellett futó Google-háttérszinkron utolsó rögzített futása">{backgroundHealth?.at?("Háttér: "+new Date(backgroundHealth.at).toLocaleString("hu-HU")+(backgroundHealth.ok&&backgroundHealth.failed===0?" ✓":" ⚠") +" · "+backgroundHealth.intervalMinutes+" perc"):"Háttér: állapot nem elérhető"}</span>
             <button disabled={syncing} onClick={()=>sync()}>{syncing?"Szinkron…":"Szinkron most"}</button>
           </div>
         </div>
