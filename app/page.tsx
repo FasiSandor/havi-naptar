@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useMemo,useRef,useState} from "react";
 import CoreGoogleSyncSettings from "./CoreGoogleSyncSettings";
+import WatchCenter from "./WatchCenter";
 
 type CalKey="work"|"personal"|"family"|"sport";
 type RangeMode="1w"|"2w"|"3w"|"4w"|"month"|"custom"|"list";
@@ -842,6 +843,8 @@ export default function Home(){
       <button className="nav" onClick={()=>setSearchOpen(true)}>⌕ <span>Keresés</span></button>
       <button className="nav" onClick={()=>setSettings(true)}>⚙ <span>Naptár kapcsolat</span></button>
     </aside>
+
+    <WatchCenter suggestions={suggestions} onDecision={decideSuggestion}/>
 
     <MobilePortrait
       anchor={anchor}
